@@ -6,18 +6,34 @@ Office.onReady((info) => {
     if (appBody) {
         appBody.style.display = "block";
     }
-    const convertDocBtn = document.getElementById("convert-doc");
+    const convertDocBtn = document.getElementById("convert-doc") as HTMLButtonElement;
     if (convertDocBtn) {
         convertDocBtn.onclick = async () => {
-            const { runConversion } = await import("../shared/converter");
-            runConversion(false);
+            const originalText = convertDocBtn.innerText;
+            try {
+                convertDocBtn.disabled = true;
+                convertDocBtn.innerText = "Converting...";
+                const { runConversion } = await import("../shared/converter");
+                await runConversion(false);
+            } finally {
+                convertDocBtn.disabled = false;
+                convertDocBtn.innerText = originalText;
+            }
         };
     }
-    const convertSelBtn = document.getElementById("convert-sel");
+    const convertSelBtn = document.getElementById("convert-sel") as HTMLButtonElement;
     if (convertSelBtn) {
         convertSelBtn.onclick = async () => {
-            const { runConversion } = await import("../shared/converter");
-            runConversion(true);
+            const originalText = convertSelBtn.innerText;
+            try {
+                convertSelBtn.disabled = true;
+                convertSelBtn.innerText = "Converting...";
+                const { runConversion } = await import("../shared/converter");
+                await runConversion(true);
+            } finally {
+                convertSelBtn.disabled = false;
+                convertSelBtn.innerText = originalText;
+            }
         };
     }
   }
