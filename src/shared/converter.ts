@@ -189,11 +189,11 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
     // Chunking to support low-end machines and avoid Memory Bloat
     const BATCH_SIZE = 30; // Trả lại 30 để đảm bảo tốc độ cao nhất
     
-    const totalFormulas = uniqueNodes.length;
-    let processedFormulas = 0;
+    const totalActualFormulas = mathNodes.length;
+    let processedActualFormulas = 0;
 
     if (state && state.onProgress) {
-        state.onProgress(totalFormulas, totalFormulas);
+        state.onProgress(totalActualFormulas, totalActualFormulas);
     }
 
     for (let i = 0; i < uniqueNodes.length; i += BATCH_SIZE) {
@@ -283,9 +283,24 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
         // Phase 4: Bulk Sync 2 (Apply all insertions for this chunk)
         await context.sync();
 
-        processedFormulas += chunkNodes.length;
+        let batchActualCount = 0;
+        for (const task of searchTasks) {
+            if (task.type === 'short') {
+                batchActualCount += task.results.items.length;
+            } else {
+                batchActualCount += Math.min(task.startResults.items.length, task.endResults.items.length);
+            }
+        }
+
+        processedActualFormulas += batchActualCount;
+        
+        // Safety cap in case of parsing discrepancies
+        if (processedActualFormulas > totalActualFormulas) {
+            processedActualFormulas = totalActualFormulas;
+        }
+
         if (state && state.onProgress) {
-            state.onProgress(totalFormulas - processedFormulas, totalFormulas);
+            state.onProgress(totalActualFormulas - processedActualFormulas, totalActualFormulas);
         }
 
         // Nhường lại CPU cho giao diện Word trong 20ms để người dùng có thể cuộn trang mượt mà
