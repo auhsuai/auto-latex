@@ -6,6 +6,7 @@ import { visit } from "unist-util-visit";
 
 export interface ConversionState {
     isCancelled: boolean;
+    onProgress?: (remaining: number, total: number) => void;
 }
 
 // Edge Case 10: Balance Braces
@@ -187,6 +188,13 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
 
     // Chunking to support low-end machines and avoid Memory Bloat
     const BATCH_SIZE = 30; // Tăng lên 30 để chạy nhanh hơn
+    
+    const totalFormulas = uniqueNodes.length;
+    let processedFormulas = 0;
+
+    if (state && state.onProgress) {
+        state.onProgress(totalFormulas, totalFormulas);
+    }
 
     for (let i = 0; i < uniqueNodes.length; i += BATCH_SIZE) {
         if (state && state.isCancelled) {
@@ -270,6 +278,11 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
 
         // Phase 4: Bulk Sync 2 (Apply all insertions for this chunk)
         await context.sync();
+
+        processedFormulas += chunkNodes.length;
+        if (state && state.onProgress) {
+            state.onProgress(totalFormulas - processedFormulas, totalFormulas);
+        }
 
         // Nhường lại CPU cho giao diện Word trong 20ms để người dùng có thể cuộn trang mượt mà
         await new Promise(resolve => setTimeout(resolve, 20));

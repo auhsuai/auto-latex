@@ -12,19 +12,30 @@ Office.onReady((info) => {
 
     const handleConversion = async (btn: HTMLButtonElement, isSelection: boolean) => {
         const originalText = btn.innerText;
-        const state = { isCancelled: false };
-        let timeoutId: any = null;
+        
+        const progressSpan = document.getElementById("progress-text");
+
+        const state = { 
+            isCancelled: false,
+            onProgress: (remaining: number, total: number) => {
+                if (cancelMsg && progressSpan) {
+                    if (total > 0 && remaining > 0) {
+                        cancelMsg.style.display = "block";
+                        btn.innerText = `Converting, ${remaining} left...`;
+                        progressSpan.innerText = `Stuck? `;
+                    } else if (remaining === 0) {
+                        cancelMsg.style.display = "none";
+                        btn.innerText = "Finishing...";
+                    }
+                }
+            }
+        };
 
         try {
             btn.disabled = true;
             btn.innerText = "Converting...";
 
             if (cancelMsg && cancelLink) {
-                // Set 30s timeout to show the cancel message
-                timeoutId = setTimeout(() => {
-                    cancelMsg.style.display = "block";
-                }, 30000);
-
                 cancelLink.onclick = (e) => {
                     e.preventDefault();
                     state.isCancelled = true;
@@ -36,7 +47,6 @@ Office.onReady((info) => {
             const { runConversion } = await import("../shared/converter");
             await runConversion(isSelection, state);
         } finally {
-            if (timeoutId) clearTimeout(timeoutId);
             if (cancelMsg) cancelMsg.style.display = "none";
             btn.disabled = false;
             btn.innerText = originalText;
