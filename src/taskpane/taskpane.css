@@ -1,0 +1,153 @@
+/* Word Blue Theme (Production Quality UI) */
+:root {
+    --color-primary: #2b579a;
+    --color-primary-hover: #1e3e6e;
+    --color-surface: #ffffff;
+    --color-background: #faf9f8;
+    --color-text: #201f1e;
+    --color-text-muted: #605e5c;
+    --color-border: #edebe9;
+    
+    --radius-md: 6px;
+    --radius-sm: 4px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.app-header {
+    background-color: var(--color-surface);
+    color: var(--color-primary);
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--color-border);
+    /* Entrance Animation */
+    animation: slideDown 0.4s ease-out;
+}
+
+.app-logo {
+    margin-bottom: 12px;
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+}
+
+.app-main {
+    flex: 1;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Entrance Animation */
+    animation: fadeUp 0.5s ease-out;
+}
+
+.app-description {
+    text-align: center;
+    font-size: 15px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    margin-top: 0;
+    margin-bottom: 32px;
+    max-width: 280px;
+}
+
+.action-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 320px;
+}
+
+/* Button Reset (Baseline UI primitive) */
+.btn {
+    appearance: none;
+    background: none;
+    border: none;
+    padding: 14px 24px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    /* Compositor animations only! */
+    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+/* Hardware acceleration for smooth compositor animation */
+.btn {
+    will-change: transform;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.btn-icon {
+    flex-shrink: 0;
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+    border: 1px solid transparent;
+    box-shadow: 0 2px 4px rgba(43, 87, 154, 0.15);
+}
+
+.btn-primary:hover {
+    background-color: var(--color-primary-hover);
+    box-shadow: 0 4px 8px rgba(43, 87, 154, 0.25);
+}
+
+.btn-secondary {
+    background-color: var(--color-surface);
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+}
+
+.btn-secondary:hover {
+    background-color: #f3f6f9; /* Very light primary tint */
+}
+
+/* Keyframes */
+@keyframes slideDown {
+    from { transform: translateY(-10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeUp {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
