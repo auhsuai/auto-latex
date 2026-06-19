@@ -187,7 +187,7 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
     });
 
     // Chunking to support low-end machines and avoid Memory Bloat
-    const BATCH_SIZE = 30; // Trả lại 30 để đảm bảo tốc độ cao nhất
+    const BATCH_SIZE = 1; // Xử lý từng pattern một để có thể chunk quá trình chèn, giúp UI cập nhật mượt và Cancel ngay lập tức
     
     const totalActualFormulas = mathNodes.length;
     let processedActualFormulas = 0;
@@ -252,7 +252,7 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
         // Phase 2: Bulk Sync 1 (Load all search items for this chunk)
         await context.sync();
 
-        // Phase 3: Insert Queue
+        // Phase 3: Insert Queue with Inner Chunking
         for (const task of searchTasks) {
             if (state && state.isCancelled) break;
 
@@ -270,41 +270,45 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
                     }
                 }
                 
-                // Loop backwards
+                // Loop backwards and chunk insertions
+                const INSERT_CHUNK_SIZE = 10;
+                let currentChunkCount = 0;
+
                 for (let j = rangesToReplace.length - 1; j >= 0; j--) {
+                    if (state && state.isCancelled) break;
+
                     const wrappedMathML = `<html><body>${task.mathML}</body></html>`;
                     rangesToReplace[j].insertHtml(wrappedMathML, Word.InsertLocation.replace);
+                    currentChunkCount++;
+
+                    if (currentChunkCount >= INSERT_CHUNK_SIZE) {
+                        await context.sync();
+                        processedActualFormulas += currentChunkCount;
+                        if (processedActualFormulas > totalActualFormulas) processedActualFormulas = totalActualFormulas;
+                        
+                        if (state && state.onProgress) {
+                            state.onProgress(totalActualFormulas - processedActualFormulas, totalActualFormulas);
+                        }
+                        currentChunkCount = 0;
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                    }
+                }
+
+                // Final sync for remainder
+                if (currentChunkCount > 0) {
+                    await context.sync();
+                    processedActualFormulas += currentChunkCount;
+                    if (processedActualFormulas > totalActualFormulas) processedActualFormulas = totalActualFormulas;
+                    
+                    if (state && state.onProgress) {
+                        state.onProgress(totalActualFormulas - processedActualFormulas, totalActualFormulas);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 10));
                 }
             } catch (err) {
                 console.error("Lỗi khi chuẩn bị chèn công thức:", task.matchStr, err);
             }
         }
-
-        // Phase 4: Bulk Sync 2 (Apply all insertions for this chunk)
-        await context.sync();
-
-        let batchActualCount = 0;
-        for (const task of searchTasks) {
-            if (task.type === 'short') {
-                batchActualCount += task.results.items.length;
-            } else {
-                batchActualCount += Math.min(task.startResults.items.length, task.endResults.items.length);
-            }
-        }
-
-        processedActualFormulas += batchActualCount;
-        
-        // Safety cap in case of parsing discrepancies
-        if (processedActualFormulas > totalActualFormulas) {
-            processedActualFormulas = totalActualFormulas;
-        }
-
-        if (state && state.onProgress) {
-            state.onProgress(totalActualFormulas - processedActualFormulas, totalActualFormulas);
-        }
-
-        // Nhường lại CPU cho giao diện Word trong 20ms để người dùng có thể cuộn trang mượt mà
-        await new Promise(resolve => setTimeout(resolve, 20));
     }
   });
 }
