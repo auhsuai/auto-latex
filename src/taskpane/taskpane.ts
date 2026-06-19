@@ -22,7 +22,7 @@ Office.onReady((info) => {
                     if (total > 0 && remaining > 0) {
                         cancelMsg.style.display = "block";
                         btn.innerText = `Converting, ${remaining} left...`;
-                        progressSpan.innerText = `Stuck? `;
+                        progressSpan.innerText = `So long? `;
                     } else if (remaining === 0) {
                         cancelMsg.style.display = "none";
                         btn.innerText = "Finishing...";
