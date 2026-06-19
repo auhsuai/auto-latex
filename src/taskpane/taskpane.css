@@ -200,6 +200,17 @@ html, body {
     text-decoration: underline;
 }
 
+.cancel-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.cancel-link:hover {
+    text-decoration: underline;
+}
+
 .separator {
     color: var(--color-border);
 }

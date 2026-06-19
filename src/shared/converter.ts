@@ -4,6 +4,10 @@ import { remark } from "remark";
 import remarkMath from "remark-math";
 import { visit } from "unist-util-visit";
 
+export interface ConversionState {
+    isCancelled: boolean;
+}
+
 // Edge Case 10: Balance Braces
 function balanceBraces(latex: string): string {
     let openCount = (latex.match(/\{/g) || []).length;
@@ -123,7 +127,7 @@ function getMathML(latex: string, isBlock: boolean): string | null {
     }
 }
 
-export async function runConversion(onlySelection: boolean) {
+export async function runConversion(onlySelection: boolean, state?: ConversionState) {
   return Word.run(async (context) => {
     const docRange = onlySelection ? context.document.getSelection() : context.document.body;
     
@@ -185,6 +189,11 @@ export async function runConversion(onlySelection: boolean) {
     const BATCH_SIZE = 30; // Tăng lên 30 để chạy nhanh hơn
 
     for (let i = 0; i < uniqueNodes.length; i += BATCH_SIZE) {
+        if (state && state.isCancelled) {
+            console.log("Conversion cancelled by user.");
+            break;
+        }
+
         const chunkNodes = uniqueNodes.slice(i, i + BATCH_SIZE);
         const searchTasks: any[] = [];
 

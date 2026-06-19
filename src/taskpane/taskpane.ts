@@ -6,35 +6,50 @@ Office.onReady((info) => {
     if (appBody) {
         appBody.style.display = "block";
     }
+
+    const cancelMsg = document.getElementById("cancel-msg");
+    const cancelLink = document.getElementById("cancel-link");
+
+    const handleConversion = async (btn: HTMLButtonElement, isSelection: boolean) => {
+        const originalText = btn.innerText;
+        const state = { isCancelled: false };
+        let timeoutId: any = null;
+
+        try {
+            btn.disabled = true;
+            btn.innerText = "Converting...";
+
+            if (cancelMsg && cancelLink) {
+                // Set 30s timeout to show the cancel message
+                timeoutId = setTimeout(() => {
+                    cancelMsg.style.display = "block";
+                }, 30000);
+
+                cancelLink.onclick = (e) => {
+                    e.preventDefault();
+                    state.isCancelled = true;
+                    btn.innerText = "Cancelling...";
+                    cancelMsg.style.display = "none";
+                };
+            }
+
+            const { runConversion } = await import("../shared/converter");
+            await runConversion(isSelection, state);
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
+            if (cancelMsg) cancelMsg.style.display = "none";
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    };
+
     const convertDocBtn = document.getElementById("convert-doc") as HTMLButtonElement;
     if (convertDocBtn) {
-        convertDocBtn.onclick = async () => {
-            const originalText = convertDocBtn.innerText;
-            try {
-                convertDocBtn.disabled = true;
-                convertDocBtn.innerText = "Converting...";
-                const { runConversion } = await import("../shared/converter");
-                await runConversion(false);
-            } finally {
-                convertDocBtn.disabled = false;
-                convertDocBtn.innerText = originalText;
-            }
-        };
+        convertDocBtn.onclick = () => handleConversion(convertDocBtn, false);
     }
     const convertSelBtn = document.getElementById("convert-sel") as HTMLButtonElement;
     if (convertSelBtn) {
-        convertSelBtn.onclick = async () => {
-            const originalText = convertSelBtn.innerText;
-            try {
-                convertSelBtn.disabled = true;
-                convertSelBtn.innerText = "Converting...";
-                const { runConversion } = await import("../shared/converter");
-                await runConversion(true);
-            } finally {
-                convertSelBtn.disabled = false;
-                convertSelBtn.innerText = originalText;
-            }
-        };
+        convertSelBtn.onclick = () => handleConversion(convertSelBtn, true);
     }
   }
 });
