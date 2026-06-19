@@ -187,7 +187,7 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
     });
 
     // Chunking to support low-end machines and avoid Memory Bloat
-    const BATCH_SIZE = 30; // Tăng lên 30 để chạy nhanh hơn
+    const BATCH_SIZE = 5; // Giảm xuống 5 để thanh tiến độ mượt hơn và dễ Cancel hơn
     
     const totalFormulas = uniqueNodes.length;
     let processedFormulas = 0;
@@ -207,6 +207,8 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
 
         // Phase 1: Search Queue
         for (const node of chunkNodes) {
+            if (state && state.isCancelled) break;
+
             const matchStr = node.rawStr;
 
             // If the formula was wrapped in $$ or bold/italic $$, user expects a block equation
@@ -252,6 +254,8 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
 
         // Phase 3: Insert Queue
         for (const task of searchTasks) {
+            if (state && state.isCancelled) break;
+
             try {
                 let rangesToReplace: any[] = [];
                 if (task.type === 'short') {
