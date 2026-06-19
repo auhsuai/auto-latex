@@ -23,6 +23,13 @@ html, body {
     color: var(--color-text);
 }
 
+* {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
 .app-container {
     display: flex;
     flex-direction: column;

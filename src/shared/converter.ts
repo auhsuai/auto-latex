@@ -102,6 +102,8 @@ function getMathML(latex: string, isBlock: boolean): string | null {
             if (match && match[0]) {
                 let mathML = match[0];
                 mathML = mathML.replace(/<semantics>([\s\S]*?)<annotation[\s\S]*?<\/annotation><\/semantics>/ig, "$1");
+                // Edge Case 18: Fix Word dotted box for unary minus/plus after opening parenthesis
+                mathML = mathML.replace(/(<mo[^>]*>[\(\[\{]<\/mo>)\s*(<mo[^>]*>[−\+±∓]<\/mo>)/g, "$1<mi>&#x200B;</mi>$2");
                 return mathML;
             }
         }
@@ -110,6 +112,8 @@ function getMathML(latex: string, isBlock: boolean): string | null {
         if (match && match[0]) {
             let mathML = match[0];
             mathML = mathML.replace(/<semantics>([\s\S]*?)<annotation[\s\S]*?<\/annotation><\/semantics>/ig, "$1");
+            // Edge Case 18: Fix Word dotted box for unary minus/plus after opening parenthesis
+            mathML = mathML.replace(/(<mo[^>]*>[\(\[\{]<\/mo>)\s*(<mo[^>]*>[−\+±∓]<\/mo>)/g, "$1<mi>&#x200B;</mi>$2");
             return mathML;
         }
         return null;
@@ -178,7 +182,7 @@ export async function runConversion(onlySelection: boolean) {
     });
 
     // Chunking to support low-end machines and avoid Memory Bloat
-    const BATCH_SIZE = 50;
+    const BATCH_SIZE = 30; // Tăng lên 30 để chạy nhanh hơn
 
     for (let i = 0; i < uniqueNodes.length; i += BATCH_SIZE) {
         const chunkNodes = uniqueNodes.slice(i, i + BATCH_SIZE);
@@ -257,6 +261,9 @@ export async function runConversion(onlySelection: boolean) {
 
         // Phase 4: Bulk Sync 2 (Apply all insertions for this chunk)
         await context.sync();
+
+        // Nhường lại CPU cho giao diện Word trong 20ms để người dùng có thể cuộn trang mượt mà
+        await new Promise(resolve => setTimeout(resolve, 20));
     }
   });
 }
