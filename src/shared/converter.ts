@@ -187,7 +187,7 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
     });
 
     // Chunking to support low-end machines and avoid Memory Bloat
-    const BATCH_SIZE = 5; // Giảm xuống 5 để thanh tiến độ mượt hơn và dễ Cancel hơn
+    const BATCH_SIZE = 30; // Trả lại 30 để đảm bảo tốc độ cao nhất
     
     const totalFormulas = uniqueNodes.length;
     let processedFormulas = 0;
