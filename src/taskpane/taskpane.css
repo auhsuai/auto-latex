@@ -77,7 +77,8 @@ html, body {
     line-height: 1.5;
     margin-top: 0;
     margin-bottom: 32px;
-    max-width: 280px;
+    max-width: 320px;
+    text-wrap: balance;
 }
 
 .action-group {
