@@ -126,7 +126,7 @@ html, body {
     box-shadow: 0 2px 4px rgba(43, 87, 154, 0.15);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
     background-color: var(--color-primary-hover);
     box-shadow: 0 4px 8px rgba(43, 87, 154, 0.25);
 }
@@ -137,8 +137,14 @@ html, body {
     border: 1px solid var(--color-primary);
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
     background-color: #f3f6f9; /* Very light primary tint */
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 /* Keyframes */
