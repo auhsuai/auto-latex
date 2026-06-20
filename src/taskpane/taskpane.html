@@ -193,40 +193,68 @@
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="ai-provider" data-i18n="providerLabel">AI Provider</label>
-                <div class="custom-select-wrapper" id="provider-select-wrapper">
-                    <div class="custom-select" id="provider-select-display">
-                        <span id="provider-select-text">Google Gemini (3.5 Flash)</span>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-                    </div>
-                    <div class="custom-select-options" id="provider-select-options" style="display: none;">
-                        <div class="custom-select-option" data-val="gemini">Google Gemini (3.5 Flash)</div>
-                        <div class="custom-select-option" data-val="openai">OpenAI (GPT-5.4/mini)</div>
-                        <div class="custom-select-option" data-val="deepseek">DeepSeek (v4-flash)</div>
+            <div id="ai-settings-toggle" style="margin-top: 24px; margin-bottom: 16px; font-size: 15px; font-weight: 600; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span data-i18n="aiSettingsTitle">AI Settings</span>
+                <svg id="ai-settings-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s; transform: rotate(-90deg);"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+
+            <div id="ai-settings-container" style="display: none;">
+                <div class="form-group">
+                    <label for="ai-provider" data-i18n="providerLabel">AI Provider</label>
+                    <div class="custom-select-wrapper" id="provider-select-wrapper">
+                        <div class="custom-select" id="provider-select-display">
+                            <span id="provider-select-text">Google Gemini (3.5 Flash)</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
+                        <div class="custom-select-options" id="provider-select-options" style="display: none;">
+                            <div class="custom-select-option" data-val="gemini">Google Gemini (3.5 Flash)</div>
+                            <div class="custom-select-option" data-val="openai">OpenAI (GPT-5.4/mini)</div>
+                            <div class="custom-select-option" data-val="deepseek">DeepSeek (v4-flash)</div>
+                        </div>
                     </div>
                 </div>
+
+                <div class="form-group">
+                    <label for="ai-api-key" data-i18n="apiKeyLabel">API Key</label>
+                    <input type="password" id="ai-api-key" class="form-control" data-i18n-placeholder="apiKeyPlaceholder" placeholder="Paste your API key here...">
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 16px;">
+                    <label for="auto-apply-edits" data-i18n="autoApplyLabel" style="margin-bottom: 0;">Auto-apply AI Edits</label>
+                    <label class="switch">
+                        <input type="checkbox" id="auto-apply-edits">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+                    <label for="insert-at-cursor" data-i18n="insertAtCursorLabel" style="margin-bottom: 0;">Insert new formula at cursor</label>
+                    <label class="switch">
+                        <input type="checkbox" id="insert-at-cursor">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            <div id="usage-stats-toggle" style="margin-top: 16px; margin-bottom: 12px; font-size: 15px; font-weight: 600; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span data-i18n="usageStatsTitle">Usage Statistics</span>
+                <svg id="usage-stats-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s; transform: rotate(-90deg);"><path d="m6 9 6 6 6-6"/></svg>
             </div>
 
-            <div class="form-group">
-                <label for="ai-api-key" data-i18n="apiKeyLabel">API Key</label>
-                <input type="password" id="ai-api-key" class="form-control" data-i18n-placeholder="apiKeyPlaceholder" placeholder="Paste your API key here...">
-            </div>
-
-            <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 16px;">
-                <label for="auto-apply-edits" data-i18n="autoApplyLabel" style="margin-bottom: 0;">Auto-apply AI Edits</label>
-                <label class="switch">
-                    <input type="checkbox" id="auto-apply-edits">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-
-            <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
-                <label for="insert-at-cursor" data-i18n="insertAtCursorLabel" style="margin-bottom: 0;">Insert new formula at cursor</label>
-                <label class="switch">
-                    <input type="checkbox" id="insert-at-cursor">
-                    <span class="slider round"></span>
-                </label>
+            <div id="usage-stats-container" style="display: none; background: rgba(0,0,0,0.02); padding: 12px; border-radius: 6px; border: 1px solid var(--color-border);">
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 8px;">API Requests</div>
+                    <div style="width: 100%; height: 120px; position: relative;">
+                        <canvas id="api-requests-chart"></canvas>
+                    </div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 8px;">Tokens</div>
+                    <div style="width: 100%; height: 140px; position: relative;">
+                        <canvas id="tokens-chart"></canvas>
+                    </div>
+                </div>
+                
+                <button id="btn-reset-stats" class="btn btn-secondary" style="width: 100%; margin-top: 8px; font-size: 13px; padding: 6px;" data-i18n="btnResetStats">Reset Statistics</button>
             </div>
 
             <div class="modal-actions">

@@ -1,4 +1,7 @@
-import { getAISettings, saveAISettings, sendChatMessage, AIProvider, ChatMessage } from "../shared/ai-service";
+import { getAISettings, saveAISettings, sendChatMessage, AIProvider, ChatMessage, getAIUsageStats } from "../shared/ai-service";
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 Office.onReady((info) => {
   if (info.host === Office.HostType.Word) {
@@ -116,6 +119,92 @@ Office.onReady((info) => {
         if (insertAtCursorToggle) insertAtCursorToggle.checked = settings.insertAtCursor;
         updateCustomSelect("provider-select-wrapper", tempSelectedProvider);
         updateCustomSelect("lang-select-wrapper", tempSelectedLanguage);
+
+        const stats = getAIUsageStats();
+        
+        // Cần render charts trước
+        renderUsageCharts(stats);
+    };
+
+    let apiRequestsChart: Chart | null = null;
+    let tokensChart: Chart | null = null;
+
+    const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>) => {
+        const dates = Object.keys(stats.daily).sort();
+        const labels = dates.map(d => d.slice(5)); // e.g. "06-20"
+        
+        const apiCallsData = dates.map(d => stats.daily[d].apiCalls);
+        const cacheHitData = dates.map(d => stats.daily[d].cacheHitTokens);
+        const cacheMissData = dates.map(d => stats.daily[d].cacheMissTokens);
+        const outputData = dates.map(d => stats.daily[d].completionTokens);
+
+        const ctxApi = document.getElementById("api-requests-chart") as HTMLCanvasElement;
+        const ctxTokens = document.getElementById("tokens-chart") as HTMLCanvasElement;
+
+        // Xóa chart cũ nếu có
+        if (apiRequestsChart) apiRequestsChart.destroy();
+        if (tokensChart) tokensChart.destroy();
+
+        if (ctxApi) {
+            apiRequestsChart = new Chart(ctxApi, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'API requests',
+                        data: apiCallsData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false }, ticks: { color: '#888', font: { size: 10 } } },
+                        x: { grid: { display: false }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, maxTicksLimit: 5 } }
+                    }
+                }
+            });
+        }
+
+        if (ctxTokens) {
+            tokensChart = new Chart(ctxTokens, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Input (Cache hit)', data: cacheHitData, backgroundColor: '#93c5fd', stack: 'Stack 0', barPercentage: 0.6 },
+                        { label: 'Input (Cache miss)', data: cacheMissData, backgroundColor: '#3b82f6', stack: 'Stack 0', barPercentage: 0.6 },
+                        { label: 'Output', data: outputData, backgroundColor: '#1d4ed8', stack: 'Stack 0', barPercentage: 0.6 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${context.raw} tokens`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false }, ticks: { color: '#888', font: { size: 10 } } },
+                        x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, maxTicksLimit: 5 } }
+                    }
+                }
+            });
+        }
     };
 
     const btnQuickLang = document.getElementById("btn-quick-lang");
@@ -128,6 +217,36 @@ Office.onReady((info) => {
     btnSettings?.addEventListener("click", () => {
         loadSettingsToUI();
         if (settingsModal) settingsModal.style.display = "flex";
+    });
+
+    const aiSettingsToggle = document.getElementById("ai-settings-toggle");
+    const aiSettingsContainer = document.getElementById("ai-settings-container");
+    const aiSettingsChevron = document.getElementById("ai-settings-chevron");
+    
+    aiSettingsToggle?.addEventListener("click", () => {
+        if (aiSettingsContainer && aiSettingsChevron) {
+            const isHidden = aiSettingsContainer.style.display === "none";
+            aiSettingsContainer.style.display = isHidden ? "block" : "none";
+            aiSettingsChevron.style.transform = isHidden ? "rotate(0deg)" : "rotate(-90deg)";
+        }
+    });
+
+    const usageStatsToggle = document.getElementById("usage-stats-toggle");
+    const usageStatsContainer = document.getElementById("usage-stats-container");
+    const usageStatsChevron = document.getElementById("usage-stats-chevron");
+
+    usageStatsToggle?.addEventListener("click", () => {
+        if (usageStatsContainer && usageStatsChevron) {
+            const isHidden = usageStatsContainer.style.display === "none";
+            usageStatsContainer.style.display = isHidden ? "block" : "none";
+            usageStatsChevron.style.transform = isHidden ? "rotate(0deg)" : "rotate(-90deg)";
+        }
+    });
+
+    const btnResetStats = document.getElementById("btn-reset-stats");
+    btnResetStats?.addEventListener("click", () => {
+        localStorage.removeItem("auto_latex_ai_usage_v2");
+        loadSettingsToUI();
     });
 
     btnCloseSettings?.addEventListener("click", () => {
@@ -367,12 +486,19 @@ Office.onReady((info) => {
             optUnpin: "Unpin",
             optDelete: "Delete",
             settingsTitle: "Settings",
+            aiSettingsTitle: "AI Settings",
             languageLabel: "Language / Ngôn ngữ",
             providerLabel: "AI Provider",
             apiKeyLabel: "API Key",
             apiKeyPlaceholder: "Paste your API key here...",
             autoApplyLabel: "Auto-apply AI Edits",
             insertAtCursorLabel: "Insert new formula at cursor",
+            usageStatsTitle: "Usage Statistics",
+            statTotalCalls: "Total API Calls:",
+            statPromptTokens: "Prompt Tokens:",
+            statCompletionTokens: "Completion Tokens:",
+            statTotalTokens: "Total Tokens:",
+            btnResetStats: "Reset Statistics",
             btnApplyEdit: "Apply",
             btnCancel: "Cancel",
             btnSave: "Save",
@@ -410,12 +536,19 @@ Office.onReady((info) => {
             optUnpin: "Bỏ ghim",
             optDelete: "Xóa",
             settingsTitle: "Cài đặt",
+            aiSettingsTitle: "Cài đặt AI",
             languageLabel: "Language / Ngôn ngữ",
             providerLabel: "Nhà cung cấp AI",
             apiKeyLabel: "API Key",
             apiKeyPlaceholder: "Dán mã API của bạn vào đây...",
             autoApplyLabel: "Tự động áp dụng chỉnh sửa",
             insertAtCursorLabel: "Chèn công thức mới vào vị trí con trỏ",
+            usageStatsTitle: "Thống kê sử dụng",
+            statTotalCalls: "Tổng số lần gọi AI:",
+            statPromptTokens: "Token ngữ cảnh (Prompt):",
+            statCompletionTokens: "Token phản hồi (Completion):",
+            statTotalTokens: "Tổng số Token:",
+            btnResetStats: "Khôi phục lại từ 0",
             btnApplyEdit: "Áp dụng",
             btnCancel: "Hủy",
             btnSave: "Lưu",

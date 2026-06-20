@@ -11,37 +11,38 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link href="5caa4534b55e32dcee71.css" rel="stylesheet" type="text/css" />
+    <link href="63c3b7954065774e1474.css" rel="stylesheet" type="text/css" />
 <script defer src="polyfill.js"></script><script defer src="taskpane.js"></script></head>
 <body>
     <!-- Main Converter View -->
     <div id="main-view" class="app-container">
-        <header class="app-header">
+        <header class="app-header" style="position: relative;">
+            <button id="btn-quick-lang" aria-label="Toggle Language" style="position: absolute; top: 20px; left: 20px; font-weight: 600; font-size: 14px; color: var(--color-primary); background: none; border: none; cursor: pointer;">EN</button>
             <svg class="app-logo" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
             <h1>Auto LaTeX</h1>
         </header>
         
         <main id="app-body" class="app-main" style="display: none;">
-            <p class="app-description">Accurate and high-performance Math formula converter for Microsoft&nbsp;Word.</p>
+            <p class="app-description" data-i18n="appDescription">Accurate and high-performance Math formula converter for Microsoft&nbsp;Word.</p>
             
             <div class="action-group">
                 <button id="convert-doc" class="btn btn-primary" aria-label="Convert entire document">
                     <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
-                    <span>Convert All</span>
+                    <span data-i18n="convertAll">Convert All</span>
                 </button>
                 
                 <button id="convert-sel" class="btn btn-secondary" aria-label="Convert selection">
                     <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 8.7 10"/><path d="M8.7 17 3.3 14"/><path d="M20.7 14 15.3 17"/><path d="M15.3 10l5.4-3"/><path d="M12 22v-8"/><path d="M12 10V2"/></svg>
-                    <span>Convert Selection</span>
+                    <span data-i18n="convertSelection">Convert Selection</span>
                 </button>
             </div>
             
             <p id="cancel-msg" style="display: none; text-align: center; font-size: 13px; color: var(--color-text-muted); margin-top: 8px;">
-                <span id="progress-text">So long? </span><span id="cancel-link" class="cancel-link">Cancel here</span>
+                <span id="progress-text">So long? </span><span id="cancel-link" class="cancel-link" data-i18n="cancelHere">Cancel here</span>
             </p>
             
             <footer class="app-footer">
-                <p>Created by <strong>auhsuai</strong></p>
+                <p><span data-i18n="createdBy">Created by</span> <strong>auhsuai</strong></p>
                 <div class="footer-links">
                     <a href="https://github.com/auhsuai/auto-latex" target="_blank" aria-label="GitHub">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
@@ -63,59 +64,228 @@
             <button id="btn-back" class="icon-btn" aria-label="Back to main view">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
             </button>
-            <h2>AI Copilot</h2>
-            <button id="btn-settings" class="icon-btn" aria-label="Settings">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <h2 id="chat-title" style="flex: 1; text-align: center; margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;">New Chat</h2>
+            <button id="btn-chat-menu" class="icon-btn" aria-label="Menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
             </button>
         </header>
+
+        <!-- Sidebar -->
+        <div id="chat-sidebar-overlay" class="sidebar-overlay" style="display: none;"></div>
+        <div id="chat-sidebar" class="chat-sidebar" style="transform: translateX(100%); right: 0; left: auto;">
+            <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                <h3 style="margin: 0; font-size: 14px;" data-i18n="menuTitle">Menu</h3>
+                <button id="btn-close-sidebar" class="icon-btn" aria-label="Close menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
+            
+            <div class="sidebar-scrollable">
+                <div class="sidebar-section-title" data-i18n="chatHistory">Lịch sử chat</div>
+                <div style="padding: 0 16px 8px 16px;">
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 10px; color: var(--color-text-muted);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="chat-search-input" data-i18n-placeholder="searchChats" placeholder="Search chats..." class="form-control" style="padding-left: 32px; height: 32px; font-size: 13px; border-radius: var(--radius-md);">
+                    </div>
+                </div>
+                <button id="btn-new-chat" class="sidebar-action-btn" style="color: var(--color-primary); font-weight: 500;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <span data-i18n="newChat">Cuộc trò chuyện mới</span>
+                </button>
+                
+                <ul id="history-chats-list" class="chat-list" style="margin-top: 8px;"></ul>
+            </div>
+            
+            <div class="sidebar-footer">
+                <button id="btn-settings-api" class="sidebar-action-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span data-i18n="apiSettings">Cài đặt</span>
+                </button>
+            </div>
+        </div>
 
         <div id="chat-messages" class="chat-messages">
             <!-- Messages will be injected here -->
             <div class="chat-msg ai-msg">
                 <div class="msg-bubble">
-                    Xin chào! Tôi là AI Math Copilot. Bôi đen văn bản/công thức trên Word hoặc gõ yêu cầu ở dưới để tôi tạo mã LaTeX cho bạn nhé.
+                    Xin chào! Tôi là AI Math Assistant. Bôi đen văn bản/công thức trên Word hoặc gõ yêu cầu ở dưới để tôi tạo mã LaTeX cho bạn nhé.
                 </div>
             </div>
         </div>
 
         <div class="chat-input-area">
-            <div class="chat-input-wrapper">
-                <textarea id="chat-input" placeholder="Yêu cầu AI..." rows="1"></textarea>
-                <button id="btn-send-chat" aria-label="Send message">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            <!-- Floating Selection Prompt -->
+            <div id="selection-prompt" class="selection-prompt" style="display: none;">
+                <button id="btn-quote-selection" data-i18n="askAI" class="btn-quote-only">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    Ask AI
                 </button>
             </div>
-            <p class="chat-hint">Tự động chèn kết quả vào tài liệu</p>
+
+            <div class="chat-input-wrapper">
+                <!-- Quoted Context Block -->
+                <div id="quoted-context" class="quoted-context" style="display: none;">
+                    <div class="quoted-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 10l-5 5 5 5"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+                    </div>
+                    <div id="quoted-text" class="quoted-text"></div>
+                    <button id="btn-remove-quote" class="btn-remove-quote" aria-label="Remove quote">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+
+                <div class="input-controls-row">
+                    <button id="btn-attach-context" class="btn-icon-circular" aria-label="Attach context" title="Attach selection">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <textarea id="chat-input" data-i18n-placeholder="chatPlaceholder" placeholder="Ask anything..." rows="1"></textarea>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="btn-toggle-thinking" class="mode-toggle-btn" aria-label="Toggle Thinking Mode" title="Click to toggle Fast / Thinking mode">
+                            <span id="thinking-text">Fast</span>
+                        </button>
+                        <button id="btn-send-chat" aria-label="Send message">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <p class="chat-hint" data-i18n="chatHint">Tự động chèn kết quả vào tài liệu</p>
+        </div>
+        
+        <!-- Global Dropdown for Chat Items -->
+        <div id="item-options-dropdown" class="dropdown-menu" style="display: none; position: fixed; width: 160px; z-index: 2000;">
+            <div class="dropdown-item" id="opt-rename">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                <span data-i18n="optRename">Đổi tên</span>
+            </div>
+            <div class="dropdown-item" id="opt-pin">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.6V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3v4.6a2 2 0 0 1-1.11 1.95l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+                <span id="opt-pin-text" data-i18n="optPin">Ghim</span>
+            </div>
+            <div class="dropdown-item" id="opt-delete" style="color: #d83b01;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                <span data-i18n="optDelete">Xóa</span>
+            </div>
         </div>
     </div>
 
     <!-- Floating Action Button (FAB) -->
-    <button id="fab-chat" class="fab" aria-label="Open AI Copilot">
+    <button id="fab-chat" class="fab" aria-label="Open AI Assistant">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/></svg>
     </button>
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
-            <h3 class="modal-title">AI Settings</h3>
+            <h3 class="modal-title" data-i18n="settingsTitle">Settings</h3>
             
             <div class="form-group">
-                <label for="ai-provider">AI Provider</label>
-                <select id="ai-provider" class="form-control">
-                    <option value="gemini">Google Gemini (Flash)</option>
-                    <option value="openai">OpenAI (GPT-4o/mini)</option>
-                    <option value="deepseek">DeepSeek (Reasoner/Chat)</option>
-                </select>
+                <label for="app-language" data-i18n="languageLabel">Language / Ngôn ngữ</label>
+                <div class="custom-select-wrapper" id="lang-select-wrapper">
+                    <div class="custom-select" id="lang-select-display">
+                        <span id="lang-select-text">English</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                    </div>
+                    <div class="custom-select-options" id="lang-select-options" style="display: none;">
+                        <div class="custom-select-option" data-val="en">English</div>
+                        <div class="custom-select-option" data-val="vi">Tiếng Việt</div>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="ai-api-key">API Key (Saved locally)</label>
-                <input type="password" id="ai-api-key" class="form-control" placeholder="Paste your API key here...">
+            <div id="ai-settings-toggle" style="margin-top: 24px; margin-bottom: 16px; font-size: 15px; font-weight: 600; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span data-i18n="aiSettingsTitle">AI Settings</span>
+                <svg id="ai-settings-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s; transform: rotate(-90deg);"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+
+            <div id="ai-settings-container" style="display: none;">
+                <div class="form-group">
+                    <label for="ai-provider" data-i18n="providerLabel">AI Provider</label>
+                    <div class="custom-select-wrapper" id="provider-select-wrapper">
+                        <div class="custom-select" id="provider-select-display">
+                            <span id="provider-select-text">Google Gemini (3.5 Flash)</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
+                        <div class="custom-select-options" id="provider-select-options" style="display: none;">
+                            <div class="custom-select-option" data-val="gemini">Google Gemini (3.5 Flash)</div>
+                            <div class="custom-select-option" data-val="openai">OpenAI (GPT-5.4/mini)</div>
+                            <div class="custom-select-option" data-val="deepseek">DeepSeek (v4-flash)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ai-api-key" data-i18n="apiKeyLabel">API Key</label>
+                    <input type="password" id="ai-api-key" class="form-control" data-i18n-placeholder="apiKeyPlaceholder" placeholder="Paste your API key here...">
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 16px;">
+                    <label for="auto-apply-edits" data-i18n="autoApplyLabel" style="margin-bottom: 0;">Auto-apply AI Edits</label>
+                    <label class="switch">
+                        <input type="checkbox" id="auto-apply-edits">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+                    <label for="insert-at-cursor" data-i18n="insertAtCursorLabel" style="margin-bottom: 0;">Insert new formula at cursor</label>
+                    <label class="switch">
+                        <input type="checkbox" id="insert-at-cursor">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            <div id="usage-stats-toggle" style="margin-top: 16px; margin-bottom: 12px; font-size: 15px; font-weight: 600; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span data-i18n="usageStatsTitle">Usage Statistics</span>
+                <svg id="usage-stats-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition: transform 0.2s; transform: rotate(-90deg);"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+
+            <div id="usage-stats-container" style="display: none; background: rgba(0,0,0,0.02); padding: 12px; border-radius: 6px; border: 1px solid var(--color-border);">
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 8px;">API Requests</div>
+                    <div style="width: 100%; height: 120px; position: relative;">
+                        <canvas id="api-requests-chart"></canvas>
+                    </div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 8px;">Tokens</div>
+                    <div style="width: 100%; height: 140px; position: relative;">
+                        <canvas id="tokens-chart"></canvas>
+                    </div>
+                </div>
+                
+                <button id="btn-reset-stats" class="btn btn-secondary" style="width: 100%; margin-top: 8px; font-size: 13px; padding: 6px;" data-i18n="btnResetStats">Reset Statistics</button>
             </div>
 
             <div class="modal-actions">
-                <button id="btn-close-settings" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Cancel</button>
-                <button id="btn-save-settings" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Save Key</button>
+                <button id="btn-close-settings" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" data-i18n="btnCancel">Cancel</button>
+                <button id="btn-save-settings" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;" data-i18n="btnSave">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div id="rename-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 class="modal-title" data-i18n="renameTitle">Đổi tên đoạn chat</h3>
+            <div class="form-group">
+                <input type="text" id="rename-input" class="form-control" data-i18n-placeholder="renamePlaceholder" placeholder="Nhập tên mới...">
+            </div>
+            <div class="modal-actions">
+                <button id="btn-cancel-rename" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" data-i18n="btnCancel">Hủy</button>
+                <button id="btn-save-rename" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;" data-i18n="btnSave">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div id="delete-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 class="modal-title" data-i18n="deleteTitle">Xóa đoạn chat</h3>
+            <p style="margin-bottom: 16px; font-size: 13px; color: var(--color-text-muted);" data-i18n="deleteConfirm">Bạn có chắc chắn muốn xóa đoạn chat này không? Hành động này không thể hoàn tác.</p>
+            <div class="modal-actions">
+                <button id="btn-cancel-delete" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" data-i18n="btnCancel">Hủy</button>
+                <button id="btn-confirm-delete" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px; background: #d83b01; border-color: #d83b01;" data-i18n="optDelete">Xóa</button>
             </div>
         </div>
     </div>

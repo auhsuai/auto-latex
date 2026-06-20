@@ -27,6 +27,65 @@ export function saveAISettings(settings: AISettings) {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
+const USAGE_KEY = 'auto_latex_ai_usage_v2';
+
+export interface DailyUsage {
+    apiCalls: number;
+    promptTokens: number;
+    cacheHitTokens: number;
+    cacheMissTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+}
+
+export interface AIUsageData {
+    total: DailyUsage;
+    daily: { [dateString: string]: DailyUsage };
+}
+
+function getEmptyUsage(): DailyUsage {
+    return { apiCalls: 0, promptTokens: 0, cacheHitTokens: 0, cacheMissTokens: 0, completionTokens: 0, totalTokens: 0 };
+}
+
+export function getAIUsageStats(): AIUsageData {
+    const raw = localStorage.getItem(USAGE_KEY);
+    if (raw) {
+        try {
+            return JSON.parse(raw);
+        } catch (e) {}
+    }
+    return { total: getEmptyUsage(), daily: {} };
+}
+
+export function updateAIUsageStats(promptTokens: number, cacheHitTokens: number, completionTokens: number, totalTokens: number) {
+    const stats = getAIUsageStats();
+    const cacheMissTokens = Math.max(0, promptTokens - cacheHitTokens);
+    const today = new Date().toISOString().split('T')[0];
+
+    if (!stats.daily[today]) {
+        stats.daily[today] = getEmptyUsage();
+    }
+
+    // Update total
+    stats.total.apiCalls += 1;
+    stats.total.promptTokens += promptTokens;
+    stats.total.cacheHitTokens += cacheHitTokens;
+    stats.total.cacheMissTokens += cacheMissTokens;
+    stats.total.completionTokens += completionTokens;
+    stats.total.totalTokens += totalTokens;
+
+    // Update daily
+    stats.daily[today].apiCalls += 1;
+    stats.daily[today].promptTokens += promptTokens;
+    stats.daily[today].cacheHitTokens += cacheHitTokens;
+    stats.daily[today].cacheMissTokens += cacheMissTokens;
+    stats.daily[today].completionTokens += completionTokens;
+    stats.daily[today].totalTokens += totalTokens;
+
+    localStorage.setItem(USAGE_KEY, JSON.stringify(stats));
+}
+
+
 const SYSTEM_PROMPT = `Bạn là trợ lý AI tên là Auto-LaTeX Assistant, hỗ trợ người dùng soạn thảo và chỉnh sửa công thức toán học LaTeX trong Microsoft Word.
 Bạn có thể trò chuyện bình thường và giải đáp thắc mắc của người dùng.
 
@@ -157,6 +216,7 @@ async function callOpenAICompatibleStream(history: ChatMessage[], apiKey: string
         ],
         temperature: 0.2,
         stream: true,
+        stream_options: { include_usage: true },
         ...extraBodyParams
     };
     
@@ -205,6 +265,13 @@ async function callOpenAICompatibleStream(history: ChatMessage[], apiKey: string
                     if (delta) {
                         fullContent += delta;
                         if (onChunk) onChunk(fullContent);
+                    }
+                    if (data.usage) {
+                        const pTokens = data.usage.prompt_tokens || 0;
+                        const cacheTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
+                        const cTokens = data.usage.completion_tokens || 0;
+                        const tTokens = data.usage.total_tokens || 0;
+                        if (tTokens > 0) updateAIUsageStats(pTokens, cacheTokens, cTokens, tTokens);
                     }
                 } catch (e) {
                     // Ignore parsing errors for partial chunks
@@ -271,6 +338,13 @@ async function callGeminiStream(history: ChatMessage[], apiKey: string, fullSyst
                     if (text) {
                         fullContent += text;
                         if (onChunk) onChunk(fullContent);
+                    }
+                    if (data.usageMetadata) {
+                        const pTokens = data.usageMetadata.promptTokenCount || 0;
+                        const cacheTokens = data.usageMetadata.cachedContentTokenCount || 0;
+                        const cTokens = data.usageMetadata.candidatesTokenCount || 0;
+                        const tTokens = data.usageMetadata.totalTokenCount || 0;
+                        if (tTokens > 0) updateAIUsageStats(pTokens, cacheTokens, cTokens, tTokens);
                     }
                 } catch (e) {
                     // Ignore parse errors
