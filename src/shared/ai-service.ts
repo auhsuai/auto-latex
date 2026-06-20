@@ -87,22 +87,27 @@ export async function sendChatMessage(
         throw new Error("Missing API Key. Please open Settings to set your API Key.");
     }
 
-    // Prepare system prompt with context
-    let fullSystemPrompt = SYSTEM_PROMPT;
-    if (documentContext && (documentContext.selectionText || documentContext.paragraphText)) {
-        fullSystemPrompt += `\n\n[NGỮ CẢNH TÀI LIỆU HIỆN TẠI TỪ WORD]`;
-        if (documentContext.selectionText) {
-            fullSystemPrompt += `\nVùng đang bôi đen (Selection): """${documentContext.selectionText}"""`;
-        }
-        if (documentContext.paragraphText && (!documentContext.selectionText || documentContext.selectionText.length < 5)) {
-            fullSystemPrompt += `\nĐoạn văn chứa con trỏ chuột (Paragraph): """${documentContext.paragraphText}"""`;
-        }
-    }
+    // Prepare static system prompt
+    const langInstruction = appLanguage === "vi" 
+        ? "\n\n7. QUAN TRỌNG: Hãy ưu tiên trả lời bằng Tiếng Việt trừ khi người dùng yêu cầu khác."
+        : "\n\n7. IMPORTANT: Please prioritize replying in English unless the user requests otherwise.";
+    const currentSystemPrompt = SYSTEM_PROMPT + langInstruction;
 
     // Clone history to avoid modifying original array
     const messagesToSend = [...history];
 
-    if (contextText && contextText.trim() !== "") {
+    let documentContextStr = "";
+    if (documentContext && (documentContext.selectionText || documentContext.paragraphText)) {
+        documentContextStr += `\n\n[NGỮ CẢNH TÀI LIỆU HIỆN TẠI TỪ WORD]`;
+        if (documentContext.selectionText) {
+            documentContextStr += `\nVùng đang bôi đen (Selection): """${documentContext.selectionText}"""`;
+        }
+        if (documentContext.paragraphText && (!documentContext.selectionText || documentContext.selectionText.length < 5)) {
+            documentContextStr += `\nĐoạn văn chứa con trỏ chuột (Paragraph): """${documentContext.paragraphText}"""`;
+        }
+    }
+
+    if ((contextText && contextText.trim() !== "") || documentContextStr !== "") {
         let lastUserMsgIndex = -1;
         for (let i = messagesToSend.length - 1; i >= 0; i--) {
             if (messagesToSend[i].role === "user") {
@@ -111,17 +116,20 @@ export async function sendChatMessage(
             }
         }
         if (lastUserMsgIndex >= 0) {
+            let appendedText = "";
+            if (contextText && contextText.trim() !== "") {
+                appendedText += `\n\n[Bối cảnh văn bản đang bôi đen]:\n${contextText}`;
+            }
+            if (documentContextStr !== "") {
+                appendedText += documentContextStr;
+            }
             messagesToSend[lastUserMsgIndex] = {
                 ...messagesToSend[lastUserMsgIndex],
-                content: `${messagesToSend[lastUserMsgIndex].content}\n\n[Bối cảnh văn bản đang bôi đen]:\n${contextText}`
+                content: `${messagesToSend[lastUserMsgIndex].content}${appendedText}`
             };
         }
     }
 
-    const langInstruction = appLanguage === "vi" 
-        ? "\n\n7. QUAN TRỌNG: Hãy ưu tiên trả lời bằng Tiếng Việt trừ khi người dùng yêu cầu khác."
-        : "\n\n7. IMPORTANT: Please prioritize replying in English unless the user requests otherwise.";
-    const currentSystemPrompt = fullSystemPrompt + langInstruction;
 
     if (settings.provider === 'openai') {
         const model = isThinkingMode ? "gpt-5.4" : "gpt-5.4-mini";

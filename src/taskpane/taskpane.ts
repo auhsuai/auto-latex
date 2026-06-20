@@ -832,7 +832,7 @@ Office.onReady((info) => {
                 const tSettings = translations[appLanguage] || translations["en"];
                 const btnApplyText = tSettings.btnApplyEdit || "Apply";
 
-                btnApply.innerHTML = `<span style="color: var(--color-text-muted); font-weight: 500; font-size: 13px; display: inline-flex; align-items: center; padding: 4px 6px;">${notifText}</span>`;
+                btnApply.innerHTML = `<span style="color: var(--color-success, #107c41); font-weight: 500;">${notifText}</span>`;
                 setTimeout(() => {
                     btnApply.innerHTML = `<span style="font-weight: 500;">${btnApplyText}</span>`;
                     btnApply.disabled = false;
@@ -846,7 +846,27 @@ Office.onReady((info) => {
             const textToCopy = decodeURIComponent(btn.getAttribute("data-copy-text") || "");
             if (textToCopy) {
                 try {
-                    await navigator.clipboard.writeText(textToCopy);
+                    const chatMsg = btn.closest(".chat-msg") as HTMLElement;
+                    let htmlText = "";
+                    if (chatMsg) {
+                        const msgBubble = chatMsg.querySelector(".msg-bubble");
+                        if (msgBubble) {
+                            htmlText = msgBubble.innerHTML;
+                        }
+                    }
+                    
+                    if (htmlText && typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
+                        const htmlBlob = new Blob([htmlText], { type: "text/html" });
+                        const plainBlob = new Blob([textToCopy], { type: "text/plain" });
+                        const clipboardItem = new ClipboardItem({
+                            "text/html": htmlBlob,
+                            "text/plain": plainBlob
+                        });
+                        await navigator.clipboard.write([clipboardItem]);
+                    } else {
+                        await navigator.clipboard.writeText(textToCopy);
+                    }
+
                     const originalHtml = btn.innerHTML;
                     btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-success);"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
                     setTimeout(() => {
@@ -1032,7 +1052,7 @@ Office.onReady((info) => {
         
         if (currentQuotedText) {
             const displayQuoteHtml = currentQuotedText.replace(/[\r\n]+/g, " ");
-            displayHtml += `<div style="font-size: 11.5px; opacity: 0.9; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2);"><span style="margin-right:4px;">↳</span>${escapeHtml(displayQuoteHtml.length > 80 ? displayQuoteHtml.substring(0, 80) + '...' : displayQuoteHtml)}</div>`;
+            displayHtml += `<div style="font-size: 11.5px; opacity: 0.9; margin-bottom: 6px;"><span style="margin-right:4px;">↳</span>${escapeHtml(displayQuoteHtml.length > 80 ? displayQuoteHtml.substring(0, 80) + '...' : displayQuoteHtml)}</div>`;
             const quoteLabel = isQuoteFromWord ? "Văn bản đang bôi đen trên Word" : "Trích dẫn từ Chat";
             fullPromptForAI = `[${quoteLabel}]: "${currentQuotedText}"\n\n${prompt || "Vui lòng xử lý văn bản trên."}`;
         }
