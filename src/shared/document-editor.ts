@@ -1,22 +1,22 @@
 export class DocumentEditor {
-    static async replaceSelection(newText: string) {
+    static async replaceSelection(newHtml: string) {
         await Word.run(async (context) => {
             const range = context.document.getSelection();
-            range.insertText(newText, Word.InsertLocation.replace);
+            range.insertHtml(newHtml, Word.InsertLocation.replace);
             await context.sync();
         });
     }
 
-    static async replaceCurrentParagraph(newText: string) {
+    static async replaceCurrentParagraph(newHtml: string) {
         await Word.run(async (context) => {
             const range = context.document.getSelection();
             const paragraph = range.paragraphs.getFirst();
-            paragraph.insertText(newText, Word.InsertLocation.replace);
+            paragraph.insertHtml(newHtml, Word.InsertLocation.replace);
             await context.sync();
         });
     }
 
-    static async replaceSearchTerm(searchTerm: string, newText: string) {
+    static async replaceSearchTerm(searchTerm: string, newHtml: string) {
         await Word.run(async (context) => {
             const searchResults = context.document.body.search(searchTerm, { matchCase: false });
             context.load(searchResults, 'items');
@@ -24,13 +24,13 @@ export class DocumentEditor {
 
             if (searchResults.items.length > 0) {
                 // Replace only the first occurrence to be safe
-                searchResults.items[0].insertText(newText, Word.InsertLocation.replace);
+                searchResults.items[0].insertHtml(newHtml, Word.InsertLocation.replace);
                 await context.sync();
             }
         });
     }
 
-    static async replaceHeadingContent(headingText: string, newText: string) {
+    static async replaceHeadingContent(headingText: string, newHtml: string) {
         await Word.run(async (context) => {
             // Find the heading first
             const searchResults = context.document.body.search(headingText, { matchCase: false });
@@ -47,7 +47,7 @@ export class DocumentEditor {
                 await context.sync();
 
                 if (!nextParagraph.isNullObject) {
-                    nextParagraph.insertText(newText, Word.InsertLocation.replace);
+                    nextParagraph.insertHtml(newHtml, Word.InsertLocation.replace);
                     await context.sync();
                 }
             }

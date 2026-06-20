@@ -940,6 +940,19 @@ input:checked + .slider:before {
 
 .dark-mode .btn-toolbar-action:hover {
     background: rgba(255, 255, 255, 0.1);
-}. c l i c k a b l e - f o r m u l a : h o v e r  
-   b a c k g r o u n d - c o l o r :   r g b a ( 1 2 8 ,   1 2 8 ,   1 2 8 ,   0 . 1 ) ;   b o r d e r - r a d i u s :   4 p x ;   t r a n s i t i o n :   b a c k g r o u n d - c o l o r   0 . 2 s   e a s e ;    
- 
+}
+
+.clickable-formula:hover {
+    background-color: rgba(128, 128, 128, 0.1);
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.clickable-formula::-webkit-scrollbar {
+    display: none;
+}
+
+.clickable-formula {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

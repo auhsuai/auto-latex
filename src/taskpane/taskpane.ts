@@ -314,7 +314,8 @@ Office.onReady((info) => {
             if (textToQuote) {
                 currentQuotedText = textToQuote;
                 if (quotedTextEl) {
-                    quotedTextEl.innerText = currentQuotedText.length > 50 ? currentQuotedText.substring(0, 50) + "..." : currentQuotedText;
+                    const displayQuote = currentQuotedText.replace(/[\r\n]+/g, " ");
+                    quotedTextEl.innerText = displayQuote.length > 50 ? displayQuote.substring(0, 50) + "..." : displayQuote;
                 }
                 if (quotedContext) quotedContext.style.display = "flex";
                 if (selectionPrompt) selectionPrompt.style.display = "none";
@@ -394,7 +395,8 @@ Office.onReady((info) => {
             cancelHere: "Cancel here",
             createdBy: "Created by",
             textSelected: "Text selected",
-            askAI: "Ask AI"
+            askAI: "Ask AI",
+            searchChats: "Search chats..."
         },
         vi: {
             menuTitle: "Menu",
@@ -436,7 +438,8 @@ Office.onReady((info) => {
             cancelHere: "Hủy tại đây",
             createdBy: "Được phát triển bởi",
             textSelected: "Đã chọn văn bản",
-            askAI: "Ask AI"
+            askAI: "Ask AI",
+            searchChats: "Tìm kiếm..."
         }
     };
 
@@ -481,6 +484,8 @@ Office.onReady((info) => {
     const historyChatsList = document.getElementById("history-chats-list");
     const btnSettingsApi = document.getElementById("btn-settings-api");
     const chatTitle = document.getElementById("chat-title");
+    const chatSearchInput = document.getElementById("chat-search-input") as HTMLInputElement;
+    let searchChatQuery = "";
     
     // Options
     const btnChatOptions = document.getElementById("btn-chat-options");
@@ -578,8 +583,13 @@ Office.onReady((info) => {
         if (!historyChatsList) return;
         historyChatsList.innerHTML = "";
         
+        let filteredSessions = chatSessions;
+        if (searchChatQuery) {
+            filteredSessions = chatSessions.filter(s => s.name.toLowerCase().includes(searchChatQuery));
+        }
+
         // Clone and sort to not mutate original array order
-        const sorted = [...chatSessions].sort((a, b) => {
+        const sorted = [...filteredSessions].sort((a, b) => {
             if (a.isPinned && !b.isPinned) return -1;
             if (!a.isPinned && b.isPinned) return 1;
             return b.updatedAt - a.updatedAt;
@@ -741,6 +751,11 @@ Office.onReady((info) => {
     btnCloseSidebar?.addEventListener("click", closeSidebar);
     chatSidebarOverlay?.addEventListener("click", closeSidebar);
     
+    chatSearchInput?.addEventListener("input", (e) => {
+        searchChatQuery = (e.target as HTMLInputElement).value.toLowerCase();
+        renderSidebar();
+    });
+
     btnNewChat?.addEventListener("click", () => {
         createNewSession();
         closeSidebar();
@@ -765,6 +780,17 @@ Office.onReady((info) => {
             if (thinkingText) thinkingText.innerText = "Fast";
         }
     });
+
+    chatMessages?.addEventListener("wheel", (e: WheelEvent) => {
+        const target = e.target as HTMLElement;
+        const formula = target.closest(".clickable-formula") as HTMLElement;
+        if (formula && formula.scrollWidth > formula.clientWidth) {
+            // Ngăn chặn cuộn dọc trang
+            e.preventDefault();
+            // Chuyển hướng cuộn dọc (deltaY) thành cuộn ngang
+            formula.scrollLeft += e.deltaY;
+        }
+    }, { passive: false });
 
     chatMessages?.addEventListener("click", async (e) => {
         const target = e.target as HTMLElement;
@@ -1005,7 +1031,8 @@ Office.onReady((info) => {
         let fullPromptForAI = prompt || "";
         
         if (currentQuotedText) {
-            displayHtml += `<div style="font-size: 11.5px; opacity: 0.9; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2);"><span style="margin-right:4px;">↳</span>${escapeHtml(currentQuotedText.length > 80 ? currentQuotedText.substring(0, 80) + '...' : currentQuotedText)}</div>`;
+            const displayQuoteHtml = currentQuotedText.replace(/[\r\n]+/g, " ");
+            displayHtml += `<div style="font-size: 11.5px; opacity: 0.9; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.2);"><span style="margin-right:4px;">↳</span>${escapeHtml(displayQuoteHtml.length > 80 ? displayQuoteHtml.substring(0, 80) + '...' : displayQuoteHtml)}</div>`;
             const quoteLabel = isQuoteFromWord ? "Văn bản đang bôi đen trên Word" : "Trích dẫn từ Chat";
             fullPromptForAI = `[${quoteLabel}]: "${currentQuotedText}"\n\n${prompt || "Vui lòng xử lý văn bản trên."}`;
         }
@@ -1176,52 +1203,7 @@ Office.onReady((info) => {
             let pendingEditsHtml = "";
             const tSettings = translations[appLanguage] || translations["en"];
             const btnApplyText = tSettings.btnApplyEdit || "Apply to Word";
-
-            const processEditMatch = async (match: RegExpExecArray | null, type: string, replaceStr: string, targetStr: string = "") => {
-                if (!match) return;
-                const content = match[replaceStr === "match1" ? 1 : 2].trim();
-                const target = targetStr === "match1" ? match[1] : "";
-                
-                if (settings.autoApplyEdits) {
-                    if (type === "replace_selection") await DocumentEditor.replaceSelection(content);
-                    else if (type === "replace_paragraph") await DocumentEditor.replaceCurrentParagraph(content);
-                    else if (type === "replace_search") await DocumentEditor.replaceSearchTerm(target, content);
-                    else if (type === "replace_heading") await DocumentEditor.replaceHeadingContent(target, content);
-                    appliedChanges = true;
-                }
-                if (!settings.autoApplyEdits) {
-                    const safeContent = encodeURIComponent(content);
-                    const safeTarget = encodeURIComponent(target);
-                    pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="${type}" data-edit-content="${safeContent}" data-edit-target="${safeTarget}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
-                        <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
-                            <span style="font-weight: 500;">${btnApplyText}</span>
-                        </button>
-                    </div>`;
-                }
-                chatText = chatText.replace(match[0], "");
-            };
-
-            await processEditMatch(/<\s*replace_selection\s*>([\s\S]*?)<\s*\/\s*replace_selection\s*>/i.exec(chatText), "replace_selection", "match1");
-            await processEditMatch(/<\s*replace_paragraph\s*>([\s\S]*?)<\s*\/\s*replace_paragraph\s*>/i.exec(chatText), "replace_paragraph", "match1");
-            await processEditMatch(/<\s*replace_search\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_search\s*>/i.exec(chatText), "replace_search", "match2", "match1");
-            await processEditMatch(/<\s*replace_heading\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_heading\s*>/i.exec(chatText), "replace_heading", "match2", "match1");
-
-            let contentForWord = "";
-            let insertCount = 0;
-            const insertRegex = /<\s*insert\s*>([\s\S]*?)<\s*\/\s*insert\s*>/gi;
-            let insertMatch;
-            while ((insertMatch = insertRegex.exec(chatText)) !== null) {
-                contentForWord += (insertCount > 0 ? "\n\n" : "") + insertMatch[1];
-                insertCount++;
-            }
-            if (insertCount === 0) {
-                contentForWord = chatText;
-            }
-            const insertOnlyFormulas = insertCount === 0;
-
-            chatText = chatText.replace(/<\s*\/?\s*insert\s*>/gi, "");
-
-
+            let hasSpecialEdits = false;
 
             const processSegments = (textStr: string) => {
                 const formulaRegex = /<\s*formula\s*>([\s\S]*?)<\s*\/\s*formula\s*>|\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\\\(([\s\S]*?)\\\)/gi;
@@ -1254,6 +1236,106 @@ Office.onReady((info) => {
                 if (finalText) segments.push({ type: 'text', content: finalText });
                 return segments;
             };
+
+            const generateWordHtmlFromText = (textStr: string) => {
+                const wSegments = processSegments(textStr);
+                let cPara = "";
+                let wHtml = "<html><body style='font-family: Calibri, sans-serif; font-size: 11pt;'>";
+                let hasContent = false;
+                for (const segment of wSegments) {
+                    if (segment.type === 'text') {
+                        const escaped = escapeHtml(segment.content).replace(/\n/g, '<br>');
+                        cPara += escaped;
+                        if (escaped.trim() !== "") hasContent = true;
+                    } else if (segment.type === 'formula') {
+                        let rawLatex = segment.content.trim();
+                        if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
+                            rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
+                            segment.isBlock = true;
+                        }
+                        if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
+                            rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
+                            segment.isBlock = true;
+                        }
+                        if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
+                            rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
+                        }
+                        const isBlock = segment.isBlock || rawLatex.includes("\\begin{");
+                        const latexClean = sanitizeLaTeX(rawLatex, isBlock);
+                        const mathML = getMathML(latexClean, isBlock);
+                        if (mathML) {
+                            if (isBlock) {
+                                if (cPara.trim() !== "") {
+                                    wHtml += `<p style="margin-bottom: 8px;">${cPara}</p>`;
+                                    cPara = "";
+                                }
+                                wHtml += `<p style="margin-bottom: 8px;">${mathML}</p>`;
+                            } else {
+                                cPara += `<span style="margin: 0 4px;">${mathML}</span>`;
+                            }
+                            hasContent = true;
+                        }
+                    }
+                }
+                if (cPara.trim() !== "") {
+                    wHtml += `<p style="margin-bottom: 8px;">${cPara}</p>`;
+                }
+                wHtml += "</body></html>";
+                return { html: wHtml, hasContent };
+            };
+
+            const processEditMatch = async (match: RegExpExecArray | null, type: string, replaceStr: string, targetStr: string = "") => {
+                if (!match) return;
+                const content = match[replaceStr === "match1" ? 1 : 2].trim();
+                const target = targetStr === "match1" ? match[1] : "";
+                
+                hasSpecialEdits = true;
+                
+                const { html: wordHtmlContent } = generateWordHtmlFromText(content);
+                
+                if (settings.autoApplyEdits) {
+                    if (type === "replace_selection") await DocumentEditor.replaceSelection(wordHtmlContent);
+                    else if (type === "replace_paragraph") await DocumentEditor.replaceCurrentParagraph(wordHtmlContent);
+                    else if (type === "replace_search") await DocumentEditor.replaceSearchTerm(target, wordHtmlContent);
+                    else if (type === "replace_heading") await DocumentEditor.replaceHeadingContent(target, wordHtmlContent);
+                    appliedChanges = true;
+                }
+                if (!settings.autoApplyEdits) {
+                    const safeContent = encodeURIComponent(wordHtmlContent);
+                    const safeTarget = encodeURIComponent(target);
+                    pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="${type}" data-edit-content="${safeContent}" data-edit-target="${safeTarget}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
+                        <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
+                            <span style="font-weight: 500;">${btnApplyText}</span>
+                        </button>
+                    </div>`;
+                }
+                // CHỈ xóa thẻ mở/đóng, GIỮ LẠI nội dung công thức để hiển thị trên khung chat
+                chatText = chatText.replace(match[0], content);
+            };
+
+            await processEditMatch(/<\s*replace_selection\s*>([\s\S]*?)<\s*\/\s*replace_selection\s*>/i.exec(chatText), "replace_selection", "match1");
+            await processEditMatch(/<\s*replace_paragraph\s*>([\s\S]*?)<\s*\/\s*replace_paragraph\s*>/i.exec(chatText), "replace_paragraph", "match1");
+            await processEditMatch(/<\s*replace_search\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_search\s*>/i.exec(chatText), "replace_search", "match2", "match1");
+            await processEditMatch(/<\s*replace_heading\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_heading\s*>/i.exec(chatText), "replace_heading", "match2", "match1");
+
+            let contentForWord = "";
+            let insertCount = 0;
+            const insertRegex = /<\s*insert\s*>([\s\S]*?)<\s*\/\s*insert\s*>/gi;
+            let insertMatch;
+            while ((insertMatch = insertRegex.exec(chatText)) !== null) {
+                contentForWord += (insertCount > 0 ? "\n\n" : "") + insertMatch[1];
+                insertCount++;
+            }
+            if (insertCount === 0 && !hasSpecialEdits) {
+                contentForWord = chatText;
+            }
+            const insertOnlyFormulas = insertCount === 0 && !hasSpecialEdits;
+
+            chatText = chatText.replace(/<\s*\/?\s*insert\s*>/gi, "");
+
+
+
+
 
             const chatSegments = processSegments(chatText);
             let chatBubbleHtml = "";
