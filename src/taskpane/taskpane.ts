@@ -179,8 +179,8 @@ Office.onReady((info) => {
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: '#333' }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, precision: 0 } },
-                        x: { grid: { display: false }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, maxTicksLimit: 7 } }
+                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { color: '#666', font: { size: 10 }, precision: 0 } },
+                        x: { grid: { display: false }, border: { display: false }, ticks: { color: '#666', font: { size: 10 }, maxTicksLimit: 7 } }
                     }
                 }
             });
@@ -211,8 +211,8 @@ Office.onReady((info) => {
                         }
                     },
                     scales: {
-                        y: { stacked: true, beginAtZero: true, grid: { color: '#333' }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, precision: 0 } },
-                        x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, maxTicksLimit: 7 } }
+                        y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { color: '#666', font: { size: 10 }, precision: 0 } },
+                        x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#666', font: { size: 10 }, maxTicksLimit: 7 } }
                     }
                 }
             });
