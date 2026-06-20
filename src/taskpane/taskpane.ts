@@ -360,7 +360,7 @@ Office.onReady((info) => {
             newChat: "New Chat",
             apiSettings: "Settings",
             chatPlaceholder: "Ask AI...",
-            chatHint: "Automatically inserts result into document",
+            chatHint: "AI can make mistakes. Please check important info.",
             optRename: "Rename",
             optPin: "Pin",
             optUnpin: "Unpin",
@@ -402,7 +402,7 @@ Office.onReady((info) => {
             newChat: "Cuộc trò chuyện mới",
             apiSettings: "Cài đặt",
             chatPlaceholder: "Yêu cầu AI...",
-            chatHint: "Tự động chèn kết quả vào tài liệu",
+            chatHint: "AI có thể mắc lỗi. Hãy kiểm tra lại thông tin.",
             optRename: "Đổi tên",
             optPin: "Ghim",
             optUnpin: "Bỏ ghim",
@@ -768,16 +768,18 @@ Office.onReady((info) => {
 
     chatMessages?.addEventListener("click", async (e) => {
         const target = e.target as HTMLElement;
-        if (target.classList.contains("btn-apply-edit")) {
-            const card = target.closest(".pending-edit-card") as HTMLElement;
+        const btnApply = target.closest(".btn-apply-edit") as HTMLButtonElement;
+        
+        if (btnApply) {
+            const card = btnApply.closest(".pending-edit-card") as HTMLElement;
             if (!card) return;
             
             const type = card.getAttribute("data-edit-type");
             const content = decodeURIComponent(card.getAttribute("data-edit-content") || "");
             const targetStr = decodeURIComponent(card.getAttribute("data-edit-target") || "");
 
-            target.innerText = "Applying...";
-            target.disabled = true;
+            btnApply.innerText = "Applying...";
+            btnApply.disabled = true;
 
             const settings = getAISettings();
 
@@ -804,27 +806,121 @@ Office.onReady((info) => {
                 const tSettings = translations[appLanguage] || translations["en"];
                 const btnApplyText = tSettings.btnApplyEdit || "Apply";
 
-                target.innerHTML = `<span style="color: var(--color-text-muted); font-weight: 500; font-size: 13px; display: inline-flex; align-items: center; padding: 4px 6px;">${notifText}</span>`;
+                btnApply.innerHTML = `<span style="color: var(--color-text-muted); font-weight: 500; font-size: 13px; display: inline-flex; align-items: center; padding: 4px 6px;">${notifText}</span>`;
                 setTimeout(() => {
-                    target.innerHTML = `<span style="font-weight: 500;">${btnApplyText}</span>`;
-                    target.disabled = false;
+                    btnApply.innerHTML = `<span style="font-weight: 500;">${btnApplyText}</span>`;
+                    btnApply.disabled = false;
                 }, 10000);
             } catch(err) {
-                target.innerText = "Error!";
-                target.disabled = false;
+                btnApply.innerText = "Error!";
+                btnApply.disabled = false;
             }
         } else if (target.closest(".btn-copy-msg")) {
             const btn = target.closest(".btn-copy-msg") as HTMLElement;
             const textToCopy = decodeURIComponent(btn.getAttribute("data-copy-text") || "");
             if (textToCopy) {
-                navigator.clipboard.writeText(textToCopy).then(() => {
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
                     const originalHtml = btn.innerHTML;
-                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#107c41" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-success);"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
                     setTimeout(() => {
                         btn.innerHTML = originalHtml;
                     }, 2000);
-                });
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                }
             }
+        }
+
+        const formulaEl = target.closest('.clickable-formula') as HTMLElement;
+        if (formulaEl) {
+            const rawLatex = decodeURIComponent(formulaEl.getAttribute('data-latex') || "");
+            if (rawLatex) {
+                try {
+                    const mathML = formulaEl.innerHTML;
+                    
+                    if (typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
+                        const htmlBlob = new Blob([mathML], { type: "text/html" });
+                        const plainBlob = new Blob([rawLatex], { type: "text/plain" });
+                        const clipboardItem = new ClipboardItem({
+                            "text/html": htmlBlob,
+                            "text/plain": plainBlob
+                        });
+                        await navigator.clipboard.write([clipboardItem]);
+                    } else {
+                        await navigator.clipboard.writeText(rawLatex);
+                    }
+                    
+                    const originalTitle = formulaEl.getAttribute('title');
+                    if (originalTitle) formulaEl.removeAttribute('title');
+                    
+                    const tooltip = document.createElement("div");
+                    tooltip.innerText = "Copied!";
+                    tooltip.style.position = "fixed";
+                    tooltip.style.left = `${e.clientX + 10}px`;
+                    tooltip.style.top = `${e.clientY + 10}px`;
+                    tooltip.style.background = "var(--color-primary)";
+                    tooltip.style.color = "#ffffff";
+                    tooltip.style.border = "none";
+                    tooltip.style.padding = "4px 10px";
+                    tooltip.style.borderRadius = "6px";
+                    tooltip.style.fontSize = "12px";
+                    tooltip.style.fontWeight = "500";
+                    tooltip.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+                    tooltip.style.zIndex = "10000";
+                    tooltip.style.pointerEvents = "none";
+                    document.body.appendChild(tooltip);
+                    
+                    setTimeout(() => {
+                        if (originalTitle) formulaEl.setAttribute('title', originalTitle);
+                        document.body.removeChild(tooltip);
+                    }, 1500);
+                } catch (err) {
+                    console.error('Failed to copy latex: ', err);
+                }
+            }
+        }
+    });
+
+    document.addEventListener('copy', (e: ClipboardEvent) => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) return;
+
+        const container = document.getElementById("chat-messages");
+        if (!container || !container.contains(selection.anchorNode)) return;
+
+        const range = selection.getRangeAt(0);
+        const clonedSelection = range.cloneContents();
+        const div = document.createElement('div');
+        div.appendChild(clonedSelection);
+
+        const htmlText = div.innerHTML;
+
+        const formulas = div.querySelectorAll('.clickable-formula');
+        formulas.forEach(f => {
+            const rawLatex = decodeURIComponent(f.getAttribute('data-latex') || "");
+            if (rawLatex) {
+                const isBlock = f.tagName.toLowerCase() === 'div';
+                const delimiterLatex = isBlock ? `\\[ ${rawLatex} \\]` : `\\( ${rawLatex} \\)`;
+                const textNode = document.createTextNode(delimiterLatex);
+                f.parentNode?.replaceChild(textNode, f);
+            }
+        });
+        
+        const skeletons = div.querySelectorAll('.skeleton-line');
+        skeletons.forEach(s => s.remove());
+
+        // We append div temporarily to body to compute innerText correctly
+        div.style.position = 'absolute';
+        div.style.left = '-9999px';
+        document.body.appendChild(div);
+        const plainText = div.innerText;
+        document.body.removeChild(div);
+
+        if (e.clipboardData) {
+            e.clipboardData.setData('text/plain', plainText);
+            e.clipboardData.setData('text/html', htmlText);
+            e.preventDefault();
         }
     });
 
@@ -973,7 +1069,7 @@ Office.onReady((info) => {
                 let lastIndex = 0;
                 const segments: any[] = [];
                 while ((match = formulaRegex.exec(textStr)) !== null) {
-                    const textPart = textStr.substring(lastIndex, match.index).trim();
+                    const textPart = textStr.substring(lastIndex, match.index);
                     if (textPart) segments.push({ type: 'text', content: textPart });
                     
                     let content = match[1];
@@ -993,7 +1089,7 @@ Office.onReady((info) => {
                     segments.push({ type: 'formula', content: content, isBlock: isBlock });
                     lastIndex = formulaRegex.lastIndex;
                 }
-                const finalText = textStr.substring(lastIndex).trim();
+                const finalText = textStr.substring(lastIndex);
                 if (finalText) segments.push({ type: 'text', content: finalText });
                 return segments;
             };
@@ -1015,7 +1111,7 @@ Office.onReady((info) => {
                     } else {
                         for (const segment of chatSegments) {
                             if (segment.type === 'text') {
-                                chatBubbleHtml += `<div style="margin-bottom: 8px;">${parseMarkdownStream(segment.content)}</div>`;
+                                chatBubbleHtml += `<span>${parseMarkdownStream(segment.content)}</span>`;
                             } else if (segment.type === 'formula') {
                                 let rawLatex = (segment.content || "").trim();
                                 if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
@@ -1033,20 +1129,24 @@ Office.onReady((info) => {
                                 const latexClean = sanitizeLaTeX(rawLatex, isBlock);
                                 const mathML = getMathML(latexClean, isBlock);
                                 if (mathML) {
-                                    chatBubbleHtml += `<div style="margin-bottom: 8px; overflow-x: auto; max-width: 100%; padding-bottom: 4px;">${mathML}</div>`;
+                                    const safeLatex = encodeURIComponent(rawLatex);
+                                    if (isBlock) {
+                                        chatBubbleHtml += `<div class="clickable-formula" data-latex="${safeLatex}" style="margin-top: 8px; margin-bottom: 8px; overflow-x: auto; max-width: 100%; padding-bottom: 4px; cursor: pointer;" title="Click to copy LaTeX">${mathML}</div>`;
+                                    } else {
+                                        chatBubbleHtml += `<span class="clickable-formula" data-latex="${safeLatex}" style="display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; margin: 0 4px; padding-bottom: 2px; cursor: pointer;" title="Click to copy LaTeX">${mathML}</span>`;
+                                    }
                                 } else {
-                                    chatBubbleHtml += `<div style="color: #d83b01; margin-bottom: 8px;">[Lỗi hiển thị công thức LaTeX]</div>`;
+                                    chatBubbleHtml += `<span style="color: #d83b01;">[Lỗi hiển thị công thức LaTeX]</span>`;
                                 }
                             }
                         }
                     }
 
-                    // Thêm skeleton loader vào cuối bong bóng chat đang được render
                     chatBubbleHtml += `
                         <div class="skeleton-line" style="height: 10px; width: 100%; margin-top: 8px; margin-bottom: 0; opacity: 0.7;"></div>`;
 
                     if (!msgDiv) {
-                        removeSkeleton(); // Xóa khung skeleton độc lập ban đầu
+                        removeSkeleton();
                         msgDiv = appendAIMessage(chatBubbleHtml, "", "");
                         if (msgDiv) {
                             msgBubble = msgDiv.querySelector(".msg-bubble") as HTMLElement;
@@ -1089,28 +1189,36 @@ Office.onReady((info) => {
                     else if (type === "replace_heading") await DocumentEditor.replaceHeadingContent(target, content);
                     appliedChanges = true;
                 }
-                const safeContent = encodeURIComponent(content);
-                const safeTarget = encodeURIComponent(target);
-                pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="${type}" data-edit-content="${safeContent}" data-edit-target="${safeTarget}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
-                    <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
-                        <span style="font-weight: 500;">${btnApplyText}</span>
-                    </button>
-                </div>`;
+                if (!settings.autoApplyEdits) {
+                    const safeContent = encodeURIComponent(content);
+                    const safeTarget = encodeURIComponent(target);
+                    pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="${type}" data-edit-content="${safeContent}" data-edit-target="${safeTarget}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
+                        <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
+                            <span style="font-weight: 500;">${btnApplyText}</span>
+                        </button>
+                    </div>`;
+                }
                 chatText = chatText.replace(match[0], "");
             };
 
-            // Process new document editor tags
             await processEditMatch(/<\s*replace_selection\s*>([\s\S]*?)<\s*\/\s*replace_selection\s*>/i.exec(chatText), "replace_selection", "match1");
             await processEditMatch(/<\s*replace_paragraph\s*>([\s\S]*?)<\s*\/\s*replace_paragraph\s*>/i.exec(chatText), "replace_paragraph", "match1");
             await processEditMatch(/<\s*replace_search\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_search\s*>/i.exec(chatText), "replace_search", "match2", "match1");
             await processEditMatch(/<\s*replace_heading\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_heading\s*>/i.exec(chatText), "replace_heading", "match2", "match1");
 
-            // Extract <insert> block for Word
-            const insertMatch = /<\s*insert\s*>([\s\S]*?)<\s*\/\s*insert\s*>/i.exec(chatText);
-            const contentForWord = insertMatch ? insertMatch[1] : chatText;
-            const insertOnlyFormulas = !insertMatch;
+            let contentForWord = "";
+            let insertCount = 0;
+            const insertRegex = /<\s*insert\s*>([\s\S]*?)<\s*\/\s*insert\s*>/gi;
+            let insertMatch;
+            while ((insertMatch = insertRegex.exec(chatText)) !== null) {
+                contentForWord += (insertCount > 0 ? "\n\n" : "") + insertMatch[1];
+                insertCount++;
+            }
+            if (insertCount === 0) {
+                contentForWord = chatText;
+            }
+            const insertOnlyFormulas = insertCount === 0;
 
-            // Prepare text for Chat (remove <insert> tags)
             chatText = chatText.replace(/<\s*\/?\s*insert\s*>/gi, "");
 
 
@@ -1121,7 +1229,7 @@ Office.onReady((info) => {
                 let lastIndex = 0;
                 const segments: any[] = [];
                 while ((match = formulaRegex.exec(textStr)) !== null) {
-                    const textPart = textStr.substring(lastIndex, match.index).trim();
+                    const textPart = textStr.substring(lastIndex, match.index);
                     if (textPart) segments.push({ type: 'text', content: textPart });
                     
                     let content = match[1];
@@ -1142,7 +1250,7 @@ Office.onReady((info) => {
                     segments.push({ type: 'formula', content: content, isBlock: isBlock });
                     lastIndex = formulaRegex.lastIndex;
                 }
-                const finalText = textStr.substring(lastIndex).trim();
+                const finalText = textStr.substring(lastIndex);
                 if (finalText) segments.push({ type: 'text', content: finalText });
                 return segments;
             };
@@ -1154,25 +1262,19 @@ Office.onReady((info) => {
 
             const parseMarkdown = (text: string) => {
                 let html = escapeHtml(text);
-                // Bold
                 html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                // Italic (match * but not ** by using negative lookbehinds if possible, or just standard regex)
-                // A simpler approach:
                 html = html.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-                // Code
                 html = html.replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">$1</code>');
-                // Line breaks
                 html = html.replace(/\n/g, '<br>');
                 return html;
             };
 
-            // Render Chat Bubble
             if (chatSegments.length === 0) {
                 chatBubbleHtml = parseMarkdown(chatText);
             } else {
                 for (const segment of chatSegments) {
                     if (segment.type === 'text') {
-                        chatBubbleHtml += `<div style="margin-bottom: 8px;">${parseMarkdown(segment.content)}</div>`;
+                        chatBubbleHtml += `<span>${parseMarkdown(segment.content)}</span>`;
                     } else if (segment.type === 'formula') {
                         let rawLatex = segment.content.trim();
                         if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
@@ -1192,9 +1294,14 @@ Office.onReady((info) => {
                         const mathML = getMathML(latexClean, isBlock);
 
                         if (mathML) {
-                            chatBubbleHtml += `<div style="margin-bottom: 8px; overflow-x: auto; max-width: 100%; padding-bottom: 4px;">${mathML}</div>`;
+                            const safeLatex = encodeURIComponent(rawLatex);
+                            if (isBlock) {
+                                chatBubbleHtml += `<div class="clickable-formula" data-latex="${safeLatex}" style="margin-top: 8px; margin-bottom: 8px; overflow-x: auto; max-width: 100%; padding-bottom: 4px; cursor: pointer;" title="Click to copy LaTeX">${mathML}</div>`;
+                            } else {
+                                chatBubbleHtml += `<span class="clickable-formula" data-latex="${safeLatex}" style="display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; margin: 0 4px; padding-bottom: 2px; cursor: pointer;" title="Click to copy LaTeX">${mathML}</span>`;
+                            }
                         } else {
-                            chatBubbleHtml += `<div style="color: #d83b01; margin-bottom: 8px;">[Lỗi hiển thị công thức LaTeX]</div>`;
+                            chatBubbleHtml += `<span style="color: #d83b01;">[Lỗi hiển thị công thức LaTeX]</span>`;
                         }
                     }
                 }
@@ -1202,10 +1309,11 @@ Office.onReady((info) => {
             
             // Render Word Insertion
             const wordSegments = processSegments(contentForWord);
+            let currentParagraph = "";
             for (const segment of wordSegments) {
                 if (segment.type === 'text' && !insertOnlyFormulas) {
                     const escaped = escapeHtml(segment.content).replace(/\n/g, '<br>');
-                    wordHtml += `<p style="margin-bottom: 8px;">${escaped}</p>`;
+                    currentParagraph += escaped;
                     hasWordContent = true;
                 } else if (segment.type === 'formula') {
                     let rawLatex = segment.content.trim();
@@ -1224,15 +1332,29 @@ Office.onReady((info) => {
                     const latexClean = sanitizeLaTeX(rawLatex, isBlock);
                     const mathML = getMathML(latexClean, isBlock);
                     if (mathML) {
-                        wordHtml += `<p style="margin-bottom: 8px;">${mathML}</p>`;
+                        if (isBlock) {
+                            if (currentParagraph.trim() !== "") {
+                                wordHtml += `<p style="margin-bottom: 8px;">${currentParagraph}</p>`;
+                                currentParagraph = "";
+                            }
+                            wordHtml += `<p style="margin-bottom: 8px;">${mathML}</p>`;
+                        } else {
+                            currentParagraph += `<span style="margin: 0 4px;">${mathML}</span>`;
+                        }
                         hasWordContent = true;
                     }
                 }
             }
+            if (currentParagraph.trim() !== "") {
+                wordHtml += `<p style="margin-bottom: 8px;">${currentParagraph}</p>`;
+            }
 
             if (hasWordContent && !appliedChanges) {
                 wordHtml += "</body></html>";
-                if (settings.autoApplyEdits) {
+                
+                const shouldAutoApply = settings.autoApplyEdits && !insertOnlyFormulas;
+                
+                if (shouldAutoApply) {
                     await Word.run(async (context) => {
                         if (settings.insertAtCursor) {
                             const selection = context.document.getSelection();
@@ -1244,13 +1366,14 @@ Office.onReady((info) => {
                         await context.sync();
                     });
                     appliedChanges = true;
+                } else {
+                    const safeContent = encodeURIComponent(wordHtml);
+                    pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="insert_html" data-edit-content="${safeContent}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
+                        <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
+                            <span style="font-weight: 500;">${btnApplyText}</span>
+                        </button>
+                    </div>`;
                 }
-                const safeContent = encodeURIComponent(wordHtml);
-                pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="insert_html" data-edit-content="${safeContent}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
-                    <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
-                        <span style="font-weight: 500;">${btnApplyText}</span>
-                    </button>
-                </div>`;
             }
 
             if (chatBubbleHtml) {

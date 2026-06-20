@@ -33,20 +33,20 @@ Bạn có thể trò chuyện bình thường và giải đáp thắc mắc củ
 KHI NGƯỜI DÙNG YÊU CẦU TẠO HOẶC CHỈNH SỬA CÔNG THỨC TOÁN HỌC:
 1. MỌI NỘI DUNG MÀ BẠN MUỐN ĐƯỢC CHÈN VÀO WORD (bao gồm các công thức và chú thích/tiêu đề của công thức đó) BẮT BUỘC PHẢI nằm trong thẻ <insert> và </insert>.
 2. BÊN TRONG thẻ <insert>, mọi công thức LaTeX phải được bọc trong thẻ <formula> và </formula>.
-3. LƯU Ý QUAN TRỌNG: BÊN TRONG thẻ <formula> CHỈ ĐƯỢC CHỨA DUY NHẤT MÃ LATEX, KHÔNG CHỨA TEXT CHÚ THÍCH. Text chú thích (ví dụ: "1. Hằng đẳng thức số 1:") phải nằm bên ngoài thẻ <formula> nhưng vẫn phải nằm TRONG thẻ <insert> thì mới được in ra Word.
-4. Các câu giao tiếp (như "Dưới đây là...", "Chúc bạn...") phải nằm NGOÀI thẻ <insert>.
+3. LƯU Ý QUAN TRỌNG: BÊN TRONG thẻ <formula> CHỈ ĐƯỢC CHỨA DUY NHẤT MÃ LATEX, KHÔNG CHỨA TEXT CHÚ THÍCH. Text chú thích của công thức (ví dụ: "1. Hằng đẳng thức số 1:") thì được phép nằm ngoài thẻ <formula> nhưng vẫn phải nằm TRONG thẻ <insert> thì mới được in ra Word.
+4. CẤM TUYỆT ĐỐI: Mọi câu giao tiếp, câu mở đầu (như "Dưới đây là...", "Để giải bài toán này...") và câu kết luận/dặn dò (như "Chúc bạn...", "Bạn có thể copy...") PHẢI NẰM NGOÀI thẻ <insert>. Nếu bạn để chúng vào trong thẻ <insert>, chúng sẽ bị dán nhầm vào tài liệu Word của người dùng.
 5. TUYỆT ĐỐI KHÔNG giải thích về các quy tắc này với người dùng.
 6. HÃY LINH HOẠT: Tùy theo yêu cầu của người dùng mà bạn đánh số thứ tự hoặc không. Nếu họ chỉ xin 1 công thức đơn lẻ, hãy in ra tự nhiên, đừng rập khuôn đánh số tiếp nối.
 
 Ví dụ ĐÚNG:
-Dưới đây là các hằng đẳng thức bạn cần:
+Dưới đây là các hằng đẳng thức bạn cần, hãy xem nhé:
 <insert>
 Bình phương của một tổng:
 <formula>(a+b)^2 = a^2 + 2ab + b^2</formula>
 Bình phương của một hiệu:
 <formula>(a-b)^2 = a^2 - 2ab + b^2</formula>
 </insert>
-Nếu cần thêm gì hãy báo tôi nhé.
+Bạn có thể ấn nút Apply để dán thẳng vào Word nha. Chúc bạn học tốt!
 
 KHI NGƯỜI DÙNG YÊU CẦU CHỈNH SỬA TÀI LIỆU (Thay đổi văn bản hiện có):
 1. Hệ thống sẽ cung cấp cho bạn ngữ cảnh hiện tại của tài liệu (Văn bản đang bôi đen, hoặc Đoạn văn chứa con trỏ chuột).
@@ -129,10 +129,10 @@ export async function sendChatMessage(
         return callOpenAICompatibleStream(messagesToSend, settings.apiKey, "https://api.openai.com/v1/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk);
     } else if (settings.provider === 'deepseek') {
         const model = "deepseek-v4-flash";
-        const extraBodyParams = isThinkingMode ? {
-            thinking: { type: "enabled" },
-            reasoning_effort: "high"
-        } : {};
+        const extraBodyParams = {
+            thinking: { type: isThinkingMode ? "enabled" : "disabled" },
+            ...(isThinkingMode ? { reasoning_effort: "high" } : {})
+        };
         return callOpenAICompatibleStream(messagesToSend, settings.apiKey, "https://api.deepseek.com/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk);
     } else {
         const model = "gemini-3.5-flash";
