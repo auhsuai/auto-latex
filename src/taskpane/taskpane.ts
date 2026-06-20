@@ -255,10 +255,29 @@ Office.onReady((info) => {
         }
     });
 
-    const btnResetStats = document.getElementById("btn-reset-stats");
-    btnResetStats?.addEventListener("click", () => {
-        localStorage.removeItem("auto_latex_ai_usage_v2");
-        loadSettingsToUI();
+    const btnExportStats = document.getElementById("btn-export-stats");
+    btnExportStats?.addEventListener("click", () => {
+        const stats = getAIUsageStats();
+        const dates = Object.keys(stats.daily).sort();
+        
+        // Build CSV
+        let csv = "Date,API Calls,Prompt Tokens,Cache Hit Tokens,Cache Miss Tokens,Completion Tokens,Total Tokens\n";
+        dates.forEach(date => {
+            const d = stats.daily[date];
+            csv += `${date},${d.apiCalls},${d.promptTokens},${d.cacheHitTokens},${d.cacheMissTokens},${d.completionTokens},${d.totalTokens}\n`;
+        });
+        csv += `\nTotal,${stats.total.apiCalls},${stats.total.promptTokens},${stats.total.cacheHitTokens},${stats.total.cacheMissTokens},${stats.total.completionTokens},${stats.total.totalTokens}\n`;
+        
+        // Download
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `auto-latex-usage-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     });
 
     btnCloseSettings?.addEventListener("click", () => {
@@ -510,7 +529,7 @@ Office.onReady((info) => {
             statPromptTokens: "Prompt Tokens:",
             statCompletionTokens: "Completion Tokens:",
             statTotalTokens: "Total Tokens:",
-            btnResetStats: "Reset Statistics",
+            btnExportStats: "📥 Export Statistics",
             btnApplyEdit: "Apply",
             btnCancel: "Cancel",
             btnSave: "Save",
@@ -560,7 +579,7 @@ Office.onReady((info) => {
             statPromptTokens: "Token ngữ cảnh (Prompt):",
             statCompletionTokens: "Token phản hồi (Completion):",
             statTotalTokens: "Tổng số Token:",
-            btnResetStats: "Khôi phục lại từ 0",
+            btnExportStats: "📥 Xuất thống kê",
             btnApplyEdit: "Áp dụng",
             btnCancel: "Hủy",
             btnSave: "Lưu",
