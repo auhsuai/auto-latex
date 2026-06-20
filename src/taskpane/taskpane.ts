@@ -130,13 +130,25 @@ Office.onReady((info) => {
     let tokensChart: Chart | null = null;
 
     const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>) => {
-        const dates = Object.keys(stats.daily).sort();
-        const labels = dates.map(d => d.slice(5)); // e.g. "06-20"
-        
-        const apiCallsData = dates.map(d => stats.daily[d].apiCalls);
-        const cacheHitData = dates.map(d => stats.daily[d].cacheHitTokens);
-        const cacheMissData = dates.map(d => stats.daily[d].cacheMissTokens);
-        const outputData = dates.map(d => stats.daily[d].completionTokens);
+        // Generate last 7 days
+        const labels: string[] = [];
+        const apiCallsData: number[] = [];
+        const cacheHitData: number[] = [];
+        const cacheMissData: number[] = [];
+        const outputData: number[] = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateString = d.toISOString().split('T')[0];
+            labels.push(dateString.slice(5)); // "MM-DD"
+            
+            const dayStat = stats.daily[dateString] || { apiCalls: 0, cacheHitTokens: 0, cacheMissTokens: 0, completionTokens: 0 };
+            apiCallsData.push(dayStat.apiCalls);
+            cacheHitData.push(dayStat.cacheHitTokens);
+            cacheMissData.push(dayStat.cacheMissTokens);
+            outputData.push(dayStat.completionTokens);
+        }
 
         const ctxApi = document.getElementById("api-requests-chart") as HTMLCanvasElement;
         const ctxTokens = document.getElementById("tokens-chart") as HTMLCanvasElement;
@@ -167,8 +179,8 @@ Office.onReady((info) => {
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false }, ticks: { color: '#888', font: { size: 10 } } },
-                        x: { grid: { display: false }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, maxTicksLimit: 5 } }
+                        y: { beginAtZero: true, grid: { color: '#333' }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, precision: 0 } },
+                        x: { grid: { display: false }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, maxTicksLimit: 7 } }
                     }
                 }
             });
@@ -199,8 +211,8 @@ Office.onReady((info) => {
                         }
                     },
                     scales: {
-                        y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false }, ticks: { color: '#888', font: { size: 10 } } },
-                        x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, maxTicksLimit: 5 } }
+                        y: { stacked: true, beginAtZero: true, grid: { color: '#333' }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, precision: 0 } },
+                        x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#888', font: { size: 10 }, maxTicksLimit: 7 } }
                     }
                 }
             });
