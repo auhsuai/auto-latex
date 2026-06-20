@@ -64,7 +64,7 @@ function extractNakedEnvironments(text: string): string[] {
     return text.match(envRegex) || [];
 }
 
-function sanitizeLaTeX(latex: string, isBlock: boolean): string {
+export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
     let sanitized = latex;
 
     // Edge Case 14: Unescaped % comment (KaTeX removes everything after it)
@@ -85,7 +85,7 @@ function sanitizeLaTeX(latex: string, isBlock: boolean): string {
     return sanitized;
 }
 
-function getMathML(latex: string, isBlock: boolean): string | null {
+export function getMathML(latex: string, isBlock: boolean): string | null {
     try {
         const html = katex.renderToString(latex, {
             displayMode: isBlock,
