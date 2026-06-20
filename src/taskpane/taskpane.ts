@@ -1502,10 +1502,20 @@ Office.onReady((info) => {
             await processEditMatch(/<\s*replace_search\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_search\s*>/i.exec(chatText), "replace_search", "match2", "match1");
             await processEditMatch(/<\s*replace_heading\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_heading\s*>/i.exec(chatText), "replace_heading", "match2", "match1");
 
-            // Remove <insert> tags but keep all content for Word insertion
-            let contentForWord = chatText.replace(/<\s*\/?\s*insert\s*>/gi, "");
-            const insertCount = (chatText.match(/<\s*insert\s*>/gi) || []).length;
-            const insertOnlyFormulas = false; // Always allow text since we want full response applied
+            let contentForWord = "";
+            let insertCount = 0;
+            const insertRegex = /<\s*insert\s*>([\s\S]*?)<\s*\/\s*insert\s*>/gi;
+            let insertMatch;
+            while ((insertMatch = insertRegex.exec(chatText)) !== null) {
+                contentForWord += (insertCount > 0 ? "\n\n" : "") + insertMatch[1];
+                insertCount++;
+            }
+            if (insertCount === 0 && !hasSpecialEdits) {
+                contentForWord = chatText;
+            }
+            const insertOnlyFormulas = insertCount === 0 && !hasSpecialEdits;
+
+            chatText = chatText.replace(/<\s*\/?\s*insert\s*>/gi, "");
 
 
 
@@ -1567,7 +1577,7 @@ Office.onReady((info) => {
             const wordSegments = processSegments(contentForWord);
             let currentParagraph = "";
             for (const segment of wordSegments) {
-                if (segment.type === 'text') {
+                if (segment.type === 'text' && !insertOnlyFormulas) {
                     const escaped = escapeHtml(segment.content).replace(/\n/g, '<br>');
                     currentParagraph += escaped;
                     hasWordContent = true;
