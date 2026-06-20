@@ -243,6 +243,18 @@ Office.onReady((info) => {
         }
     });
 
+    const editorSettingsToggle = document.getElementById("editor-settings-toggle");
+    const editorSettingsContainer = document.getElementById("editor-settings-container");
+    const editorSettingsChevron = document.getElementById("editor-settings-chevron");
+
+    editorSettingsToggle?.addEventListener("click", () => {
+        if (editorSettingsContainer && editorSettingsChevron) {
+            const isHidden = editorSettingsContainer.style.display === "none";
+            editorSettingsContainer.style.display = isHidden ? "block" : "none";
+            editorSettingsChevron.style.transform = isHidden ? "rotate(0deg)" : "rotate(-90deg)";
+        }
+    });
+
     const usageStatsToggle = document.getElementById("usage-stats-toggle");
     const usageStatsContainer = document.getElementById("usage-stats-container");
     const usageStatsChevron = document.getElementById("usage-stats-chevron");
@@ -518,6 +530,7 @@ Office.onReady((info) => {
             optDelete: "Delete",
             settingsTitle: "Settings",
             aiSettingsTitle: "AI Settings",
+            editorSettingsTitle: "Editor Settings",
             languageLabel: "Language / Ngôn ngữ",
             providerLabel: "AI Provider",
             apiKeyLabel: "API Key",
@@ -568,6 +581,7 @@ Office.onReady((info) => {
             optDelete: "Xóa",
             settingsTitle: "Cài đặt",
             aiSettingsTitle: "Cài đặt AI",
+            editorSettingsTitle: "Cài đặt Editor",
             languageLabel: "Language / Ngôn ngữ",
             providerLabel: "Nhà cung cấp AI",
             apiKeyLabel: "API Key",
