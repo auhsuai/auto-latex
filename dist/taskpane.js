@@ -17399,7 +17399,7 @@ Office.onReady(function (info) {
     // Chat sending logic
     var handleSendChat = /*#__PURE__*/function () {
       var _ref6 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee8() {
-        var prompt, settings, displayHtml, fullPromptForAI, displayQuoteHtml, quoteLabel, session, savedQuoteForDocContext, savedIsQuoteFromWord, _yield$import3, DocumentEditor, docContext, aiResponseText, msgDiv, msgBubble, isRendering, rafId, _yield$import4, sanitizeLaTeX, getMathML, parseMarkdownStream, processSegmentsStream, renderStreamChunk, chatText, appliedChanges, pendingEditsHtml, tSettings, btnApplyText, hasSpecialEdits, processSegments, generateWordHtmlFromText, processEditMatch, contentForWord, insertCount, insertRegex, insertMatch, insertOnlyFormulas, chatSegments, chatBubbleHtml, wordHtml, hasWordContent, parseMarkdown, _iterator3, _step3, segment, rawLatex, isBlock, latexClean, mathML, safeLatex, wordSegments, currentParagraph, _iterator4, _step4, _segment, escaped, _rawLatex, _isBlock, _latexClean, _mathML, shouldAutoApply, safeContent, toolbarContainer, copyContainer, btns, notifText, _t5;
+        var prompt, settings, displayHtml, fullPromptForAI, displayQuoteHtml, quoteLabel, session, savedQuoteForDocContext, savedIsQuoteFromWord, _yield$import3, DocumentEditor, docContext, aiResponseText, msgDiv, msgBubble, isRendering, rafId, _yield$import4, sanitizeLaTeX, getMathML, parseMarkdownStream, processSegmentsStream, renderStreamChunk, chatText, appliedChanges, pendingEditsHtml, tSettings, btnApplyText, hasSpecialEdits, processSegments, generateWordHtmlFromText, processEditMatch, contentForWord, insertCount, insertOnlyFormulas, chatSegments, chatBubbleHtml, wordHtml, hasWordContent, parseMarkdown, _iterator3, _step3, segment, rawLatex, isBlock, latexClean, mathML, safeLatex, wordSegments, currentParagraph, _iterator4, _step4, _segment, escaped, _rawLatex, _isBlock, _latexClean, _mathML, shouldAutoApply, safeContent, toolbarContainer, copyContainer, btns, notifText, _t5;
         return _regenerator().w(function (_context8) {
           while (1) switch (_context8.p = _context8.n) {
             case 0:
@@ -17812,18 +17812,10 @@ Office.onReady(function (info) {
               _context8.n = 13;
               return processEditMatch(/<\s*replace_heading\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_heading\s*>/i.exec(chatText), "replace_heading", "match2", "match1");
             case 13:
-              contentForWord = "";
-              insertCount = 0;
-              insertRegex = /<\s*insert\s*>([\s\S]*?)<\s*\/\s*insert\s*>/gi;
-              while ((insertMatch = insertRegex.exec(chatText)) !== null) {
-                contentForWord += (insertCount > 0 ? "\n\n" : "") + insertMatch[1];
-                insertCount++;
-              }
-              if (insertCount === 0 && !hasSpecialEdits) {
-                contentForWord = chatText;
-              }
-              insertOnlyFormulas = insertCount === 0 && !hasSpecialEdits;
-              chatText = chatText.replace(/<\s*\/?\s*insert\s*>/gi, "");
+              // Remove <insert> tags but keep all content for Word insertion
+              contentForWord = chatText.replace(/<\s*\/?\s*insert\s*>/gi, "");
+              insertCount = (chatText.match(/<\s*insert\s*>/gi) || []).length;
+              insertOnlyFormulas = false; // Always allow text since we want full response applied
               chatSegments = processSegments(chatText);
               chatBubbleHtml = "";
               wordHtml = "<html><body>";
@@ -17887,7 +17879,7 @@ Office.onReady(function (info) {
               try {
                 for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
                   _segment = _step4.value;
-                  if (_segment.type === 'text' && !insertOnlyFormulas) {
+                  if (_segment.type === 'text') {
                     escaped = escapeHtml(_segment.content).replace(/\n/g, '<br>');
                     currentParagraph += escaped;
                     hasWordContent = true;
