@@ -210,7 +210,7 @@ export class SettingsManager {
 
             const providerMap: Record<string, string> = {
                 'gemini': 'Google Gemini',
-                'openai': 'OpenAI (GPT)',
+                'openai': 'OpenAI',
                 'deepseek': 'DeepSeek',
                 'minimax': 'MiniMax'
             };
