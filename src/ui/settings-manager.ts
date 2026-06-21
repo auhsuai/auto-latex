@@ -14,6 +14,11 @@ export class SettingsManager {
         this.tempSelectedProvider = getAISettings().provider;
     }
 
+    public setAppLanguage(lang: string) {
+        this.currentAppLanguage = lang;
+        this.tempSelectedLanguage = lang;
+    }
+
     public openSettings() {
         this.loadSettingsToUI();
         const settingsModal = document.getElementById("settings-modal");

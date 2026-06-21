@@ -153,6 +153,7 @@ Office.onReady((info) => {
             appLanguage = newLang;
             localStorage.setItem("auto_latex_language", appLanguage);
             applyLanguage(appLanguage);
+            settingsManager.setAppLanguage(appLanguage);
         });
 
         // Chat Events (click formula, copy, apply edits)
