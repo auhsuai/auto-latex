@@ -6,7 +6,7 @@ Chart.register(...registerables);
 let apiRequestsChart: Chart | null = null;
 let tokensChart: Chart | null = null;
 
-export const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>) => {
+export const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>, selectedProvider: string = 'all') => {
     const labels: string[] = [];
     const apiCallsData: number[] = [];
     const cacheHitData: number[] = [];
@@ -19,7 +19,13 @@ export const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>) => 
         const dateString = d.toISOString().split('T')[0];
         labels.push(dateString.slice(5)); // "MM-DD"
         
-        const dayStat = stats.daily[dateString] || { apiCalls: 0, cacheHitTokens: 0, cacheMissTokens: 0, completionTokens: 0 };
+        let dayStat;
+        if (selectedProvider === 'all') {
+            dayStat = stats.daily[dateString] || { apiCalls: 0, cacheHitTokens: 0, cacheMissTokens: 0, completionTokens: 0 };
+        } else {
+            dayStat = stats.daily[dateString]?.providers?.[selectedProvider] || { apiCalls: 0, cacheHitTokens: 0, cacheMissTokens: 0, completionTokens: 0 };
+        }
+        
         apiCallsData.push(dayStat.apiCalls);
         cacheHitData.push(dayStat.cacheHitTokens);
         cacheMissData.push(dayStat.cacheMissTokens);

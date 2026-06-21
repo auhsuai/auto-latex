@@ -34,7 +34,7 @@ export function saveAISettings(settings: AISettings) {
 
 const USAGE_KEY = 'auto_latex_ai_usage_v2';
 
-export interface DailyUsage {
+export interface UsageMetrics {
     apiCalls: number;
     promptTokens: number;
     cacheHitTokens: number;
@@ -43,12 +43,21 @@ export interface DailyUsage {
     totalTokens: number;
 }
 
+export interface DailyUsage extends UsageMetrics {
+    providers: {
+        [providerName: string]: UsageMetrics;
+    };
+}
+
 export interface AIUsageData {
-    total: DailyUsage;
+    total: UsageMetrics;
+    providersTotal: {
+        [providerName: string]: UsageMetrics;
+    };
     daily: { [dateString: string]: DailyUsage };
 }
 
-function getEmptyUsage(): DailyUsage {
+function getEmptyUsage(): UsageMetrics {
     return { apiCalls: 0, promptTokens: 0, cacheHitTokens: 0, cacheMissTokens: 0, completionTokens: 0, totalTokens: 0 };
 }
 
@@ -56,22 +65,33 @@ export function getAIUsageStats(): AIUsageData {
     const raw = localStorage.getItem(USAGE_KEY);
     if (raw) {
         try {
-            return JSON.parse(raw);
+            const data = JSON.parse(raw);
+            if (!data.providersTotal) data.providersTotal = {};
+            for (const key in data.daily) {
+                if (!data.daily[key].providers) data.daily[key].providers = {};
+            }
+            return data;
         } catch (e) {}
     }
-    return { total: getEmptyUsage(), daily: {} };
+    return { total: getEmptyUsage(), providersTotal: {}, daily: {} };
 }
 
-export function updateAIUsageStats(promptTokens: number, cacheHitTokens: number, completionTokens: number, totalTokens: number) {
+export function updateAIUsageStats(provider: string, promptTokens: number, cacheHitTokens: number, completionTokens: number, totalTokens: number) {
     const stats = getAIUsageStats();
     const cacheMissTokens = Math.max(0, promptTokens - cacheHitTokens);
     const today = new Date().toISOString().split('T')[0];
 
     if (!stats.daily[today]) {
-        stats.daily[today] = getEmptyUsage();
+        stats.daily[today] = { ...getEmptyUsage(), providers: {} };
+    }
+    if (!stats.daily[today].providers[provider]) {
+        stats.daily[today].providers[provider] = getEmptyUsage();
+    }
+    if (!stats.providersTotal[provider]) {
+        stats.providersTotal[provider] = getEmptyUsage();
     }
 
-    // Update total
+    // Update overall total
     stats.total.apiCalls += 1;
     stats.total.promptTokens += promptTokens;
     stats.total.cacheHitTokens += cacheHitTokens;
@@ -79,13 +99,29 @@ export function updateAIUsageStats(promptTokens: number, cacheHitTokens: number,
     stats.total.completionTokens += completionTokens;
     stats.total.totalTokens += totalTokens;
 
-    // Update daily
+    // Update provider total
+    stats.providersTotal[provider].apiCalls += 1;
+    stats.providersTotal[provider].promptTokens += promptTokens;
+    stats.providersTotal[provider].cacheHitTokens += cacheHitTokens;
+    stats.providersTotal[provider].cacheMissTokens += cacheMissTokens;
+    stats.providersTotal[provider].completionTokens += completionTokens;
+    stats.providersTotal[provider].totalTokens += totalTokens;
+
+    // Update overall daily
     stats.daily[today].apiCalls += 1;
     stats.daily[today].promptTokens += promptTokens;
     stats.daily[today].cacheHitTokens += cacheHitTokens;
     stats.daily[today].cacheMissTokens += cacheMissTokens;
     stats.daily[today].completionTokens += completionTokens;
     stats.daily[today].totalTokens += totalTokens;
+
+    // Update provider daily
+    stats.daily[today].providers[provider].apiCalls += 1;
+    stats.daily[today].providers[provider].promptTokens += promptTokens;
+    stats.daily[today].providers[provider].cacheHitTokens += cacheHitTokens;
+    stats.daily[today].providers[provider].cacheMissTokens += cacheMissTokens;
+    stats.daily[today].providers[provider].completionTokens += completionTokens;
+    stats.daily[today].providers[provider].totalTokens += totalTokens;
 
     localStorage.setItem(USAGE_KEY, JSON.stringify(stats));
 }
@@ -257,24 +293,24 @@ QUY TẮC ĐẦU RA BẮT BUỘC:
     if (settings.provider === 'openai') {
         const model = isThinkingMode ? "gpt-5.4" : "gpt-5.4-mini";
         const extraBodyParams = isThinkingMode ? { reasoning_effort: "high" } : {};
-        return callOpenAICompatibleStream(messagesToSend, apiKey, "https://api.openai.com/v1/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk);
+        return callOpenAICompatibleStream(settings.provider, messagesToSend, apiKey, "https://api.openai.com/v1/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk);
     } else if (settings.provider === 'deepseek') {
         const model = "deepseek-v4-flash";
         const extraBodyParams = {
             thinking: { type: isThinkingMode ? "enabled" : "disabled" },
             ...(isThinkingMode ? { reasoning_effort: "high" } : {})
         };
-        return callOpenAICompatibleStream(messagesToSend, apiKey, "https://api.deepseek.com/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk);
+        return callOpenAICompatibleStream(settings.provider, messagesToSend, apiKey, "https://api.deepseek.com/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk);
     } else if (settings.provider === 'minimax') {
         const model = "MiniMax-M3";
-        return callOpenAICompatibleStream(messagesToSend, apiKey, "https://api.tokenrouter.com/v1/chat/completions", model, currentSystemPrompt, {}, onChunk);
+        return callOpenAICompatibleStream(settings.provider, messagesToSend, apiKey, "https://api.tokenrouter.com/v1/chat/completions", model, currentSystemPrompt, {}, onChunk);
     } else {
         const model = "gemini-3.5-flash";
-        return callGeminiStream(messagesToSend, apiKey, currentSystemPrompt, model, isThinkingMode, onChunk);
+        return callGeminiStream(settings.provider, messagesToSend, apiKey, currentSystemPrompt, model, isThinkingMode, onChunk);
     }
 }
 
-async function callOpenAICompatibleStream(history: ChatMessage[], apiKey: string, endpoint: string, model: string, fullSystemPrompt: string, extraBodyParams: any = {}, onChunk?: (text: string) => void): Promise<string> {
+async function callOpenAICompatibleStream(provider: string, history: ChatMessage[], apiKey: string, endpoint: string, model: string, fullSystemPrompt: string, extraBodyParams: any = {}, onChunk?: (text: string) => void): Promise<string> {
     const body: any = {
         model: model,
         messages: [
@@ -349,13 +385,13 @@ async function callOpenAICompatibleStream(history: ChatMessage[], apiKey: string
     }
     
     if (finalTTokens > 0) {
-        updateAIUsageStats(finalPTokens, finalCacheTokens, finalCTokens, finalTTokens);
+        updateAIUsageStats(provider, finalPTokens, finalCacheTokens, finalCTokens, finalTTokens);
     }
     
     return fullContent.trim();
 }
 
-async function callGeminiStream(history: ChatMessage[], apiKey: string, fullSystemPrompt: string, model: string = "gemini-1.5-flash", isThinkingMode: boolean = false, onChunk?: (text: string) => void): Promise<string> {
+async function callGeminiStream(provider: string, history: ChatMessage[], apiKey: string, fullSystemPrompt: string, model: string = "gemini-1.5-flash", isThinkingMode: boolean = false, onChunk?: (text: string) => void): Promise<string> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
     
     const geminiContents = history.map(msg => ({
@@ -428,7 +464,7 @@ async function callGeminiStream(history: ChatMessage[], apiKey: string, fullSyst
     }
     
     if (finalTTokens > 0) {
-        updateAIUsageStats(finalPTokens, finalCacheTokens, finalCTokens, finalTTokens);
+        updateAIUsageStats(provider, finalPTokens, finalCacheTokens, finalCTokens, finalTTokens);
     }
     
     return fullContent.trim();

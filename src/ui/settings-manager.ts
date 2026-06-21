@@ -5,6 +5,7 @@ export class SettingsManager {
     private tempSelectedProvider: string;
     private tempSelectedLanguage: string;
     private tempApiKeys: Record<string, string> = {};
+    private selectedStatsProvider: string = 'all';
 
     public onLanguageChanged: (newLang: string) => void = () => {};
 
@@ -71,6 +72,12 @@ export class SettingsManager {
             }
         });
 
+        this.initCustomSelect("stats-filter-wrapper", (val) => {
+            this.selectedStatsProvider = val;
+            const stats = getAIUsageStats();
+            renderUsageCharts(stats, this.selectedStatsProvider);
+        });
+
         this.setupToggles();
         this.setupExportStats();
     }
@@ -94,9 +101,10 @@ export class SettingsManager {
         
         this.updateCustomSelect("provider-select-wrapper", this.tempSelectedProvider);
         this.updateCustomSelect("lang-select-wrapper", this.tempSelectedLanguage);
+        this.updateCustomSelect("stats-filter-wrapper", this.selectedStatsProvider);
 
         const stats = getAIUsageStats();
-        renderUsageCharts(stats);
+        renderUsageCharts(stats, this.selectedStatsProvider);
     }
 
     private saveSettings() {
@@ -169,13 +177,13 @@ export class SettingsManager {
             const stats = getAIUsageStats();
             const dates = Object.keys(stats.daily).sort();
             
-            const tableData: string[][] = [
-                ["Date", "API Calls", "Prompt Tokens", "Cache Hit Tokens", "Cache Miss Tokens", "Completion Tokens", "Total Tokens"]
+            const overallTableData: string[][] = [
+                ["Date", "API Calls", "Prompt Tokens", "Cache Hit", "Cache Miss", "Completion", "Total Tokens"]
             ];
             
             dates.forEach(date => {
                 const d = stats.daily[date];
-                tableData.push([
+                overallTableData.push([
                     date,
                     d.apiCalls.toString(),
                     d.promptTokens.toString(),
@@ -186,8 +194,8 @@ export class SettingsManager {
                 ]);
             });
             
-            tableData.push([
-                "Total",
+            overallTableData.push([
+                "Overall Total",
                 stats.total.apiCalls.toString(),
                 stats.total.promptTokens.toString(),
                 stats.total.cacheHitTokens.toString(),
@@ -195,23 +203,76 @@ export class SettingsManager {
                 stats.total.completionTokens.toString(),
                 stats.total.totalTokens.toString()
             ]);
+
+            const detailsTableData: string[][] = [
+                ["Provider", "Date", "API Calls", "Prompt Tokens", "Cache Hit", "Cache Miss", "Completion", "Total Tokens"]
+            ];
+
+            const providerMap: Record<string, string> = {
+                'gemini': 'Google Gemini',
+                'openai': 'OpenAI (GPT)',
+                'deepseek': 'DeepSeek',
+                'minimax': 'MiniMax'
+            };
+
+            const providers = Object.keys(stats.providersTotal);
+            providers.forEach(provider => {
+                const providerName = providerMap[provider] || provider;
+                dates.forEach(date => {
+                    if (stats.daily[date].providers && stats.daily[date].providers[provider]) {
+                        const d = stats.daily[date].providers[provider];
+                        if (d.totalTokens > 0 || d.apiCalls > 0) {
+                            detailsTableData.push([
+                                providerName,
+                                date,
+                                d.apiCalls.toString(),
+                                d.promptTokens.toString(),
+                                d.cacheHitTokens.toString(),
+                                d.cacheMissTokens.toString(),
+                                d.completionTokens.toString(),
+                                d.totalTokens.toString()
+                            ]);
+                        }
+                    }
+                });
+
+                const t = stats.providersTotal[provider];
+                if (t.totalTokens > 0 || t.apiCalls > 0) {
+                    detailsTableData.push([
+                        `${providerName} Total`,
+                        "-",
+                        t.apiCalls.toString(),
+                        t.promptTokens.toString(),
+                        t.cacheHitTokens.toString(),
+                        t.cacheMissTokens.toString(),
+                        t.completionTokens.toString(),
+                        t.totalTokens.toString()
+                    ]);
+                }
+            });
+
+            // If no details, just provide a dummy row
+            if (detailsTableData.length === 1) {
+                detailsTableData.push(["-", "-", "-", "-", "-", "-", "-", "-"]);
+            }
             
             Word.run(async (context) => {
                 const body = context.document.body;
                 
-                // Insert a paragraph before the table
-                body.insertParagraph("AI Usage Statistics", Word.InsertLocation.end).style = "Heading 2";
+                body.insertParagraph("AI Usage Statistics - Overall", Word.InsertLocation.end).style = "Heading 2";
+                const table1 = body.insertTable(overallTableData.length, overallTableData[0].length, Word.InsertLocation.end, overallTableData);
+                table1.style = "Grid Table 4 - Accent 1";
+                table1.autoFitWindow();
                 
-                // Insert the table at the end
-                const table = body.insertTable(tableData.length, tableData[0].length, Word.InsertLocation.end, tableData);
+                body.insertParagraph("", Word.InsertLocation.end);
                 
-                // Format the table
-                table.style = "Grid Table 4 - Accent 1";
-                table.autoFitWindow();
-                
+                body.insertParagraph("AI Usage Statistics - By Provider", Word.InsertLocation.end).style = "Heading 3";
+                const table2 = body.insertTable(detailsTableData.length, detailsTableData[0].length, Word.InsertLocation.end, detailsTableData);
+                table2.style = "Grid Table 4 - Accent 1";
+                table2.autoFitWindow();
+
                 await context.sync();
                 
-                // UI Feedback
                 if (btnExportStats) {
                     const originalText = btnExportStats.innerText;
                     btnExportStats.innerText = "Exported to Word!";

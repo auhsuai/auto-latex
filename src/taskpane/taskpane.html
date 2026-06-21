@@ -255,6 +255,22 @@
 
             <div id="usage-stats-container" style="display: none; margin-top: 8px;">
                 <div style="background: rgba(0,0,0,0.03); padding: 16px; border-radius: 8px;">
+                    <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 13px; font-weight: 500; color: var(--color-text-muted);" data-i18n="filterByProvider">Lọc theo AI</span>
+                        <div class="custom-select-wrapper" id="stats-filter-wrapper" style="width: 140px;">
+                            <div class="custom-select" id="stats-filter-display" style="padding: 4px 8px; font-size: 12px; min-height: unset; height: 28px;">
+                                <span id="stats-filter-text">Tất cả (Tổng)</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                            <div class="custom-select-options" id="stats-filter-options" style="display: none;">
+                                <div class="custom-select-option" data-val="all" style="padding: 6px 8px; font-size: 12px;">Tất cả (Tổng)</div>
+                                <div class="custom-select-option" data-val="gemini" style="padding: 6px 8px; font-size: 12px;">Google Gemini</div>
+                                <div class="custom-select-option" data-val="openai" style="padding: 6px 8px; font-size: 12px;">OpenAI (GPT)</div>
+                                <div class="custom-select-option" data-val="deepseek" style="padding: 6px 8px; font-size: 12px;">DeepSeek</div>
+                                <div class="custom-select-option" data-val="minimax" style="padding: 6px 8px; font-size: 12px;">MiniMax</div>
+                            </div>
+                        </div>
+                    </div>
                     <div style="margin-bottom: 24px;">
                         <div style="font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 12px;" data-i18n="statApiRequests">API requests</div>
                         <div style="width: 100%; height: 120px; position: relative;">
