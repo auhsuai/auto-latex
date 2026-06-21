@@ -25,16 +25,27 @@ Unlike many AI-based tools or online formatters that send your document data to 
 - **High Performance**: Designed with chunking and bulk-sync mechanisms to prevent memory bloat, allowing smooth conversion even on low-end machines for documents with thousands of formulas.
 - **Native Word UI Integration**: The add-in's interface is built using standard "Word Blue" typography and flat design to feel like a native Microsoft extension.
 
-## 🚀 How to Install (Sideloading)
+## 🚀 How to Install
 
-Since this project is open-source and free, you can install it directly onto your machine using the sideloading method:
+There are two ways to install this Add-in: the **Fast Setup** for end-users, and the **Developer Setup** for those who want to modify the code.
 
-### Prerequisites
+### Method 1: Fast Setup (Recommended for Windows Users)
+
+This method allows you to install the Add-in permanently with a single click, without needing to install Node.js or use the terminal. The Add-in will automatically update whenever the codebase is updated.
+
+1. Download or clone this repository.
+2. Open the `fast_setup` folder.
+3. Double-click the `Cai-dat.bat` file. 
+4. A black console window will appear and register the Add-in. Once it says `[THANH CONG] Da cai dat xong!`, you can close it.
+5. Open Microsoft Word, go to **Insert** -> **My Add-ins**, and you will see **Auto LaTeX** ready to use.
+
+### Method 2: Developer Setup (For modifying code)
+
+#### Prerequisites
 - [Node.js](https://nodejs.org/) installed.
 - Microsoft Word (Windows/Mac/Web).
 
-### Setup
-
+#### Setup
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/auhsuai/auto-latex.git
