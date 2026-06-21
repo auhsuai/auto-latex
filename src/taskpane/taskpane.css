@@ -2,15 +2,21 @@
 :root {
     --color-primary: #2b579a;
     --color-primary-hover: #1e3e6e;
+    --color-primary-light: #f3f6f9;
     --color-surface: #ffffff;
     --color-background: #faf9f8;
     --color-text: #201f1e;
     --color-text-muted: #605e5c;
-    --color-border: #edebe9;
+    --color-border: #e1dfdd;
     
-    --radius-md: 6px;
-    --radius-sm: 4px;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --radius-sm: 6px;
+    
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 12px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08);
+    --shadow-float: 0 8px 16px rgba(43, 87, 154, 0.2);
 }
 
 html, body {
@@ -93,23 +99,19 @@ html, body {
     appearance: none;
     background: none;
     border: none;
-    padding: 14px 24px;
+    padding: 12px 20px;
     font-family: inherit;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     border-radius: var(--radius-md);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
     width: 100%;
     /* Compositor animations only! */
-    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
-}
-
-/* Hardware acceleration for smooth compositor animation */
-.btn {
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, color 0.2s ease;
     will-change: transform;
 }
 
@@ -130,22 +132,27 @@ html, body {
     background-color: var(--color-primary);
     color: white;
     border: 1px solid transparent;
-    box-shadow: 0 2px 4px rgba(43, 87, 154, 0.15);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover:not(:disabled) {
     background-color: var(--color-primary-hover);
-    box-shadow: 0 4px 8px rgba(43, 87, 154, 0.25);
+    box-shadow: var(--shadow-float);
+    transform: translateY(-1px);
 }
 
 .btn-secondary {
     background-color: var(--color-surface);
     color: var(--color-primary);
-    border: 1px solid var(--color-primary);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background-color: #f3f6f9; /* Very light primary tint */
+    background-color: var(--color-primary-light);
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
 }
 
 .btn:disabled {
@@ -227,32 +234,33 @@ html, body {
 /* Floating Action Button */
 .fab {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 44px;
-    height: 44px;
+    bottom: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background-color: var(--color-primary);
     color: white;
     border: none;
-    box-shadow: 0 4px 12px rgba(43, 87, 154, 0.3);
+    box-shadow: var(--shadow-float);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 100;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background-color 0.2s ease;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background-color 0.2s ease;
     will-change: transform;
 }
 
 .fab:hover {
     background-color: var(--color-primary-hover);
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(43, 87, 154, 0.4);
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 12px 20px rgba(43, 87, 154, 0.3);
 }
 
 .fab:active {
     transform: scale(0.95);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Chat View Container */
@@ -330,12 +338,12 @@ html, body {
 .user-msg .msg-bubble {
     background-color: var(--color-primary);
     color: white;
-    border-radius: 16px 16px 2px 16px;
+    border-radius: 16px 16px 4px 16px;
     user-select: text;
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
-    box-shadow: 0 1px 2px rgba(43, 87, 154, 0.2);
+    box-shadow: var(--shadow-sm);
 }
 
 .ai-msg {
@@ -345,9 +353,9 @@ html, body {
 .ai-msg .msg-bubble {
     background-color: var(--color-surface);
     color: var(--color-text);
-    border-radius: 16px 16px 16px 2px;
+    border-radius: 16px 16px 16px 4px;
     border: 1px solid var(--color-border);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-sm);
     user-select: text;
     -webkit-user-select: text;
     -moz-user-select: text;
@@ -433,18 +441,17 @@ html, body {
 .chat-input-wrapper {
     display: flex;
     flex-direction: column;
-    background-color: var(--color-background);
+    background-color: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 24px;
-    padding: 6px;
+    border-radius: var(--radius-lg);
+    padding: 8px 12px;
     transition: border-color 0.2s, box-shadow 0.2s;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    box-shadow: var(--shadow-sm);
 }
 
 .chat-input-wrapper:focus-within {
-    border-color: rgba(43, 87, 154, 0.4);
-    box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.1), inset 0 2px 4px rgba(0,0,0,0.02);
-    background-color: var(--color-surface);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.15), var(--shadow-md);
 }
 
 .quoted-context {
@@ -551,16 +558,19 @@ html, body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    margin-bottom: 4px;
-    transition: background-color 0.2s, transform 0.1s;
+    margin-bottom: 0px;
+    transition: background-color 0.2s, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
 }
 
 #btn-send-chat:hover:not(:disabled) {
     background-color: var(--color-primary-hover);
+    transform: scale(1.05) translateY(-1px);
+    box-shadow: var(--shadow-sm);
 }
 
 #btn-send-chat:active:not(:disabled) {
-    transform: scale(0.9);
+    transform: scale(0.95);
+    box-shadow: none;
 }
 
 #btn-send-chat:disabled {
@@ -579,24 +589,24 @@ html, body {
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(2px);
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
     z-index: 3000;
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: fadeIn 0.2s ease;
+    animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-content {
     background: var(--color-surface);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     padding: 24px;
     width: 90%;
     max-width: 320px;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    box-shadow: var(--shadow-lg);
     animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -626,7 +636,7 @@ html, body {
     border-radius: var(--radius-sm);
     font-family: inherit;
     font-size: 14px;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 /* Custom Select */
@@ -655,7 +665,7 @@ html, body {
 }
 .custom-select.active {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(43, 87, 154, 0.1);
+    box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.15);
 }
 .custom-select-options {
     position: absolute;
@@ -667,10 +677,10 @@ html, body {
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md);
     z-index: 3000;
     overflow: hidden;
-    animation: scaleIn 0.15s ease-out;
+    animation: fadeUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .custom-select-option {
     padding: 10px 14px;
@@ -692,7 +702,7 @@ html, body {
 .form-control:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(43, 87, 154, 0.1);
+    box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.15);
 }
 
 .modal-actions {
@@ -849,8 +859,8 @@ html, body {
 .switch {
     position: relative;
     display: inline-block;
-    width: 36px;
-    height: 20px;
+    width: 40px;
+    height: 24px;
 }
 .switch input { 
     opacity: 0;
@@ -861,24 +871,25 @@ html, body {
     position: absolute;
     cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
+    background-color: #d1d1d1;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .slider:before {
     position: absolute;
     content: "";
-    height: 16px;
-    width: 16px;
-    left: 2px;
-    bottom: 2px;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
     background-color: white;
-    transition: .4s;
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-sm);
 }
 input:checked + .slider {
     background-color: var(--color-primary);
 }
-input:focus + .slider {
-    box-shadow: 0 0 1px var(--color-primary);
+input:focus-visible + .slider {
+    box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.2);
 }
 input:checked + .slider:before {
     transform: translateX(16px);
