@@ -63,13 +63,22 @@ export const processSegments = (textStr: string) => {
     if (finalText) segments.push({ type: 'text', content: finalText });
 
     for (let i = 0; i < segments.length; i++) {
-        if (segments[i].type === 'formula' && !segments[i].isBlock) {
-            if (i > 0 && segments[i-1].type === 'text') {
-                segments[i-1].content = segments[i-1].content.replace(/[\r\n]+\s*$/g, ' ');
-            }
-            if (i < segments.length - 1 && segments[i+1].type === 'text') {
-                segments[i+1].content = segments[i+1].content.replace(/^[\r\n]+\s*/g, ' ');
-                segments[i+1].content = segments[i+1].content.replace(/^\s+([,.;:!?])/g, '$1');
+        if (segments[i].type === 'formula') {
+            if (!segments[i].isBlock) {
+                if (i > 0 && segments[i-1].type === 'text') {
+                    segments[i-1].content = segments[i-1].content.replace(/[\r\n]+\s*$/g, ' ');
+                }
+                if (i < segments.length - 1 && segments[i+1].type === 'text') {
+                    segments[i+1].content = segments[i+1].content.replace(/^[\r\n]+\s*/g, ' ');
+                    segments[i+1].content = segments[i+1].content.replace(/^\s+([,.;:!?])/g, '$1');
+                }
+            } else {
+                if (i > 0 && segments[i-1].type === 'text') {
+                    segments[i-1].content = segments[i-1].content.replace(/[\r\n]+\s*$/g, '');
+                }
+                if (i < segments.length - 1 && segments[i+1].type === 'text') {
+                    segments[i+1].content = segments[i+1].content.replace(/^[\r\n]+\s*/g, '');
+                }
             }
         }
     }
