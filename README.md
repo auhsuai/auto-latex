@@ -35,7 +35,7 @@ This method allows you to install the Add-in permanently with a single click, wi
 
 1. Download or clone this repository.
 2. Open the `fast_setup` folder.
-3. Double-click the `Cai-dat.bat` file. 
+3. Double-click the `setup.bat` file. 
 4. A black console window will appear and register the Add-in. Once it says `[THANH CONG] Da cai dat xong!`, you can close it.
 5. Open Microsoft Word, go to **Insert** -> **My Add-ins**, and you will see **Auto LaTeX** ready to use.
 
