@@ -48,7 +48,8 @@ export const translations: Record<string, Record<string, string>> = {
         createdBy: "Created by",
         textSelected: "Text selected",
         askAI: "Ask AI",
-        searchChats: "Search chats..."
+        searchChats: "Search chats...",
+        filterAll: "All"
     },
     vi: {
         menuTitle: "Menu",
@@ -99,6 +100,7 @@ export const translations: Record<string, Record<string, string>> = {
         createdBy: "Được tạo bởi",
         textSelected: "Đã bôi đen",
         askAI: "Hỏi AI",
-        searchChats: "Tìm đoạn chat..."
+        searchChats: "Tìm đoạn chat...",
+        filterAll: "Tất cả"
     }
 };
