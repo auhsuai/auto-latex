@@ -312,6 +312,8 @@ async function callOpenAICompatibleStream(history: ChatMessage[], apiKey: string
     let fullContent = "";
     let buffer = "";
 
+    let finalPTokens = 0, finalCacheTokens = 0, finalCTokens = 0, finalTTokens = 0;
+
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -334,11 +336,10 @@ async function callOpenAICompatibleStream(history: ChatMessage[], apiKey: string
                         if (onChunk) onChunk(fullContent);
                     }
                     if (data.usage) {
-                        const pTokens = data.usage.prompt_tokens || 0;
-                        const cacheTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
-                        const cTokens = data.usage.completion_tokens || 0;
-                        const tTokens = data.usage.total_tokens || 0;
-                        if (tTokens > 0) updateAIUsageStats(pTokens, cacheTokens, cTokens, tTokens);
+                        finalPTokens = data.usage.prompt_tokens || 0;
+                        finalCacheTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
+                        finalCTokens = data.usage.completion_tokens || 0;
+                        finalTTokens = data.usage.total_tokens || 0;
                     }
                 } catch (e) {
                     // Ignore parsing errors for partial chunks
@@ -346,6 +347,11 @@ async function callOpenAICompatibleStream(history: ChatMessage[], apiKey: string
             }
         }
     }
+    
+    if (finalTTokens > 0) {
+        updateAIUsageStats(finalPTokens, finalCacheTokens, finalCTokens, finalTTokens);
+    }
+    
     return fullContent.trim();
 }
 
@@ -386,6 +392,8 @@ async function callGeminiStream(history: ChatMessage[], apiKey: string, fullSyst
     let fullContent = "";
     let buffer = "";
 
+    let finalPTokens = 0, finalCacheTokens = 0, finalCTokens = 0, finalTTokens = 0;
+
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -407,11 +415,10 @@ async function callGeminiStream(history: ChatMessage[], apiKey: string, fullSyst
                         if (onChunk) onChunk(fullContent);
                     }
                     if (data.usageMetadata) {
-                        const pTokens = data.usageMetadata.promptTokenCount || 0;
-                        const cacheTokens = data.usageMetadata.cachedContentTokenCount || 0;
-                        const cTokens = data.usageMetadata.candidatesTokenCount || 0;
-                        const tTokens = data.usageMetadata.totalTokenCount || 0;
-                        if (tTokens > 0) updateAIUsageStats(pTokens, cacheTokens, cTokens, tTokens);
+                        finalPTokens = data.usageMetadata.promptTokenCount || 0;
+                        finalCacheTokens = data.usageMetadata.cachedContentTokenCount || 0;
+                        finalCTokens = data.usageMetadata.candidatesTokenCount || 0;
+                        finalTTokens = data.usageMetadata.totalTokenCount || 0;
                     }
                 } catch (e) {
                     // Ignore parse errors
@@ -419,5 +426,10 @@ async function callGeminiStream(history: ChatMessage[], apiKey: string, fullSyst
             }
         }
     }
+    
+    if (finalTTokens > 0) {
+        updateAIUsageStats(finalPTokens, finalCacheTokens, finalCTokens, finalTTokens);
+    }
+    
     return fullContent.trim();
 }
