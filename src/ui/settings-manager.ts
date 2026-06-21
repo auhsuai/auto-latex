@@ -4,6 +4,7 @@ import { renderUsageCharts } from "./usage-chart";
 export class SettingsManager {
     private tempSelectedProvider: string;
     private tempSelectedLanguage: string;
+    private tempApiKeys: Record<string, string> = {};
 
     public onLanguageChanged: (newLang: string) => void = () => {};
 
@@ -59,7 +60,16 @@ export class SettingsManager {
         });
 
         this.initCustomSelect("lang-select-wrapper", (val) => this.tempSelectedLanguage = val);
-        this.initCustomSelect("provider-select-wrapper", (val) => this.tempSelectedProvider = val);
+        this.initCustomSelect("provider-select-wrapper", (val) => {
+            const apiKeyInput = document.getElementById("ai-api-key") as HTMLInputElement;
+            if (apiKeyInput) {
+                this.tempApiKeys[this.tempSelectedProvider] = apiKeyInput.value.trim();
+                this.tempSelectedProvider = val;
+                apiKeyInput.value = this.tempApiKeys[val] || '';
+            } else {
+                this.tempSelectedProvider = val;
+            }
+        });
 
         this.setupToggles();
         this.setupExportStats();
@@ -71,9 +81,10 @@ export class SettingsManager {
         // Note: we don't reset tempSelectedLanguage here so it keeps user selection unless they saved it.
         // Actually, we should sync it with currentAppLanguage when opening
         this.tempSelectedLanguage = this.currentAppLanguage;
+        this.tempApiKeys = { ...settings.apiKeys };
         
         const apiKeyInput = document.getElementById("ai-api-key") as HTMLInputElement;
-        if (apiKeyInput) apiKeyInput.value = settings.apiKey;
+        if (apiKeyInput) apiKeyInput.value = this.tempApiKeys[settings.provider] || '';
         
         const autoApplyToggle = document.getElementById("auto-apply-edits") as HTMLInputElement;
         if (autoApplyToggle) autoApplyToggle.checked = settings.autoApplyEdits;
@@ -90,13 +101,16 @@ export class SettingsManager {
 
     private saveSettings() {
         const apiKeyInput = document.getElementById("ai-api-key") as HTMLInputElement;
-        const apiKey = apiKeyInput ? apiKeyInput.value.trim() : "";
+        if (apiKeyInput) {
+            this.tempApiKeys[this.tempSelectedProvider] = apiKeyInput.value.trim();
+        }
+        
         const autoApplyToggle = document.getElementById("auto-apply-edits") as HTMLInputElement;
         const insertAtCursorToggle = document.getElementById("insert-at-cursor") as HTMLInputElement;
         
         saveAISettings({
             provider: this.tempSelectedProvider as AIProvider,
-            apiKey: apiKey,
+            apiKeys: this.tempApiKeys,
             autoApplyEdits: autoApplyToggle ? autoApplyToggle.checked : false,
             insertAtCursor: insertAtCursorToggle ? insertAtCursorToggle.checked : true
         });
@@ -128,11 +142,17 @@ export class SettingsManager {
                 if (container && chevron) {
                     const isExpanded = container.classList.contains("expanded");
                     if (isExpanded) {
+                        container.style.overflow = "hidden";
                         container.classList.remove("expanded");
                         chevron.style.transform = "rotate(-90deg)";
                     } else {
                         container.classList.add("expanded");
                         chevron.style.transform = "rotate(0deg)";
+                        setTimeout(() => {
+                            if (container.classList.contains("expanded")) {
+                                container.style.overflow = "visible";
+                            }
+                        }, 250);
                     }
                 }
             });

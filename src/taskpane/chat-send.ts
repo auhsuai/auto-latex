@@ -5,6 +5,7 @@ import { SessionManager } from "../core/session-manager";
 import { QuoteManager } from "../ui/quote-manager";
 import { ChatRenderer } from "../ui/chat-renderer";
 import { translations } from "../utils/translations";
+import { sanitizeLaTeX, getKaTeXHtml } from "../core/converter";
 
 export interface ChatSendDeps {
     sessionManager: SessionManager;
@@ -83,11 +84,31 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
             isRendering = true;
             try {
                 let cText = aiResponseText;
+
+                const forbiddenPhrases = [
+                    "Bạn là trợ lý AI tên là Auto-LaTeX Assistant",
+                    "MỌI NỘI DUNG CHÍNH MÀ BẠN MUỐN ĐƯỢC CHÈN",
+                    "BÂY GIỜ LÀ NỘI DUNG NGƯỜI DÙNG CUNG CẤP",
+                    "user_input_untrusted",
+                    "ANTI-PROMPT INJECTION"
+                ];
+                if (forbiddenPhrases.some(phrase => cText.includes(phrase))) {
+                    cText = "Xin lỗi bạn, mình là trợ lý Auto-LaTeX chuyên hỗ trợ về toán học và LaTeX. Mình không thể chia sẻ các thông tin hệ thống hoặc xử lý yêu cầu vừa rồi. Mình có thể giúp gì cho bạn trong việc soạn thảo công thức không?";
+                }
+
+                cText = cText.replace(/<\s*think\s*>[\s\S]*?<\s*\/\s*think\s*>/gi, "");
+                cText = cText.replace(/<\s*think\s*>[\s\S]*$/gi, "");
                 cText = cText.replace(/<\s*insert\s*>[\s\S]*?(<\s*\/\s*insert\s*>)?/gi, "");
                 cText = cText.replace(/<\s*replace_selection\s*>[\s\S]*?(<\s*\/\s*replace_selection\s*>)?/gi, "");
                 cText = cText.replace(/<\s*replace_paragraph\s*>[\s\S]*?(<\s*\/\s*replace_paragraph\s*>)?/gi, "");
                 cText = cText.replace(/<\s*replace_search[^>]*>[\s\S]*?(<\s*\/\s*replace_search\s*>)?/gi, "");
                 cText = cText.replace(/<\s*replace_heading[^>]*>[\s\S]*?(<\s*\/\s*replace_heading\s*>)?/gi, "");
+                cText = cText.trim();
+
+                if (cText === "") {
+                    isRendering = false;
+                    return;
+                }
 
                 const chatSegments = processSegments(cText);
                 let chatBubbleHtml = "";
@@ -166,45 +187,68 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
         chatRenderer.removeSkeleton();
 
         let chatText = aiResponseText;
+
+        const forbiddenPhrases = [
+            "Bạn là trợ lý AI tên là Auto-LaTeX Assistant",
+            "MỌI NỘI DUNG CHÍNH MÀ BẠN MUỐN ĐƯỢC CHÈN",
+            "BÂY GIỜ LÀ NỘI DUNG NGƯỜI DÙNG CUNG CẤP",
+            "user_input_untrusted",
+            "ANTI-PROMPT INJECTION"
+        ];
+        if (forbiddenPhrases.some(phrase => chatText.includes(phrase))) {
+            chatText = "Xin lỗi bạn, mình là trợ lý Auto-LaTeX chuyên hỗ trợ về toán học và LaTeX. Mình không thể chia sẻ các thông tin hệ thống hoặc xử lý yêu cầu vừa rồi. Mình có thể giúp gì cho bạn trong việc soạn thảo công thức không?";
+            aiResponseText = chatText;
+        }
+
+        chatText = chatText.replace(/<\s*think\s*>[\s\S]*?<\s*\/\s*think\s*>/gi, "");
+        chatText = chatText.replace(/<\s*think\s*>[\s\S]*$/gi, "");
         let appliedChanges = false;
         let pendingEditsHtml = "";
         const tSettings = translations[appLanguage] || translations["en"];
         const btnApplyText = tSettings.btnApplyEdit || "Apply to Word";
         let hasSpecialEdits = false;
 
-        const processEditMatch = async (match: RegExpExecArray | null, type: string, replaceStr: string, targetStr: string = "") => {
-            if (!match) return;
-            const content = match[replaceStr === "match1" ? 1 : 2].trim();
-            const target = targetStr === "match1" ? match[1] : "";
-            
-            hasSpecialEdits = true;
-            
-            const { html: wordHtmlContent } = generateWordHtmlFromText(content);
-            
-            if (settings.autoApplyEdits) {
-                if (type === "replace_selection") await DocumentEditor.replaceSelection(wordHtmlContent);
-                else if (type === "replace_paragraph") await DocumentEditor.replaceCurrentParagraph(wordHtmlContent);
-                else if (type === "replace_search") await DocumentEditor.replaceSearchTerm(target, wordHtmlContent);
-                else if (type === "replace_heading") await DocumentEditor.replaceHeadingContent(target, wordHtmlContent);
-                appliedChanges = true;
+        const processEditMatches = async (regexStr: string, type: string, replaceStr: string, targetStr: string = "") => {
+            const regex = new RegExp(regexStr, 'gi');
+            let match;
+            const matches = [];
+            while ((match = regex.exec(chatText)) !== null) {
+                matches.push(match);
             }
-            if (!settings.autoApplyEdits) {
-                const safeContent = encodeURIComponent(wordHtmlContent);
-                const safeTarget = encodeURIComponent(target);
-                pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="${type}" data-edit-content="${safeContent}" data-edit-target="${safeTarget}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
-                    <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
-                        <span style="font-weight: 500;">${btnApplyText}</span>
-                    </button>
-                </div>`;
+            
+            for (const m of matches) {
+                const content = m[replaceStr === "match1" ? 1 : 2].trim();
+                const target = targetStr === "match1" ? m[1] : "";
+                
+                hasSpecialEdits = true;
+                
+                const { html: wordHtmlContent } = generateWordHtmlFromText(content);
+                
+                if (settings.autoApplyEdits) {
+                    if (type === "replace_selection") await DocumentEditor.replaceSelection(wordHtmlContent);
+                    else if (type === "replace_paragraph") await DocumentEditor.replaceCurrentParagraph(wordHtmlContent);
+                    else if (type === "replace_search") await DocumentEditor.replaceSearchTerm(target, wordHtmlContent);
+                    else if (type === "replace_heading") await DocumentEditor.replaceHeadingContent(target, wordHtmlContent);
+                    appliedChanges = true;
+                }
+                if (!settings.autoApplyEdits) {
+                    const safeContent = encodeURIComponent(wordHtmlContent);
+                    const safeTarget = encodeURIComponent(target);
+                    pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="${type}" data-edit-content="${safeContent}" data-edit-target="${safeTarget}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
+                        <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
+                            <span style="font-weight: 500;">${btnApplyText}</span>
+                        </button>
+                    </div>`;
+                }
+                // CHỈ xóa thẻ mở/đóng, GIỮ LẠI nội dung công thức để hiển thị trên khung chat
+                chatText = chatText.replace(m[0], content);
             }
-            // CHỈ xóa thẻ mở/đóng, GIỮ LẠI nội dung công thức để hiển thị trên khung chat
-            chatText = chatText.replace(match[0], content);
         };
 
-        await processEditMatch(/<\s*replace_selection\s*>([\s\S]*?)<\s*\/\s*replace_selection\s*>/i.exec(chatText), "replace_selection", "match1");
-        await processEditMatch(/<\s*replace_paragraph\s*>([\s\S]*?)<\s*\/\s*replace_paragraph\s*>/i.exec(chatText), "replace_paragraph", "match1");
-        await processEditMatch(/<\s*replace_search\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_search\s*>/i.exec(chatText), "replace_search", "match2", "match1");
-        await processEditMatch(/<\s*replace_heading\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_heading\s*>/i.exec(chatText), "replace_heading", "match2", "match1");
+        await processEditMatches('<\\s*replace_selection\\s*>([\\s\\S]*?)(?:<\\s*\\/\\s*replace_selection\\s*>|$)', "replace_selection", "match1");
+        await processEditMatches('<\\s*replace_paragraph\\s*>([\\s\\S]*?)(?:<\\s*\\/\\s*replace_paragraph\\s*>|$)', "replace_paragraph", "match1");
+        await processEditMatches('<\\s*replace_search\\s+target=[\'"](.*?)[\'"]\\s*>([\\s\\S]*?)(?:<\\s*\\/\\s*replace_search\\s*>|$)', "replace_search", "match2", "match1");
+        await processEditMatches('<\\s*replace_heading\\s+target=[\'"](.*?)[\'"]\\s*>([\\s\\S]*?)(?:<\\s*\\/\\s*replace_heading\\s*>|$)', "replace_heading", "match2", "match1");
 
         let contentForWord = "";
         let insertCount = 0;
@@ -220,11 +264,22 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
         const insertOnlyFormulas = insertCount === 0 && !hasSpecialEdits;
 
         chatText = chatText.replace(/<\s*\/?\s*insert\s*>/gi, "");
+        chatText = chatText.trim();
+        
+        if (chatText === "" && aiResponseText.trim() !== "") {
+            chatText = "_[AI không đưa ra câu trả lời hợp lệ, vui lòng thử lại]_";
+        }
 
         const chatSegments = processSegments(chatText);
         let chatBubbleHtml = "";
-        let wordHtml = "<html><body>";
+        
+        let wordHtml = "";
         let hasWordContent = false;
+        if (!hasSpecialEdits) {
+            const generated = generateWordHtmlFromText(contentForWord);
+            wordHtml = generated.html;
+            hasWordContent = generated.hasContent;
+        }
 
         if (chatSegments.length === 0) {
             chatBubbleHtml = parseMarkdown(chatText);
@@ -234,28 +289,29 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                     chatBubbleHtml += `<span>${parseMarkdown(segment.content)}</span>`;
                 } else if (segment.type === 'formula') {
                     let rawLatex = segment.content.trim();
+                    let isBlock = segment.isBlock;
                     if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
                         rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                        segment.isBlock = true;
-                    }
-                    if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
+                        isBlock = true;
+                    } else if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
                         rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                        segment.isBlock = true;
-                    }
-                    if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
+                        isBlock = true;
+                    } else if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
                         rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
+                    } else if (rawLatex.startsWith("$") && rawLatex.endsWith("$")) {
+                        rawLatex = rawLatex.substring(1, rawLatex.length - 1).trim();
                     }
                     
-                    const isBlock = segment.isBlock || rawLatex.includes("\\begin{");
+                    isBlock = isBlock || rawLatex.includes("\\begin{");
                     const latexClean = sanitizeLaTeX(rawLatex, isBlock);
-                    const mathML = getMathML(latexClean, isBlock);
+                    const katexHtml = getKaTeXHtml(latexClean, isBlock);
 
-                    if (mathML) {
+                    if (katexHtml) {
                         const safeLatex = encodeURIComponent(rawLatex);
                         if (isBlock) {
-                            chatBubbleHtml += `<div class="clickable-formula" data-latex="${safeLatex}" style="margin-top: 8px; margin-bottom: 8px; overflow-x: auto; max-width: 100%; padding-bottom: 4px; cursor: pointer;" title="Click to copy LaTeX">${mathML}</div>`;
+                            chatBubbleHtml += `<div class="clickable-formula block-formula" data-latex="${safeLatex}" style="cursor: pointer;" title="Click to copy LaTeX">${katexHtml}</div>`;
                         } else {
-                            chatBubbleHtml += `<span class="clickable-formula" data-latex="${safeLatex}" style="display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; margin: 0 4px; padding-bottom: 2px; cursor: pointer;" title="Click to copy LaTeX">${mathML}</span>`;
+                            chatBubbleHtml += `<span class="clickable-formula" data-latex="${safeLatex}" style="display: inline-block; vertical-align: middle; margin: 0 4px; cursor: pointer;" title="Click to copy LaTeX">${katexHtml}</span>`;
                         }
                     } else {
                         chatBubbleHtml += `<span style="color: #d83b01;">[Lỗi hiển thị công thức LaTeX]</span>`;
@@ -263,52 +319,7 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                 }
             }
         }
-        
-        // Render Word Insertion
-        const wordSegments = processSegments(contentForWord);
-        let currentParagraph = "";
-        for (const segment of wordSegments) {
-            if (segment.type === 'text' && !insertOnlyFormulas) {
-                const escaped = escapeHtml(segment.content).replace(/\n/g, '<br>');
-                currentParagraph += escaped;
-                hasWordContent = true;
-            } else if (segment.type === 'formula') {
-                let rawLatex = segment.content.trim();
-                if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
-                    rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                    segment.isBlock = true;
-                }
-                if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
-                    rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                    segment.isBlock = true;
-                }
-                if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
-                    rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                }
-                const isBlock = segment.isBlock || rawLatex.includes("\\begin{");
-                const latexClean = sanitizeLaTeX(rawLatex, isBlock);
-                const mathML = getMathML(latexClean, isBlock);
-                if (mathML) {
-                    if (isBlock) {
-                        if (currentParagraph.trim() !== "") {
-                            wordHtml += `<p style="margin-bottom: 8px;">${currentParagraph}</p>`;
-                            currentParagraph = "";
-                        }
-                        wordHtml += `<p style="margin-bottom: 8px;">${mathML}</p>`;
-                    } else {
-                        currentParagraph += `<span style="margin: 0 4px;">${mathML}</span>`;
-                    }
-                    hasWordContent = true;
-                }
-            }
-        }
-        if (currentParagraph.trim() !== "") {
-            wordHtml += `<p style="margin-bottom: 8px;">${currentParagraph}</p>`;
-        }
-
         if (hasWordContent && !appliedChanges) {
-            wordHtml += "</body></html>";
-            
             const shouldAutoApply = settings.autoApplyEdits && !insertOnlyFormulas;
             
             if (shouldAutoApply) {

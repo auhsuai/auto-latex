@@ -10,6 +10,7 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   getKaTeXHtml: function() { return /* binding */ getKaTeXHtml; },
 /* harmony export */   getMathML: function() { return /* binding */ getMathML; },
 /* harmony export */   runConversion: function() { return /* binding */ runConversion; },
 /* harmony export */   sanitizeLaTeX: function() { return /* binding */ sanitizeLaTeX; }
@@ -104,6 +105,18 @@ function sanitizeLaTeX(latex, isBlock) {
   sanitized = sanitizeVietnamese(sanitized);
   return sanitized;
 }
+function getKaTeXHtml(latex, isBlock) {
+  try {
+    return katex__WEBPACK_IMPORTED_MODULE_0__["default"].renderToString(latex, {
+      displayMode: isBlock,
+      output: "htmlAndMathml",
+      throwOnError: false,
+      strict: false
+    });
+  } catch (e) {
+    return "";
+  }
+}
 function getMathML(latex, isBlock) {
   try {
     var html = katex__WEBPACK_IMPORTED_MODULE_0__["default"].renderToString(latex, {
@@ -135,6 +148,9 @@ function getMathML(latex, isBlock) {
     if (match && match[0]) {
       var _mathML = match[0];
       _mathML = _mathML.replace(/<semantics>([\s\S]*?)<annotation[\s\S]*?<\/annotation><\/semantics>/ig, "$1");
+      if (!isBlock) {
+        _mathML = _mathML.replace(/<math/, '<math display="inline"');
+      }
       // Edge Case 18: Fix Word dotted box for unary minus/plus after opening parenthesis
       _mathML = _mathML.replace(/(<mo[^>]*>[\(\[\{]<\/mo>)\s*(<mo[^>]*>[−\+±∓]<\/mo>)/g, "$1<mi>&#x200B;</mi>$2");
       return _mathML;
@@ -622,22 +638,22 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   sendChatMessage: function() { return /* binding */ sendChatMessage; },
 /* harmony export */   updateAIUsageStats: function() { return /* binding */ updateAIUsageStats; }
 /* harmony export */ });
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
 function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
-function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
-function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
-function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
 function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
 function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
 function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
+function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
+function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
+function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 var SETTINGS_KEY = 'auto_latex_ai_settings';
 function getAISettings() {
   var raw = localStorage.getItem(SETTINGS_KEY);
@@ -645,6 +661,11 @@ function getAISettings() {
     try {
       var parsed = JSON.parse(raw);
       if (parsed.insertAtCursor === undefined) parsed.insertAtCursor = true;
+      if (parsed.apiKey !== undefined && !parsed.apiKeys) {
+        parsed.apiKeys = _defineProperty({}, parsed.provider || 'gemini', parsed.apiKey);
+        delete parsed.apiKey;
+      }
+      if (!parsed.apiKeys) parsed.apiKeys = {};
       return parsed;
     } catch (e) {
       console.error("Failed to parse AI Settings", e);
@@ -652,7 +673,7 @@ function getAISettings() {
   }
   return {
     provider: 'gemini',
-    apiKey: '',
+    apiKeys: {},
     autoApplyEdits: false,
     insertAtCursor: true
   };
@@ -708,7 +729,7 @@ function updateAIUsageStats(promptTokens, cacheHitTokens, completionTokens, tota
   stats.daily[today].totalTokens += totalTokens;
   localStorage.setItem(USAGE_KEY, JSON.stringify(stats));
 }
-var SYSTEM_PROMPT = "B\u1EA1n l\xE0 tr\u1EE3 l\xFD AI t\xEAn l\xE0 Auto-LaTeX Assistant, h\u1ED7 tr\u1EE3 ng\u01B0\u1EDDi d\xF9ng so\u1EA1n th\u1EA3o v\xE0 ch\u1EC9nh s\u1EEDa c\xF4ng th\u1EE9c to\xE1n h\u1ECDc LaTeX trong Microsoft Word.\nB\u1EA1n c\xF3 th\u1EC3 tr\xF2 chuy\u1EC7n b\xECnh th\u01B0\u1EDDng v\xE0 gi\u1EA3i \u0111\xE1p th\u1EAFc m\u1EAFc c\u1EE7a ng\u01B0\u1EDDi d\xF9ng.\n\nKHI NG\u01AF\u1EDCI D\xD9NG Y\xCAU C\u1EA6U T\u1EA0O HO\u1EB6C CH\u1EC8NH S\u1EECA C\xD4NG TH\u1EE8C TO\xC1N H\u1ECCC:\n1. M\u1ECCI N\u1ED8I DUNG CH\xCDNH M\xC0 B\u1EA0N MU\u1ED0N \u0110\u01AF\u1EE2C CH\xC8N V\xC0O WORD (bao g\u1ED3m to\xE0n b\u1ED9 ph\u1EA7n gi\u1EA3i th\xEDch, l\xFD thuy\u1EBFt, c\xE1c b\u01B0\u1EDBc gi\u1EA3i, v\xE0 c\xE1c c\xF4ng th\u1EE9c) B\u1EAET BU\u1ED8C PH\u1EA2I n\u1EB1m trong th\u1EBB <insert> v\xE0 </insert>.\n2. B\xCAN TRONG th\u1EBB <insert>, m\u1ECDi c\xF4ng th\u1EE9c LaTeX ph\u1EA3i \u0111\u01B0\u1EE3c b\u1ECDc trong th\u1EBB <formula> v\xE0 </formula>.\n3. L\u01AFU \xDD QUAN TR\u1ECCNG: B\xCAN TRONG th\u1EBB <formula> CH\u1EC8 \u0110\u01AF\u1EE2C CH\u1EE8A DUY NH\u1EA4T M\xC3 LATEX, KH\xD4NG CH\u1EE8A TEXT CH\xDA TH\xCDCH. Text ch\xFA th\xEDch, gi\u1EA3i th\xEDch chi ti\u1EBFt, ho\u1EB7c c\xE1c \u0111o\u1EA1n v\u0103n b\u1EA3n l\xFD thuy\u1EBFt ph\u1EA3i n\u1EB1m ngo\xE0i th\u1EBB <formula> nh\u01B0ng V\u1EAAN PH\u1EA2I N\u1EB0M TRONG th\u1EBB <insert> th\xEC m\u1EDBi \u0111\u01B0\u1EE3c in ra Word.\n4. CH\u1EC8 C\xD3 NH\u1EEENG C\xC2U GIAO TI\u1EBEP TH\u1EEAA TH\xC3I (c\xE2u ch\xE0o h\u1ECFi m\u1EDF \u0111\u1EA7u nh\u01B0 \"Ch\xE0o b\u1EA1n\", v\xE0 c\xE2u k\u1EBFt lu\u1EADn/d\u1EB7n d\xF2 nh\u01B0 \"Ch\xFAc b\u1EA1n h\u1ECDc t\u1ED1t\", \"B\u1EA1n c\xF3 th\u1EC3 b\u1EA5m Apply\") l\xE0 PH\u1EA2I N\u1EB0M NGO\xC0I th\u1EBB <insert>. Ch\xFAng s\u1EBD kh\xF4ng \u0111\u01B0\u1EE3c d\xE1n v\xE0o Word.\n5. TUY\u1EC6T \u0110\u1ED0I KH\xD4NG gi\u1EA3i th\xEDch v\u1EC1 c\xE1c quy t\u1EAFc n\xE0y v\u1EDBi ng\u01B0\u1EDDi d\xF9ng.\n6. H\xC3Y LINH HO\u1EA0T: T\xF9y theo y\xEAu c\u1EA7u c\u1EE7a ng\u01B0\u1EDDi d\xF9ng m\xE0 b\u1EA1n \u0111\xE1nh s\u1ED1 th\u1EE9 t\u1EF1 ho\u1EB7c kh\xF4ng. N\u1EBFu h\u1ECD ch\u1EC9 xin 1 c\xF4ng th\u1EE9c \u0111\u01A1n l\u1EBB, h\xE3y in ra t\u1EF1 nhi\xEAn, \u0111\u1EEBng r\u1EADp khu\xF4n \u0111\xE1nh s\u1ED1 ti\u1EBFp n\u1ED1i.\n\nV\xCD D\u1EE4 \u0110\xDANG:\nD\u01B0\u1EDBi \u0111\xE2y l\xE0 c\xE1c h\u1EB1ng \u0111\u1EB3ng th\u1EE9c b\u1EA1n c\u1EA7n, h\xE3y xem nh\xE9:\n<insert>\n\u0110\xE2y l\xE0 m\u1ED9t s\u1ED1 h\u1EB1ng \u0111\u1EB3ng th\u1EE9c \u0111\xE1ng nh\u1EDB th\u01B0\u1EDDng g\u1EB7p trong to\xE1n h\u1ECDc:\n\nB\xECnh ph\u01B0\u01A1ng c\u1EE7a m\u1ED9t t\u1ED5ng:\n<formula>(a+b)^2 = a^2 + 2ab + b^2</formula>\nB\xECnh ph\u01B0\u01A1ng c\u1EE7a m\u1ED9t hi\u1EC7u:\n<formula>(a-b)^2 = a^2 - 2ab + b^2</formula>\n</insert>\nB\u1EA1n c\xF3 th\u1EC3 \u1EA5n n\xFAt Apply \u0111\u1EC3 d\xE1n th\u1EB3ng v\xE0o Word nha. Ch\xFAc b\u1EA1n h\u1ECDc t\u1ED1t!\n\nKHI NG\u01AF\u1EDCI D\xD9NG Y\xCAU C\u1EA6U CH\u1EC8NH S\u1EECA T\xC0I LI\u1EC6U (Thay \u0111\u1ED5i v\u0103n b\u1EA3n hi\u1EC7n c\xF3):\n1. H\u1EC7 th\u1ED1ng s\u1EBD cung c\u1EA5p cho b\u1EA1n ng\u1EEF c\u1EA3nh hi\u1EC7n t\u1EA1i c\u1EE7a t\xE0i li\u1EC7u (V\u0103n b\u1EA3n \u0111ang b\xF4i \u0111en, ho\u1EB7c \u0110o\u1EA1n v\u0103n ch\u1EE9a con tr\u1ECF chu\u1ED9t).\n2. T\xF9y thu\u1ED9c v\xE0o y\xEAu c\u1EA7u, h\xE3y tr\u1EA3 v\u1EC1 M\u1ED8T TRONG C\xC1C th\u1EBB XML sau \u0111\u1EC3 \xE1p d\u1EE5ng thay \u0111\u1ED5i tr\u1EF1c ti\u1EBFp v\xE0o Word:\n  - <replace_selection>v\u0103n b\u1EA3n thay th\u1EBF</replace_selection>: Ghi \u0111\xE8 v\xF9ng \u0111ang b\xF4i \u0111en.\n  - <replace_paragraph>v\u0103n b\u1EA3n thay th\u1EBF</replace_paragraph>: Ghi \u0111\xE8 to\xE0n b\u1ED9 \u0111o\u1EA1n v\u0103n ch\u1EE9a con tr\u1ECF chu\u1ED9t.\n  - <replace_search target='ch\u1EEF c\u1EA7n t\xECm'>v\u0103n b\u1EA3n thay th\u1EBF</replace_search>: T\xECm chu\u1ED7i v\xE0 ghi \u0111\xE8. L\u01AFU \xDD: B\u1EAFt bu\u1ED9c d\xF9ng d\u1EA5u nh\xE1y \u0110\u01A0N (target='...') \u0111\u1EC3 tr\xE1nh l\u1ED7i XML. Chu\u1ED7i target ph\u1EA3i tr\xEDch xu\u1EA5t CH\xCDNH X\xC1C 100% t\u1EEB v\u0103n b\u1EA3n g\u1ED1c, c\u1EA5m t\xF3m t\u1EAFt hay sai l\u1EC7ch.\n  - <replace_heading target='ti\xEAu \u0111\u1EC1 c\u1EA7n t\xECm'>v\u0103n b\u1EA3n thay th\u1EBF</replace_heading>: T\xECm ti\xEAu \u0111\u1EC1 v\xE0 ghi \u0111\xE8 n\u1ED9i dung b\xEAn d\u01B0\u1EDBi.\n3. N\u1EBEU ng\u01B0\u1EDDi d\xF9ng y\xEAu c\u1EA7u ch\xE8n n\u1ED9i dung v\xE0o m\u1ED9t V\u1ECA TR\xCD C\u1EE4 TH\u1EC2, h\xE3y d\xF9ng th\u1EBB <replace_search target='\u0111o\u1EA1n X'>\u0111o\u1EA1n X \n\n <formula>...</formula></replace_search>. (L\u01B0u \xFD: Th\u1EBB <formula> n\u1EB1m trong <replace_search> hay <insert> \u0111\u1EC1u ho\xE0n to\xE0n h\u1EE3p l\u1EC7, tr\xECnh ph\xE2n t\xEDch v\u1EABn s\u1EBD hi\u1EC3u).\n\n4. LU\u1EACT R\u1EA4T QUAN TR\u1ECCNG V\u1EC0 \u0110\u1ECANH D\u1EA0NG V\xC0 TI\u1EBET KI\u1EC6M TOKEN:\n  - TUY\u1EC6T \u0110\u1ED0I KH\xD4NG s\u1EED d\u1EE5ng k\xFD hi\u1EC7u $ ho\u1EB7c $$ bao quanh m\xE3 LaTeX b\xEAn trong th\u1EBB <formula>. M\xE3 LaTeX ph\u1EA3i thu\u1EA7n t\xFAy (VD: <formula>a^2+b^2</formula>).\n  - CH\u1EC8 tr\u1EA3 v\u1EC1 ph\u1EA7n v\u0103n b\u1EA3n th\u1EF1c s\u1EF1 thay \u0111\u1ED5i B\xCAN TRONG th\u1EBB XML. C\u1EA5m l\u1EB7p l\u1EA1i/ch\xE9p l\u1EA1i to\xE0n b\u1ED9 v\u0103n b\u1EA3n c\u1EE7a ng\u01B0\u1EDDi d\xF9ng.\n  - TUY\u1EC6T \u0110\u1ED0I KH\xD4NG tr\xECnh b\xE0y c\xE1c b\u01B0\u1EDBc gi\u1EA3i to\xE1n, kh\xF4ng gi\u1EA3i th\xEDch l\xFD do s\u1EEDa l\u1ED7i tr\u1EEB khi b\u1ECB y\xEAu c\u1EA7u \"H\xE3y gi\u1EA3i th\xEDch\".\n  - B\xCAN NGO\xC0I th\u1EBB XML, h\xE3y vi\u1EBFt M\u1ED8T C\xC2U NG\u1EAEN G\u1ECCN \u0111\u1EC3 ph\u1EA3n h\u1ED3i (v\xED d\u1EE5: \"T\xF4i \u0111\xE3 s\u1EEDa l\u1EA1i c\xF4ng th\u1EE9c.\").";
+var SYSTEM_PROMPT = "B\u1EA1n l\xE0 tr\u1EE3 l\xFD AI t\xEAn l\xE0 Auto-LaTeX Assistant, h\u1ED7 tr\u1EE3 ng\u01B0\u1EDDi d\xF9ng so\u1EA1n th\u1EA3o v\xE0 ch\u1EC9nh s\u1EEDa c\xF4ng th\u1EE9c to\xE1n h\u1ECDc LaTeX trong Microsoft Word.\nB\u1EA1n c\xF3 th\u1EC3 tr\xF2 chuy\u1EC7n b\xECnh th\u01B0\u1EDDng v\xE0 gi\u1EA3i \u0111\xE1p th\u1EAFc m\u1EAFc c\u1EE7a ng\u01B0\u1EDDi d\xF9ng.\n\nKHI NG\u01AF\u1EDCI D\xD9NG Y\xCAU C\u1EA6U T\u1EA0O HO\u1EB6C CH\u1EC8NH S\u1EECA C\xD4NG TH\u1EE8C TO\xC1N H\u1ECCC:\n1. M\u1ECCI N\u1ED8I DUNG CH\xCDNH M\xC0 B\u1EA0N MU\u1ED0N \u0110\u01AF\u1EE2C CH\xC8N V\xC0O WORD (c\xE1c c\xF4ng th\u1EE9c, \u0111\u1ECBnh ngh\u0129a to\xE1n h\u1ECDc, c\xE1c b\u01B0\u1EDBc gi\u1EA3i) B\u1EAET BU\u1ED8C PH\u1EA2I n\u1EB1m trong th\u1EBB <insert> v\xE0 </insert>.\n2. B\xCAN TRONG th\u1EBB <insert>, m\u1ECDi c\xF4ng th\u1EE9c LaTeX ph\u1EA3i \u0111\u01B0\u1EE3c b\u1ECDc trong th\u1EBB <inline_formula> (n\u1EBFu xen k\u1EBD ch\u1EEF) ho\u1EB7c <block_formula> (n\u1EBFu \u0111\u1EE9ng ri\xEAng m\u1ED9t d\xF2ng).\n3. L\u01AFU \xDD QUAN TR\u1ECCNG: B\xCAN TRONG th\u1EBB <inline_formula> v\xE0 <block_formula> CH\u1EC8 \u0110\u01AF\u1EE2C CH\u1EE8A DUY NH\u1EA4T M\xC3 LATEX, KH\xD4NG CH\u1EE8A TEXT CH\xDA TH\xCDCH. Text ch\xFA th\xEDch, gi\u1EA3i th\xEDch chi ti\u1EBFt ph\u1EA3i n\u1EB1m ngo\xE0i c\xE1c th\u1EBB n\xE0y.\n4. C\u1EA4M \u0110\u01AF\u1EE2C \u0110\u01AFA C\xC1C C\xC2U D\u1EAAN NH\u1EACP V\xC0O TRONG TH\u1EBA <insert>. C\u1EE5 th\u1EC3, nh\u1EEFng c\xE2u nh\u01B0 \"Ch\xE0o b\u1EA1n\", \"D\u01B0\u1EDBi \u0111\xE2y l\xE0 c\xF4ng th\u1EE9c b\u1EA1n y\xEAu c\u1EA7u:\", \"C\xF4ng th\u1EE9c t\xEDnh dung sai k\xE8m v\xED d\u1EE5 minh h\u1ECDa:\", \"Ch\xFAc b\u1EA1n h\u1ECDc t\u1ED1t\" B\u1EAET BU\u1ED8C PH\u1EA2I N\u1EB0M NGO\xC0I th\u1EBB <insert> (ho\u1EB7c <replace_search>). Ch\xFAng l\xE0 giao ti\u1EBFp v\u1EDBi ng\u01B0\u1EDDi d\xF9ng v\xE0 kh\xF4ng \u0111\u01B0\u1EE3c d\xE1n v\xE0o Word.\n5. TUY\u1EC6T \u0110\u1ED0I KH\xD4NG gi\u1EA3i th\xEDch v\u1EC1 c\xE1c quy t\u1EAFc n\xE0y v\u1EDBi ng\u01B0\u1EDDi d\xF9ng.\n6. H\xC3Y LINH HO\u1EA0T: T\xF9y theo y\xEAu c\u1EA7u c\u1EE7a ng\u01B0\u1EDDi d\xF9ng m\xE0 b\u1EA1n \u0111\xE1nh s\u1ED1 th\u1EE9 t\u1EF1 ho\u1EB7c kh\xF4ng. N\u1EBFu h\u1ECD ch\u1EC9 xin 1 c\xF4ng th\u1EE9c \u0111\u01A1n l\u1EBB, h\xE3y in ra t\u1EF1 nhi\xEAn, \u0111\u1EEBng r\u1EADp khu\xF4n \u0111\xE1nh s\u1ED1 ti\u1EBFp n\u1ED1i.\n\nM\u1ED8T S\u1ED0 V\xCD D\u1EE4:\nKHI NG\u01AF\u1EDCI D\xD9NG Y\xCAU C\u1EA6U CH\xC8N C\xD4NG TH\u1EE8C M\u1EDAI (Insert):\nUser: \"Cho t\xF4i c\xF4ng th\u1EE9c h\u1EB1ng \u0111\u1EB3ng th\u1EE9c\"\nAssistant:\nD\u01B0\u1EDBi \u0111\xE2y l\xE0 c\xE1c h\u1EB1ng \u0111\u1EB3ng th\u1EE9c \u0111\xE1ng nh\u1EDB:\n<insert>\nB\xECnh ph\u01B0\u01A1ng c\u1EE7a m\u1ED9t t\u1ED5ng:\n<block_formula>(a+b)^2 = a^2 + 2ab + b^2</block_formula>\nB\xECnh ph\u01B0\u01A1ng c\u1EE7a m\u1ED9t hi\u1EC7u:\n<block_formula>(a-b)^2 = a^2 - 2ab + b^2</block_formula>\n</insert>\nB\u1EA1n c\xF3 th\u1EC3 \u1EA5n n\xFAt Apply \u0111\u1EC3 d\xE1n th\u1EB3ng v\xE0o Word nha. Ch\xFAc b\u1EA1n h\u1ECDc t\u1ED1t!\n\nKHI NG\u01AF\u1EDCI D\xD9NG Y\xCAU C\u1EA6U CH\u1EC8NH S\u1EECA T\xC0I LI\u1EC6U (Thay \u0111\u1ED5i v\u0103n b\u1EA3n hi\u1EC7n c\xF3):\n1. H\u1EC7 th\u1ED1ng s\u1EBD cung c\u1EA5p cho b\u1EA1n ng\u1EEF c\u1EA3nh hi\u1EC7n t\u1EA1i c\u1EE7a t\xE0i li\u1EC7u (V\u0103n b\u1EA3n \u0111ang b\xF4i \u0111en, ho\u1EB7c \u0110o\u1EA1n v\u0103n ch\u1EE9a con tr\u1ECF chu\u1ED9t).\n2. T\xF9y thu\u1ED9c v\xE0o y\xEAu c\u1EA7u, h\xE3y tr\u1EA3 v\u1EC1 M\u1ED8T TRONG C\xC1C th\u1EBB XML sau \u0111\u1EC3 \xE1p d\u1EE5ng thay \u0111\u1ED5i tr\u1EF1c ti\u1EBFp v\xE0o Word:\n  - <replace_selection>v\u0103n b\u1EA3n thay th\u1EBF</replace_selection>: Ghi \u0111\xE8 v\xF9ng \u0111ang b\xF4i \u0111en.\n  - <replace_paragraph>v\u0103n b\u1EA3n thay th\u1EBF</replace_paragraph>: Ghi \u0111\xE8 to\xE0n b\u1ED9 \u0111o\u1EA1n v\u0103n ch\u1EE9a con tr\u1ECF chu\u1ED9t.\n  - <replace_search target='ch\u1EEF c\u1EA7n t\xECm'>v\u0103n b\u1EA3n thay th\u1EBF</replace_search>: T\xECm chu\u1ED7i v\xE0 ghi \u0111\xE8. L\u01AFU \xDD: B\u1EAFt bu\u1ED9c d\xF9ng d\u1EA5u nh\xE1y \u0110\u01A0N (target='...') \u0111\u1EC3 tr\xE1nh l\u1ED7i XML. Chu\u1ED7i target ph\u1EA3i tr\xEDch xu\u1EA5t CH\xCDNH X\xC1C 100% t\u1EEB v\u0103n b\u1EA3n g\u1ED1c, c\u1EA5m t\xF3m t\u1EAFt hay sai l\u1EC7ch.\n  - <replace_heading target='ti\xEAu \u0111\u1EC1 c\u1EA7n t\xECm'>v\u0103n b\u1EA3n thay th\u1EBF</replace_heading>: T\xECm ti\xEAu \u0111\u1EC1 v\xE0 ghi \u0111\xE8 n\u1ED9i dung b\xEAn d\u01B0\u1EDBi.\n3. N\u1EBEU ng\u01B0\u1EDDi d\xF9ng y\xEAu c\u1EA7u ch\xE8n n\u1ED9i dung v\xE0o m\u1ED9t V\u1ECA TR\xCD C\u1EE4 TH\u1EC2, h\xE3y d\xF9ng th\u1EBB:\n<replace_search target='\u0111o\u1EA1n X'>\u0111o\u1EA1n X \n\n<block_formula>...</block_formula></replace_search>. \n(L\u01AFU \xDD: H\xE3y nh\u1EA5n ph\xEDm Enter \u0111\u1EC3 xu\u1ED1ng d\xF2ng th\u1EF1c t\u1EBF, KH\xD4NG g\xF5 ch\u1EEF \n\n).\nC\u1EA4M \u0111\u01B0a c\xE2u d\u1EABn nh\u1EADp v\xE0o trong th\u1EBB <replace_search>, c\xE2u d\u1EABn nh\u1EADp ph\u1EA3i n\u1EB1m ngo\xE0i th\u1EBB.\n\n4. LU\u1EACT R\u1EA4T QUAN TR\u1ECCNG V\u1EC0 \u0110\u1ECANH D\u1EA0NG M\xC3 LATEX V\xC0 TEXT:\n  - NGUY HI\u1EC2M: TUY\u1EC6T \u0110\u1ED0I KH\xD4NG BAO GI\u1EDC s\u1EED d\u1EE5ng k\xFD hi\u1EC7u $ ho\u1EB7c $$ bao quanh m\xE3 LaTeX b\xEAn trong th\u1EBB <inline_formula> hay <block_formula>. Vi\u1EC7c n\xE0y s\u1EBD l\xE0m H\u1ECENG h\u1EC7 th\u1ED1ng rendering. M\xE3 LaTeX B\u1EAET BU\u1ED8C ph\u1EA3i thu\u1EA7n t\xFAy (V\xED d\u1EE5 \u0111\xFAng: <inline_formula>a^2+b^2</inline_formula>).\n  - CH\u1EC8 tr\u1EA3 v\u1EC1 ph\u1EA7n v\u0103n b\u1EA3n th\u1EF1c s\u1EF1 thay \u0111\u1ED5i B\xCAN TRONG th\u1EBB XML. C\u1EA5m l\u1EB7p l\u1EA1i/ch\xE9p l\u1EA1i to\xE0n b\u1ED9 v\u0103n b\u1EA3n c\u1EE7a ng\u01B0\u1EDDi d\xF9ng.\n  - TUY\u1EC6T \u0110\u1ED0I KH\xD4NG tr\xECnh b\xE0y c\xE1c b\u01B0\u1EDBc gi\u1EA3i to\xE1n, kh\xF4ng gi\u1EA3i th\xEDch l\xFD do s\u1EEDa l\u1ED7i tr\u1EEB khi b\u1ECB y\xEAu c\u1EA7u \"H\xE3y gi\u1EA3i th\xEDch\".\n  - B\xCAN NGO\xC0I th\u1EBB XML, h\xE3y vi\u1EBFt M\u1ED8T C\xC2U NG\u1EAEN G\u1ECCN, T\u1EF0 NHI\xCAN \u0111\u1EC3 ph\u1EA3n h\u1ED3i (v\xED d\u1EE5: \"D\u01B0\u1EDBi \u0111\xE2y l\xE0 ph\u1EA7n b\u1ED5 sung cho b\u1EA1n:\"). C\u1EA4M gi\u1EA3i th\xEDch c\xE1c h\xE0nh \u0111\u1ED9ng k\u1EF9 thu\u1EADt nh\u01B0 \"t\xF4i s\u1EBD ch\xE8n v\xE0o cu\u1ED1i \u0111o\u1EA1n v\u0103n c\u1EE7a b\u1EA1n\", \"t\xF4i s\u1EBD thay th\u1EBF\", v\xE0 TUY\u1EC6T \u0110\u1ED0I KH\xD4NG \u0110\u1EC0 C\u1EACP \u0111\u1EBFn th\u1EBB XML. H\xE3y n\xF3i chuy\u1EC7n gi\u1ED1ng nh\u01B0 con ng\u01B0\u1EDDi b\xECnh th\u01B0\u1EDDng.\n\n5. C\u1EA4M V\u1EBC B\u1EA2NG (NO MARKDOWN TABLES):\n  - L\u01AFU \xDD T\u1ED0I QUAN TR\u1ECCNG: Khung chat hi\u1EC3n th\u1ECB R\u1EA4T H\u1EB8P. B\u1EA1n B\u1ECA C\u1EA4M HO\xC0N TO\xC0N vi\u1EC7c s\u1EED d\u1EE5ng b\u1EA3ng Markdown (v\xED d\u1EE5: | C\u1ED9t 1 | C\u1ED9t 2 |).\n  - B\u1EAET BU\u1ED8C: M\u1ECDi s\u1EF1 so s\xE1nh, t\xF3m t\u1EAFt ph\u1EA3i \u0111\u01B0\u1EE3c tr\xECnh b\xE0y d\u01B0\u1EDBi d\u1EA1ng DANH S\xC1CH G\u1EA0CH \u0110\u1EA6U D\xD2NG (Bullet points) li\u1EC7t k\xEA t\u1EEB tr\xEAn xu\u1ED1ng d\u01B0\u1EDBi.";
 function sendChatMessage(_x) {
   return _sendChatMessage.apply(this, arguments);
 }
@@ -720,8 +741,10 @@ function _sendChatMessage() {
       isThinkingMode,
       onChunk,
       settings,
+      apiKey,
       langInstruction,
       autoApplyInstruction,
+      thinkingInstruction,
       currentSystemPrompt,
       messagesToSend,
       documentContextStr,
@@ -733,6 +756,7 @@ function _sendChatMessage() {
       _model,
       _extraBodyParams,
       _model2,
+      _model3,
       _args = arguments;
     return _regenerator().w(function (_context) {
       while (1) switch (_context.n) {
@@ -743,7 +767,8 @@ function _sendChatMessage() {
           isThinkingMode = _args.length > 4 && _args[4] !== undefined ? _args[4] : false;
           onChunk = _args.length > 5 ? _args[5] : undefined;
           settings = getAISettings();
-          if (settings.apiKey) {
+          apiKey = settings.apiKeys[settings.provider] || '';
+          if (apiKey) {
             _context.n = 1;
             break;
           }
@@ -752,7 +777,8 @@ function _sendChatMessage() {
           // Prepare static system prompt
           langInstruction = appLanguage === "vi" ? "\n\n7. QUAN TRỌNG: Hãy ưu tiên trả lời bằng Tiếng Việt." : "\n\n7. IMPORTANT: Please prioritize replying in English.";
           autoApplyInstruction = settings.autoApplyEdits ? "\n\n8. LƯU Ý HỆ THỐNG: Chế độ 'Auto-Apply' ĐANG BẬT. Bất kỳ thẻ XML nào bạn xuất ra sẽ TỰ ĐỘNG CHÈN vào Word ngay lập tức. TUYỆT ĐỐI KHÔNG dặn người dùng 'hãy bấm nút Apply'. Hãy trả lời kiểu: 'Tôi đã tự động dán kết quả vào Word cho bạn'." : "\n\n8. LƯU Ý HỆ THỐNG: Chế độ 'Auto-Apply' đang TẮT. Bạn có thể lịch sự nhắc người dùng 'Hãy bấm nút Apply để dán vào Word'.";
-          currentSystemPrompt = SYSTEM_PROMPT + langInstruction + autoApplyInstruction; // Clone history to avoid modifying original array
+          thinkingInstruction = "\n\n9. LƯU Ý QUAN TRỌNG: NẾU BẠN SỬ DỤNG KHỐI SUY NGHĨ (THINKING), BẠN BẮT BUỘC PHẢI VIẾT CÂU TRẢ LỜI CHÍNH THỨC NẰM NGOÀI KHỐI SUY NGHĨ. TUYỆT ĐỐI KHÔNG ĐƯỢC CHỈ TRẢ LỜI BÊN TRONG KHỐI SUY NGHĨ.";
+          currentSystemPrompt = SYSTEM_PROMPT + langInstruction + autoApplyInstruction + thinkingInstruction; // Clone history to avoid modifying original array
           messagesToSend = _toConsumableArray(history);
           documentContextStr = "";
           if (documentContext && (documentContext.selectionText || documentContext.paragraphText)) {
@@ -794,6 +820,9 @@ function _sendChatMessage() {
             if (documentContextStr !== "") {
               appendedText += documentContextStr;
             }
+            if (appendedText !== "") {
+              appendedText += "\n\n(L\u01AFU \xDD CHO AI: Ph\u1EA7n ng\u1EEF c\u1EA3nh t\xE0i li\u1EC7u \u1EDF tr\xEAn ch\u1EC9 \u0111\u1EC3 tham kh\u1EA3o b\u1ED1i c\u1EA3nh c\xF4ng vi\u1EC7c c\u1EE7a ng\u01B0\u1EDDi d\xF9ng. H\xE3y TR\u1EF0C TI\u1EBEP tr\u1EA3 l\u1EDDi c\xE2u h\u1ECFi c\u1EE7a ng\u01B0\u1EDDi d\xF9ng. TUY\u1EC6T \u0110\u1ED0I KH\xD4NG t\u1EF1 \xFD vi\u1EBFt ti\u1EBFp, s\u1EEDa \u0111\u1ED5i hay t\u1EA1o th\u1EBB <replace_search> / <insert> d\u1EF1a tr\xEAn ng\u1EEF c\u1EA3nh n\xE0y N\u1EBEU ng\u01B0\u1EDDi d\xF9ng kh\xF4ng y\xEAu c\u1EA7u r\xF5 r\xE0ng!)";
+            }
             messagesToSend[lastUserMsgIndex] = _objectSpread(_objectSpread({}, messagesToSend[lastUserMsgIndex]), {}, {
               content: "".concat(messagesToSend[lastUserMsgIndex].content).concat(appendedText)
             });
@@ -807,7 +836,7 @@ function _sendChatMessage() {
           extraBodyParams = isThinkingMode ? {
             reasoning_effort: "high"
           } : {};
-          return _context.a(2, callOpenAICompatibleStream(messagesToSend, settings.apiKey, "https://api.openai.com/v1/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk));
+          return _context.a(2, callOpenAICompatibleStream(messagesToSend, apiKey, "https://api.openai.com/v1/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk));
         case 6:
           if (!(settings.provider === 'deepseek')) {
             _context.n = 7;
@@ -821,11 +850,18 @@ function _sendChatMessage() {
           }, isThinkingMode ? {
             reasoning_effort: "high"
           } : {});
-          return _context.a(2, callOpenAICompatibleStream(messagesToSend, settings.apiKey, "https://api.deepseek.com/chat/completions", _model, currentSystemPrompt, _extraBodyParams, onChunk));
+          return _context.a(2, callOpenAICompatibleStream(messagesToSend, apiKey, "https://api.deepseek.com/chat/completions", _model, currentSystemPrompt, _extraBodyParams, onChunk));
         case 7:
-          _model2 = "gemini-3.5-flash";
-          return _context.a(2, callGeminiStream(messagesToSend, settings.apiKey, currentSystemPrompt, _model2, isThinkingMode, onChunk));
+          if (!(settings.provider === 'minimax')) {
+            _context.n = 8;
+            break;
+          }
+          _model2 = "MiniMax-M3";
+          return _context.a(2, callOpenAICompatibleStream(messagesToSend, apiKey, "https://api.tokenrouter.com/v1/chat/completions", _model2, currentSystemPrompt, {}, onChunk));
         case 8:
+          _model3 = "gemini-3.5-flash";
+          return _context.a(2, callGeminiStream(messagesToSend, apiKey, currentSystemPrompt, _model3, isThinkingMode, onChunk));
+        case 9:
           return _context.a(2);
       }
     }, _callee);
@@ -1144,6 +1180,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _utils_helpers__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../utils/helpers */ "./src/utils/helpers.ts");
 /* harmony import */ var _utils_parser__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../utils/parser */ "./src/utils/parser.ts");
 /* harmony import */ var _utils_translations__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../utils/translations */ "./src/utils/translations.ts");
+/* harmony import */ var _core_converter__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../core/converter */ "./src/core/converter.ts");
 function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t.return || t.return(); } finally { if (u) throw o; } } }; }
@@ -1155,9 +1192,10 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
 
 
 
+
 var handleSendChat = /*#__PURE__*/function () {
   var _ref = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee3(deps) {
-    var sessionManager, quoteManager, chatRenderer, getLanguage, getThinkingMode, chatInput, btnSendChat, prompt, settings, appLanguage, displayHtml, fullPromptForAI, displayQuoteHtml, quoteLabel, session, savedQuoteForDocContext, savedIsQuoteFromWord, _yield$import, DocumentEditor, docContext, aiResponseText, msgDiv, msgBubble, isRendering, rafId, _yield$import2, sanitizeLaTeX, getMathML, renderStreamChunk, chatText, appliedChanges, pendingEditsHtml, tSettings, btnApplyText, hasSpecialEdits, processEditMatch, contentForWord, insertCount, insertRegex, insertMatch, insertOnlyFormulas, chatSegments, chatBubbleHtml, wordHtml, hasWordContent, _iterator2, _step2, segment, rawLatex, isBlock, latexClean, mathML, safeLatex, wordSegments, currentParagraph, _iterator3, _step3, _segment, escaped, _rawLatex, _isBlock, _latexClean, _mathML, shouldAutoApply, safeContent, toolbarContainer, copyContainer, btns, notifText, _t;
+    var sessionManager, quoteManager, chatRenderer, getLanguage, getThinkingMode, chatInput, btnSendChat, prompt, settings, appLanguage, displayHtml, fullPromptForAI, displayQuoteHtml, quoteLabel, session, savedQuoteForDocContext, savedIsQuoteFromWord, _yield$import, DocumentEditor, docContext, aiResponseText, msgDiv, msgBubble, isRendering, rafId, _yield$import2, sanitizeLaTeX, getMathML, renderStreamChunk, chatText, appliedChanges, pendingEditsHtml, tSettings, btnApplyText, hasSpecialEdits, processEditMatches, contentForWord, insertCount, insertRegex, insertMatch, insertOnlyFormulas, chatSegments, chatBubbleHtml, wordHtml, hasWordContent, generated, _iterator2, _step2, segment, rawLatex, isBlock, latexClean, katexHtml, safeLatex, shouldAutoApply, safeContent, toolbarContainer, copyContainer, btns, notifText, _t;
     return _regenerator().w(function (_context3) {
       while (1) switch (_context3.p = _context3.n) {
         case 0:
@@ -1235,11 +1273,18 @@ var handleSendChat = /*#__PURE__*/function () {
             isRendering = true;
             try {
               var cText = aiResponseText;
+              cText = cText.replace(/<\s*think\s*>[\s\S]*?<\s*\/\s*think\s*>/gi, "");
+              cText = cText.replace(/<\s*think\s*>[\s\S]*$/gi, "");
               cText = cText.replace(/<\s*insert\s*>[\s\S]*?(<\s*\/\s*insert\s*>)?/gi, "");
               cText = cText.replace(/<\s*replace_selection\s*>[\s\S]*?(<\s*\/\s*replace_selection\s*>)?/gi, "");
               cText = cText.replace(/<\s*replace_paragraph\s*>[\s\S]*?(<\s*\/\s*replace_paragraph\s*>)?/gi, "");
               cText = cText.replace(/<\s*replace_search[^>]*>[\s\S]*?(<\s*\/\s*replace_search\s*>)?/gi, "");
               cText = cText.replace(/<\s*replace_heading[^>]*>[\s\S]*?(<\s*\/\s*replace_heading\s*>)?/gi, "");
+              cText = cText.trim();
+              if (cText === "") {
+                isRendering = false;
+                return;
+              }
               var _chatSegments = (0,_utils_parser__WEBPACK_IMPORTED_MODULE_2__.processSegments)(cText);
               var _chatBubbleHtml = "";
               if (_chatSegments.length === 0) {
@@ -1331,14 +1376,22 @@ var handleSendChat = /*#__PURE__*/function () {
         case 9:
           chatRenderer.removeSkeleton();
           chatText = aiResponseText;
+          chatText = chatText.replace(/<\s*think\s*>[\s\S]*?<\s*\/\s*think\s*>/gi, "");
+          chatText = chatText.replace(/<\s*think\s*>[\s\S]*$/gi, "");
           appliedChanges = false;
           pendingEditsHtml = "";
           tSettings = _utils_translations__WEBPACK_IMPORTED_MODULE_3__.translations[appLanguage] || _utils_translations__WEBPACK_IMPORTED_MODULE_3__.translations["en"];
           btnApplyText = tSettings.btnApplyEdit || "Apply to Word";
           hasSpecialEdits = false;
-          processEditMatch = /*#__PURE__*/function () {
-            var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(match, type, replaceStr) {
+          processEditMatches = /*#__PURE__*/function () {
+            var _ref2 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee(regexStr, type, replaceStr) {
               var targetStr,
+                regex,
+                match,
+                matches,
+                _i,
+                _matches,
+                m,
                 content,
                 target,
                 _generateWordHtmlFrom,
@@ -1350,14 +1403,20 @@ var handleSendChat = /*#__PURE__*/function () {
                 while (1) switch (_context.n) {
                   case 0:
                     targetStr = _args.length > 3 && _args[3] !== undefined ? _args[3] : "";
-                    if (match) {
-                      _context.n = 1;
+                    regex = new RegExp(regexStr, 'gi');
+                    matches = [];
+                    while ((match = regex.exec(chatText)) !== null) {
+                      matches.push(match);
+                    }
+                    _i = 0, _matches = matches;
+                  case 1:
+                    if (!(_i < _matches.length)) {
+                      _context.n = 11;
                       break;
                     }
-                    return _context.a(2);
-                  case 1:
-                    content = match[replaceStr === "match1" ? 1 : 2].trim();
-                    target = targetStr === "match1" ? match[1] : "";
+                    m = _matches[_i];
+                    content = m[replaceStr === "match1" ? 1 : 2].trim();
+                    target = targetStr === "match1" ? m[1] : "";
                     hasSpecialEdits = true;
                     _generateWordHtmlFrom = (0,_utils_parser__WEBPACK_IMPORTED_MODULE_2__.generateWordHtmlFromText)(content), wordHtmlContent = _generateWordHtmlFrom.html;
                     if (!settings.autoApplyEdits) {
@@ -1406,30 +1465,34 @@ var handleSendChat = /*#__PURE__*/function () {
                     if (!settings.autoApplyEdits) {
                       safeContent = encodeURIComponent(wordHtmlContent);
                       safeTarget = encodeURIComponent(target);
-                      pendingEditsHtml += "<div class=\"pending-edit-card\" data-edit-type=\"".concat(type, "\" data-edit-content=\"").concat(safeContent, "\" data-edit-target=\"").concat(safeTarget, "\" style=\"margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;\">\n                    <button class=\"btn-toolbar-action btn-apply-edit\" title=\"").concat(btnApplyText, "\">\n                        <span style=\"font-weight: 500;\">").concat(btnApplyText, "</span>\n                    </button>\n                </div>");
+                      pendingEditsHtml += "<div class=\"pending-edit-card\" data-edit-type=\"".concat(type, "\" data-edit-content=\"").concat(safeContent, "\" data-edit-target=\"").concat(safeTarget, "\" style=\"margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;\">\n                        <button class=\"btn-toolbar-action btn-apply-edit\" title=\"").concat(btnApplyText, "\">\n                            <span style=\"font-weight: 500;\">").concat(btnApplyText, "</span>\n                        </button>\n                    </div>");
                     }
                     // CHỈ xóa thẻ mở/đóng, GIỮ LẠI nội dung công thức để hiển thị trên khung chat
-                    chatText = chatText.replace(match[0], content);
+                    chatText = chatText.replace(m[0], content);
                   case 10:
+                    _i++;
+                    _context.n = 1;
+                    break;
+                  case 11:
                     return _context.a(2);
                 }
               }, _callee);
             }));
-            return function processEditMatch(_x2, _x3, _x4) {
+            return function processEditMatches(_x2, _x3, _x4) {
               return _ref2.apply(this, arguments);
             };
           }();
           _context3.n = 10;
-          return processEditMatch(/<\s*replace_selection\s*>([\s\S]*?)<\s*\/\s*replace_selection\s*>/i.exec(chatText), "replace_selection", "match1");
+          return processEditMatches('<\\s*replace_selection\\s*>([\\s\\S]*?)(?:<\\s*\\/\\s*replace_selection\\s*>|$)', "replace_selection", "match1");
         case 10:
           _context3.n = 11;
-          return processEditMatch(/<\s*replace_paragraph\s*>([\s\S]*?)<\s*\/\s*replace_paragraph\s*>/i.exec(chatText), "replace_paragraph", "match1");
+          return processEditMatches('<\\s*replace_paragraph\\s*>([\\s\\S]*?)(?:<\\s*\\/\\s*replace_paragraph\\s*>|$)', "replace_paragraph", "match1");
         case 11:
           _context3.n = 12;
-          return processEditMatch(/<\s*replace_search\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_search\s*>/i.exec(chatText), "replace_search", "match2", "match1");
+          return processEditMatches('<\\s*replace_search\\s+target=[\'"](.*?)[\'"]\\s*>([\\s\\S]*?)(?:<\\s*\\/\\s*replace_search\\s*>|$)', "replace_search", "match2", "match1");
         case 12:
           _context3.n = 13;
-          return processEditMatch(/<\s*replace_heading\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_heading\s*>/i.exec(chatText), "replace_heading", "match2", "match1");
+          return processEditMatches('<\\s*replace_heading\\s+target=[\'"](.*?)[\'"]\\s*>([\\s\\S]*?)(?:<\\s*\\/\\s*replace_heading\\s*>|$)', "replace_heading", "match2", "match1");
         case 13:
           contentForWord = "";
           insertCount = 0;
@@ -1443,10 +1506,19 @@ var handleSendChat = /*#__PURE__*/function () {
           }
           insertOnlyFormulas = insertCount === 0 && !hasSpecialEdits;
           chatText = chatText.replace(/<\s*\/?\s*insert\s*>/gi, "");
+          chatText = chatText.trim();
+          if (chatText === "" && aiResponseText.trim() !== "") {
+            chatText = "_[AI không đưa ra câu trả lời hợp lệ, vui lòng thử lại]_";
+          }
           chatSegments = (0,_utils_parser__WEBPACK_IMPORTED_MODULE_2__.processSegments)(chatText);
           chatBubbleHtml = "";
-          wordHtml = "<html><body>";
+          wordHtml = "";
           hasWordContent = false;
+          if (!hasSpecialEdits) {
+            generated = (0,_utils_parser__WEBPACK_IMPORTED_MODULE_2__.generateWordHtmlFromText)(contentForWord);
+            wordHtml = generated.html;
+            hasWordContent = generated.hasContent;
+          }
           if (chatSegments.length === 0) {
             chatBubbleHtml = (0,_utils_parser__WEBPACK_IMPORTED_MODULE_2__.parseMarkdown)(chatText);
           } else {
@@ -1458,26 +1530,27 @@ var handleSendChat = /*#__PURE__*/function () {
                   chatBubbleHtml += "<span>".concat((0,_utils_parser__WEBPACK_IMPORTED_MODULE_2__.parseMarkdown)(segment.content), "</span>");
                 } else if (segment.type === 'formula') {
                   rawLatex = segment.content.trim();
+                  isBlock = segment.isBlock;
                   if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
                     rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                    segment.isBlock = true;
-                  }
-                  if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
+                    isBlock = true;
+                  } else if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
                     rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                    segment.isBlock = true;
-                  }
-                  if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
+                    isBlock = true;
+                  } else if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
                     rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
+                  } else if (rawLatex.startsWith("$") && rawLatex.endsWith("$")) {
+                    rawLatex = rawLatex.substring(1, rawLatex.length - 1).trim();
                   }
-                  isBlock = segment.isBlock || rawLatex.includes("\\begin{");
+                  isBlock = isBlock || rawLatex.includes("\\begin{");
                   latexClean = sanitizeLaTeX(rawLatex, isBlock);
-                  mathML = getMathML(latexClean, isBlock);
-                  if (mathML) {
+                  katexHtml = (0,_core_converter__WEBPACK_IMPORTED_MODULE_4__.getKaTeXHtml)(latexClean, isBlock);
+                  if (katexHtml) {
                     safeLatex = encodeURIComponent(rawLatex);
                     if (isBlock) {
-                      chatBubbleHtml += "<div class=\"clickable-formula\" data-latex=\"".concat(safeLatex, "\" style=\"margin-top: 8px; margin-bottom: 8px; overflow-x: auto; max-width: 100%; padding-bottom: 4px; cursor: pointer;\" title=\"Click to copy LaTeX\">").concat(mathML, "</div>");
+                      chatBubbleHtml += "<div class=\"clickable-formula block-formula\" data-latex=\"".concat(safeLatex, "\" style=\"cursor: pointer;\" title=\"Click to copy LaTeX\">").concat(katexHtml, "</div>");
                     } else {
-                      chatBubbleHtml += "<span class=\"clickable-formula\" data-latex=\"".concat(safeLatex, "\" style=\"display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; margin: 0 4px; padding-bottom: 2px; cursor: pointer;\" title=\"Click to copy LaTeX\">").concat(mathML, "</span>");
+                      chatBubbleHtml += "<span class=\"clickable-formula\" data-latex=\"".concat(safeLatex, "\" style=\"display: inline-block; vertical-align: middle; margin: 0 4px; cursor: pointer;\" title=\"Click to copy LaTeX\">").concat(katexHtml, "</span>");
                     }
                   } else {
                     chatBubbleHtml += "<span style=\"color: #d83b01;\">[L\u1ED7i hi\u1EC3n th\u1ECB c\xF4ng th\u1EE9c LaTeX]</span>";
@@ -1490,61 +1563,10 @@ var handleSendChat = /*#__PURE__*/function () {
               _iterator2.f();
             }
           }
-
-          // Render Word Insertion
-          wordSegments = (0,_utils_parser__WEBPACK_IMPORTED_MODULE_2__.processSegments)(contentForWord);
-          currentParagraph = "";
-          _iterator3 = _createForOfIteratorHelper(wordSegments);
-          try {
-            for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-              _segment = _step3.value;
-              if (_segment.type === 'text' && !insertOnlyFormulas) {
-                escaped = (0,_utils_helpers__WEBPACK_IMPORTED_MODULE_1__.escapeHtml)(_segment.content).replace(/\n/g, '<br>');
-                currentParagraph += escaped;
-                hasWordContent = true;
-              } else if (_segment.type === 'formula') {
-                _rawLatex = _segment.content.trim();
-                if (_rawLatex.startsWith("$$") && _rawLatex.endsWith("$$")) {
-                  _rawLatex = _rawLatex.substring(2, _rawLatex.length - 2).trim();
-                  _segment.isBlock = true;
-                }
-                if (_rawLatex.startsWith("\\[") && _rawLatex.endsWith("\\]")) {
-                  _rawLatex = _rawLatex.substring(2, _rawLatex.length - 2).trim();
-                  _segment.isBlock = true;
-                }
-                if (_rawLatex.startsWith("\\(") && _rawLatex.endsWith("\\)")) {
-                  _rawLatex = _rawLatex.substring(2, _rawLatex.length - 2).trim();
-                }
-                _isBlock = _segment.isBlock || _rawLatex.includes("\\begin{");
-                _latexClean = sanitizeLaTeX(_rawLatex, _isBlock);
-                _mathML = getMathML(_latexClean, _isBlock);
-                if (_mathML) {
-                  if (_isBlock) {
-                    if (currentParagraph.trim() !== "") {
-                      wordHtml += "<p style=\"margin-bottom: 8px;\">".concat(currentParagraph, "</p>");
-                      currentParagraph = "";
-                    }
-                    wordHtml += "<p style=\"margin-bottom: 8px;\">".concat(_mathML, "</p>");
-                  } else {
-                    currentParagraph += "<span style=\"margin: 0 4px;\">".concat(_mathML, "</span>");
-                  }
-                  hasWordContent = true;
-                }
-              }
-            }
-          } catch (err) {
-            _iterator3.e(err);
-          } finally {
-            _iterator3.f();
-          }
-          if (currentParagraph.trim() !== "") {
-            wordHtml += "<p style=\"margin-bottom: 8px;\">".concat(currentParagraph, "</p>");
-          }
           if (!(hasWordContent && !appliedChanges)) {
             _context3.n = 16;
             break;
           }
-          wordHtml += "</body></html>";
           shouldAutoApply = settings.autoApplyEdits && !insertOnlyFormulas;
           if (!shouldAutoApply) {
             _context3.n = 15;
@@ -2529,6 +2551,8 @@ function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present,
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
+function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
+function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
 function _classCallCheck(a, n) { if (!(a instanceof n)) throw new TypeError("Cannot call a class as a function"); }
 function _defineProperties(e, r) { for (var t = 0; t < r.length; t++) { var o = r[t]; o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, _toPropertyKey(o.key), o); } }
 function _createClass(e, r, t) { return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", { writable: !1 }), e; }
@@ -2540,6 +2564,7 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
 var SettingsManager = /*#__PURE__*/function () {
   function SettingsManager(currentAppLanguage) {
     _classCallCheck(this, SettingsManager);
+    _defineProperty(this, "tempApiKeys", {});
     _defineProperty(this, "onLanguageChanged", function () {});
     this.currentAppLanguage = currentAppLanguage;
     this.tempSelectedLanguage = currentAppLanguage;
@@ -2599,7 +2624,14 @@ var SettingsManager = /*#__PURE__*/function () {
         return _this.tempSelectedLanguage = val;
       });
       this.initCustomSelect("provider-select-wrapper", function (val) {
-        return _this.tempSelectedProvider = val;
+        var apiKeyInput = document.getElementById("ai-api-key");
+        if (apiKeyInput) {
+          _this.tempApiKeys[_this.tempSelectedProvider] = apiKeyInput.value.trim();
+          _this.tempSelectedProvider = val;
+          apiKeyInput.value = _this.tempApiKeys[val] || '';
+        } else {
+          _this.tempSelectedProvider = val;
+        }
       });
       this.setupToggles();
       this.setupExportStats();
@@ -2612,8 +2644,9 @@ var SettingsManager = /*#__PURE__*/function () {
       // Note: we don't reset tempSelectedLanguage here so it keeps user selection unless they saved it.
       // Actually, we should sync it with currentAppLanguage when opening
       this.tempSelectedLanguage = this.currentAppLanguage;
+      this.tempApiKeys = _objectSpread({}, settings.apiKeys);
       var apiKeyInput = document.getElementById("ai-api-key");
-      if (apiKeyInput) apiKeyInput.value = settings.apiKey;
+      if (apiKeyInput) apiKeyInput.value = this.tempApiKeys[settings.provider] || '';
       var autoApplyToggle = document.getElementById("auto-apply-edits");
       if (autoApplyToggle) autoApplyToggle.checked = settings.autoApplyEdits;
       var insertAtCursorToggle = document.getElementById("insert-at-cursor");
@@ -2627,12 +2660,14 @@ var SettingsManager = /*#__PURE__*/function () {
     key: "saveSettings",
     value: function saveSettings() {
       var apiKeyInput = document.getElementById("ai-api-key");
-      var apiKey = apiKeyInput ? apiKeyInput.value.trim() : "";
+      if (apiKeyInput) {
+        this.tempApiKeys[this.tempSelectedProvider] = apiKeyInput.value.trim();
+      }
       var autoApplyToggle = document.getElementById("auto-apply-edits");
       var insertAtCursorToggle = document.getElementById("insert-at-cursor");
       (0,_services_ai__WEBPACK_IMPORTED_MODULE_0__.saveAISettings)({
         provider: this.tempSelectedProvider,
-        apiKey: apiKey,
+        apiKeys: this.tempApiKeys,
         autoApplyEdits: autoApplyToggle ? autoApplyToggle.checked : false,
         insertAtCursor: insertAtCursorToggle ? insertAtCursorToggle.checked : true
       });
@@ -2662,11 +2697,17 @@ var SettingsManager = /*#__PURE__*/function () {
           if (container && chevron) {
             var isExpanded = container.classList.contains("expanded");
             if (isExpanded) {
+              container.style.overflow = "hidden";
               container.classList.remove("expanded");
               chevron.style.transform = "rotate(-90deg)";
             } else {
               container.classList.add("expanded");
               chevron.style.transform = "rotate(0deg)";
+              setTimeout(function () {
+                if (container.classList.contains("expanded")) {
+                  container.style.overflow = "visible";
+                }
+              }, 250);
             }
           }
         });
@@ -3083,6 +3124,7 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
 
 var parseMarkdown = function parseMarkdown(text) {
   var html = (0,_helpers__WEBPACK_IMPORTED_MODULE_1__.escapeHtml)(text);
+  html = html.replace(/^#{1,6}\s+(.*)$/gm, '<b style="display:block; margin-top:8px;">$1</b>');
   html = html.replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>');
   html = html.replace(/(?<!\*)\*(?!\*)([\s\S]*?)(?<!\*)\*(?!\*)/g, '<i>$1</i>');
   html = html.replace(/`([\s\S]+?)`/g, '<code style="background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">$1</code>');
@@ -3090,7 +3132,7 @@ var parseMarkdown = function parseMarkdown(text) {
   return html;
 };
 var processSegments = function processSegments(textStr) {
-  var formulaRegex = /<\s*formula\s*>([\s\S]*?)<\s*\/\s*formula\s*>|\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\\\(([\s\S]*?)\\\)/gi;
+  var formulaRegex = /<\s*formula\s*>([\s\S]*?)<\s*\/\s*formula\s*>|<\s*inline_formula\s*>([\s\S]*?)<\s*\/\s*inline_formula\s*>|<\s*block_formula\s*>([\s\S]*?)<\s*\/\s*block_formula\s*>|\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\\\(([\s\S]*?)\\\)|\$([^\$]+)\$/gi;
   var match;
   var lastIndex = 0;
   var segments = [];
@@ -3102,22 +3144,43 @@ var processSegments = function processSegments(textStr) {
     });
     var content = match[1];
     var isBlock = false;
+    var isExplicitInline = false;
     if (content !== undefined) {
       var trimmed = content.trim();
-      if (trimmed.startsWith("$$") || trimmed.startsWith("\\[") || trimmed.includes("\\begin{")) isBlock = true;
+      if (trimmed.startsWith("$$") || trimmed.startsWith("\\[") || trimmed.includes("\\begin{")) {
+        isBlock = true;
+      } else {
+        var beforeMatch = textStr.substring(0, match.index);
+        var afterMatch = textStr.substring(formulaRegex.lastIndex);
+        if (/(?:^|[\r\n])\s*$/.test(beforeMatch) && /^\s*(?:[\r\n]|$)/.test(afterMatch)) {
+          isBlock = true;
+        }
+      }
     } else if (match[2] !== undefined) {
       content = match[2];
-      isBlock = true;
+      isBlock = false;
+      isExplicitInline = true;
     } else if (match[3] !== undefined) {
       content = match[3];
       isBlock = true;
     } else if (match[4] !== undefined) {
       content = match[4];
+      isBlock = true;
+    } else if (match[5] !== undefined) {
+      content = match[5];
+      isBlock = true;
+    } else if (match[6] !== undefined) {
+      content = match[6];
+      isBlock = false;
+    } else if (match[7] !== undefined) {
+      content = match[7];
+      isBlock = false;
     }
     segments.push({
       type: 'formula',
       content: content,
-      isBlock: isBlock
+      isBlock: isBlock,
+      isExplicitInline: isExplicitInline
     });
     lastIndex = formulaRegex.lastIndex;
   }
@@ -3126,6 +3189,16 @@ var processSegments = function processSegments(textStr) {
     type: 'text',
     content: finalText
   });
+  for (var i = 0; i < segments.length; i++) {
+    if (segments[i].type === 'formula' && segments[i].isExplicitInline) {
+      if (i > 0 && segments[i - 1].type === 'text') {
+        segments[i - 1].content = segments[i - 1].content.replace(/[\r\n]+\s*$/g, ' ');
+      }
+      if (i < segments.length - 1 && segments[i + 1].type === 'text') {
+        segments[i + 1].content = segments[i + 1].content.replace(/^[\r\n]+\s*/g, ' ');
+      }
+    }
+  }
   return segments;
 };
 var generateWordHtmlFromText = function generateWordHtmlFromText(textStr) {
@@ -3147,13 +3220,13 @@ var generateWordHtmlFromText = function generateWordHtmlFromText(textStr) {
         if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
           rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
           segment.isBlock = true;
-        }
-        if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
+        } else if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
           rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
           segment.isBlock = true;
-        }
-        if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
+        } else if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
           rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
+        } else if (rawLatex.startsWith("$") && rawLatex.endsWith("$")) {
+          rawLatex = rawLatex.substring(1, rawLatex.length - 1).trim();
         }
         var isBlock = segment.isBlock || rawLatex.includes("\\begin{");
         var latexClean = (0,_core_converter__WEBPACK_IMPORTED_MODULE_0__.sanitizeLaTeX)(rawLatex, isBlock);
@@ -4209,7 +4282,7 @@ module.exports = __webpack_require__.p + "5fb28028b7eb061fb25f.css";
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
-module.exports = __webpack_require__.p + "3dc7bc2f18c203f3a8e5.css";
+module.exports = __webpack_require__.p + "cdbb0f0be44283b1cc92.css";
 
 /***/ }),
 
@@ -4220,7 +4293,7 @@ module.exports = __webpack_require__.p + "3dc7bc2f18c203f3a8e5.css";
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
-module.exports = __webpack_require__.p + "2dcfa27947bbcaf75338.css";
+module.exports = __webpack_require__.p + "020442cd98ae1b23c4cc.css";
 
 /***/ }),
 
@@ -59473,7 +59546,7 @@ var ___HTML_LOADER_IMPORT_0___ = new URL(/* asset import */ __webpack_require__(
 var ___HTML_LOADER_IMPORT_1___ = new URL(/* asset import */ __webpack_require__(/*! ./css/chat.css */ "./src/taskpane/css/chat.css"), __webpack_require__.b);
 var ___HTML_LOADER_IMPORT_2___ = new URL(/* asset import */ __webpack_require__(/*! ./css/components.css */ "./src/taskpane/css/components.css"), __webpack_require__.b);
 // Module
-var code = "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\" />\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>Auto LaTeX</title>\n    <!-- Office JavaScript API -->\n    <" + "script type=\"text/javascript\" src=\"https://appsforoffice.microsoft.com/lib/1/hosted/office.js\"><" + "/script>\n    <!-- Inter Font -->\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n    <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n    <link href=\"" + ___HTML_LOADER_IMPORT_0___ + "\" rel=\"stylesheet\" type=\"text/css\" />\n    <link href=\"" + ___HTML_LOADER_IMPORT_1___ + "\" rel=\"stylesheet\" type=\"text/css\" />\n    <link href=\"" + ___HTML_LOADER_IMPORT_2___ + "\" rel=\"stylesheet\" type=\"text/css\" />\n</head>\n<body>\n    <!-- Main Converter View -->\n    <div id=\"main-view\" class=\"app-container view-container view-visible\">\n        <header class=\"app-header\" style=\"position: relative;\">\n            <button id=\"btn-quick-lang\" aria-label=\"Toggle Language\" style=\"position: absolute; top: 20px; left: 20px; font-weight: 600; font-size: 14px; color: var(--color-primary); background: none; border: none; cursor: pointer;\">ENG</button>\n            <svg class=\"app-logo\" xmlns=\"http://www.w3.org/2000/svg\" width=\"36\" height=\"36\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 7V4h16v3\"/><path d=\"M9 20h6\"/><path d=\"M12 4v16\"/></svg>\n            <h1>Auto LaTeX</h1>\n        </header>\n        \n        <main id=\"app-body\" class=\"app-main\" style=\"display: none;\">\n            <p class=\"app-description\" data-i18n=\"appDescription\">Accurate and high-performance Math formula converter for Microsoft&nbsp;Word.</p>\n            \n            <div class=\"action-group\">\n                <button id=\"convert-doc\" class=\"btn btn-primary\" aria-label=\"Convert entire document\">\n                    <svg class=\"btn-icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><polyline points=\"14 2 14 8 20 8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/><path d=\"M10 9H8\"/></svg>\n                    <span data-i18n=\"convertAll\">Convert All</span>\n                </button>\n                \n                <button id=\"convert-sel\" class=\"btn btn-secondary\" aria-label=\"Convert selection\">\n                    <svg class=\"btn-icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z\"/><path d=\"M3.3 7 8.7 10\"/><path d=\"M8.7 17 3.3 14\"/><path d=\"M20.7 14 15.3 17\"/><path d=\"M15.3 10l5.4-3\"/><path d=\"M12 22v-8\"/><path d=\"M12 10V2\"/></svg>\n                    <span data-i18n=\"convertSelection\">Convert Selection</span>\n                </button>\n            </div>\n            \n            <p id=\"cancel-msg\" style=\"display: none; text-align: center; font-size: 13px; color: var(--color-text-muted); margin-top: 8px;\">\n                <span id=\"progress-text\">So long? </span><span id=\"cancel-link\" class=\"cancel-link\" data-i18n=\"cancelHere\">Cancel here</span>\n            </p>\n            \n            <footer class=\"app-footer\">\n                <p><span data-i18n=\"createdBy\">Created by</span> <strong>auhsuai</strong></p>\n                <div class=\"footer-links\">\n                    <a href=\"https://github.com/auhsuai/auto-latex\" target=\"_blank\" aria-label=\"GitHub\">\n                        <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4\"/><path d=\"M9 18c-4.51 2-5-2-7-2\"/></svg>\n                        GitHub\n                    </a>\n                    <span class=\"separator\">•</span>\n                    <a href=\"https://t.me/nguyen_tan_an\" target=\"_blank\" aria-label=\"Telegram\">\n                        <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m15 10-4 4 6 6 4-16-18 7 4 2 2 6 3-4\"/></svg>\n                        Telegram\n                    </a>\n                </div>\n            </footer>\n        </main>\n    </div>\n\n    <!-- Chat View (Hidden by Default) -->\n    <div id=\"chat-view\" class=\"app-container view-container view-hidden\" style=\"display: flex;\">\n        <header class=\"chat-header\">\n            <button id=\"btn-back\" class=\"icon-btn\" aria-label=\"Back to main view\">\n                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m12 19-7-7 7-7\"/><path d=\"M19 12H5\"/></svg>\n            </button>\n            <h2 id=\"chat-title\" style=\"flex: 1; text-align: center; margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;\">New Chat</h2>\n            <button id=\"btn-chat-menu\" class=\"icon-btn\" aria-label=\"Menu\">\n                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"4\" x2=\"20\" y1=\"12\" y2=\"12\"/><line x1=\"4\" x2=\"20\" y1=\"6\" y2=\"6\"/><line x1=\"4\" x2=\"20\" y1=\"18\" y2=\"18\"/></svg>\n            </button>\n        </header>\n\n        <!-- Sidebar -->\n        <div id=\"chat-sidebar-overlay\" class=\"sidebar-overlay\"></div>\n        <div id=\"chat-sidebar\" class=\"chat-sidebar\">\n            <div class=\"sidebar-header\" style=\"display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;\">\n                <h3 style=\"margin: 0; font-size: 14px;\" data-i18n=\"menuTitle\">Menu</h3>\n                <button id=\"btn-close-sidebar\" class=\"icon-btn\" aria-label=\"Close menu\">\n                    <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg>\n                </button>\n            </div>\n            \n            <div class=\"sidebar-scrollable\">\n                <div class=\"sidebar-section-title\" data-i18n=\"chatHistory\">Lịch sử chat</div>\n                <div style=\"padding: 0 16px 8px 16px;\">\n                    <div style=\"position: relative; display: flex; align-items: center;\">\n                        <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"position: absolute; left: 10px; color: var(--color-text-muted);\"><circle cx=\"11\" cy=\"11\" r=\"8\"></circle><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"></line></svg>\n                        <input type=\"text\" id=\"chat-search-input\" data-i18n-placeholder=\"searchChats\" placeholder=\"Search chats...\" class=\"form-control\" style=\"padding-left: 32px; height: 32px; font-size: 13px; border-radius: var(--radius-md);\">\n                    </div>\n                </div>\n                <button id=\"btn-new-chat\" class=\"sidebar-action-btn\" style=\"color: var(--color-primary); font-weight: 500;\">\n                    <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"margin-right: 8px;\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>\n                    <span data-i18n=\"newChat\">Cuộc trò chuyện mới</span>\n                </button>\n                \n                <ul id=\"history-chats-list\" class=\"chat-list\" style=\"margin-top: 8px;\"></ul>\n            </div>\n            \n            <div class=\"sidebar-footer\">\n                <button id=\"btn-settings-api\" class=\"sidebar-action-btn\">\n                    <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"margin-right: 8px;\"><path d=\"M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>\n                    <span data-i18n=\"apiSettings\">Cài đặt</span>\n                </button>\n            </div>\n        </div>\n\n        <div id=\"chat-messages\" class=\"chat-messages\">\n            <!-- Messages will be injected here -->\n            <div class=\"chat-msg ai-msg\">\n                <div class=\"msg-bubble\">\n                    Xin chào! Tôi là AI Math Assistant. Bôi đen văn bản/công thức trên Word hoặc gõ yêu cầu ở dưới để tôi tạo mã LaTeX cho bạn nhé.\n                </div>\n            </div>\n        </div>\n\n        <div class=\"chat-input-area\">\n            <!-- Floating Selection Prompt -->\n            <div id=\"selection-prompt\" class=\"selection-prompt\" style=\"display: none;\">\n                <button id=\"btn-quote-selection\" data-i18n=\"askAI\" class=\"btn-quote-only\">\n                    <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z\"/></svg>\n                    Ask AI\n                </button>\n            </div>\n\n            <div class=\"chat-input-wrapper\">\n                <!-- Quoted Context Block -->\n                <div id=\"quoted-context\" class=\"quoted-context\" style=\"display: none;\">\n                    <div class=\"quoted-icon\">\n                        <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M9 10l-5 5 5 5\"/><path d=\"M20 4v7a4 4 0 0 1-4 4H4\"/></svg>\n                    </div>\n                    <div id=\"quoted-text\" class=\"quoted-text\"></div>\n                    <button id=\"btn-remove-quote\" class=\"btn-remove-quote\" aria-label=\"Remove quote\">\n                        <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/></svg>\n                    </button>\n                </div>\n\n                <div class=\"input-controls-row\">\n\n                    <textarea id=\"chat-input\" data-i18n-placeholder=\"chatPlaceholder\" placeholder=\"Ask anything...\" rows=\"1\"></textarea>\n                    <div style=\"display: flex; gap: 6px;\">\n                        <button id=\"btn-toggle-thinking\" class=\"mode-toggle-btn\" aria-label=\"Toggle Thinking Mode\" title=\"Click to toggle Fast / Thinking mode\">\n                            <span id=\"thinking-text\">Fast</span>\n                        </button>\n                        <button id=\"btn-send-chat\" aria-label=\"Send message\">\n                            <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m22 2-7 20-4-9-9-4Z\"/><path d=\"M22 2 11 13\"/></svg>\n                        </button>\n                    </div>\n                </div>\n            </div>\n            <p class=\"chat-hint\" data-i18n=\"chatHint\">Tự động chèn kết quả vào tài liệu</p>\n        </div>\n        \n        <!-- Global Dropdown for Chat Items -->\n        <div id=\"item-options-dropdown\" class=\"dropdown-menu\" style=\"display: none; position: fixed; width: 160px; z-index: 2000;\">\n            <div class=\"dropdown-item\" id=\"opt-rename\">\n                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"margin-right: 6px;\"><path d=\"M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z\"/><path d=\"m15 5 4 4\"/></svg>\n                <span data-i18n=\"optRename\">Đổi tên</span>\n            </div>\n            <div class=\"dropdown-item\" id=\"opt-pin\">\n                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"margin-right: 6px;\"><line x1=\"12\" x2=\"12\" y1=\"17\" y2=\"22\"/><path d=\"M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.6V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3v4.6a2 2 0 0 1-1.11 1.95l-1.78.9A2 2 0 0 0 5 15.24Z\"/></svg>\n                <span id=\"opt-pin-text\" data-i18n=\"optPin\">Ghim</span>\n            </div>\n            <div class=\"dropdown-item\" id=\"opt-delete\" style=\"color: #d83b01;\">\n                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"margin-right: 6px;\"><path d=\"M3 6h18\"/><path d=\"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6\"/><path d=\"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2\"/><line x1=\"10\" x2=\"10\" y1=\"11\" y2=\"17\"/><line x1=\"14\" x2=\"14\" y1=\"11\" y2=\"17\"/></svg>\n                <span data-i18n=\"optDelete\">Xóa</span>\n            </div>\n        </div>\n    </div>\n\n    <!-- Floating Action Button (FAB) -->\n    <button id=\"fab-chat\" class=\"fab fab-visible\" aria-label=\"Open AI Assistant\">\n        <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7.9 20A9 9 0 1 0 4 16.1L2 22Z\"/><path d=\"M8 12h.01\"/><path d=\"M12 12h.01\"/><path d=\"M16 12h.01\"/></svg>\n    </button>\n\n    <!-- Settings Modal -->\n    <div id=\"settings-modal\" class=\"modal-overlay\" style=\"display: none;\">\n        <div class=\"modal-content\">\n            <h3 class=\"modal-title\" data-i18n=\"settingsTitle\">Settings</h3>\n            \n            <div class=\"form-group\">\n                <label for=\"app-language\" data-i18n=\"languageLabel\">Language / Ngôn ngữ</label>\n                <div class=\"custom-select-wrapper\" id=\"lang-select-wrapper\">\n                    <div class=\"custom-select\" id=\"lang-select-display\">\n                        <span id=\"lang-select-text\">English</span>\n                        <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"m6 9 6 6 6-6\"/></svg>\n                    </div>\n                    <div class=\"custom-select-options\" id=\"lang-select-options\" style=\"display: none;\">\n                        <div class=\"custom-select-option\" data-val=\"en\">English</div>\n                        <div class=\"custom-select-option\" data-val=\"vi\">Tiếng Việt</div>\n                    </div>\n                </div>\n            </div>\n\n            <div id=\"ai-settings-toggle\" style=\"margin-top: 24px; margin-bottom: 16px; font-size: 15px; font-weight: 600; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;\">\n                <span data-i18n=\"aiSettingsTitle\">AI Settings</span>\n                <svg id=\"ai-settings-chevron\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" style=\"transition: transform 0.2s; transform: rotate(-90deg);\"><path d=\"m6 9 6 6 6-6\"/></svg>\n            </div>\n\n            <div id=\"ai-settings-container\" style=\"display: none;\">\n                <div class=\"form-group\">\n                    <label for=\"ai-provider\" data-i18n=\"providerLabel\">AI Provider</label>\n                    <div class=\"custom-select-wrapper\" id=\"provider-select-wrapper\">\n                        <div class=\"custom-select\" id=\"provider-select-display\">\n                            <span id=\"provider-select-text\">Google Gemini (3.5 Flash)</span>\n                            <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"m6 9 6 6 6-6\"/></svg>\n                        </div>\n                        <div class=\"custom-select-options\" id=\"provider-select-options\" style=\"display: none;\">\n                            <div class=\"custom-select-option\" data-val=\"gemini\">Google Gemini (3.5 Flash)</div>\n                            <div class=\"custom-select-option\" data-val=\"openai\">OpenAI (GPT-5.4/mini)</div>\n                            <div class=\"custom-select-option\" data-val=\"deepseek\">DeepSeek (v4-flash)</div>\n                        </div>\n                    </div>\n                </div>\n\n                <div class=\"form-group\">\n                    <label for=\"ai-api-key\" data-i18n=\"apiKeyLabel\">API Key</label>\n                    <input type=\"password\" id=\"ai-api-key\" class=\"form-control\" data-i18n-placeholder=\"apiKeyPlaceholder\" placeholder=\"Paste your API key here...\">\n                </div>\n\n            </div>\n\n            <div id=\"editor-settings-toggle\" style=\"margin-top: 16px; margin-bottom: 12px; font-size: 15px; font-weight: 600; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;\">\n                <span data-i18n=\"editorSettingsTitle\">Editor Settings</span>\n                <svg id=\"editor-settings-chevron\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" style=\"transition: transform 0.2s; transform: rotate(-90deg);\"><path d=\"m6 9 6 6 6-6\"/></svg>\n            </div>\n            \n            <div id=\"editor-settings-container\" style=\"display: none;\">\n                <div style=\"background: rgba(0,0,0,0.02); padding: 12px; border-radius: 6px; border: 1px solid var(--color-border);\">\n                    <div class=\"form-group\" style=\"display: flex; align-items: center; justify-content: space-between;\">\n                        <label for=\"auto-apply-edits\" data-i18n=\"autoApplyLabel\" style=\"margin-bottom: 0;\">Auto-apply AI Edits</label>\n                        <label class=\"switch\">\n                            <input type=\"checkbox\" id=\"auto-apply-edits\">\n                            <span class=\"slider round\"></span>\n                        </label>\n                    </div>\n\n                    <div class=\"form-group\" style=\"display: flex; align-items: center; justify-content: space-between; margin-top: 16px; margin-bottom: 0;\">\n                        <label for=\"insert-at-cursor\" data-i18n=\"insertAtCursorLabel\" style=\"margin-bottom: 0;\">Insert new formula at cursor</label>\n                        <label class=\"switch\">\n                            <input type=\"checkbox\" id=\"insert-at-cursor\">\n                            <span class=\"slider round\"></span>\n                        </label>\n                    </div>\n                </div>\n            </div>\n            <div id=\"usage-stats-toggle\" style=\"margin-top: 16px; margin-bottom: 12px; font-size: 15px; font-weight: 600; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;\">\n                <span data-i18n=\"usageStatsTitle\">Usage Statistics</span>\n                <svg id=\"usage-stats-chevron\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" style=\"transition: transform 0.2s; transform: rotate(-90deg);\"><path d=\"m6 9 6 6 6-6\"/></svg>\n            </div>\n\n            <div id=\"usage-stats-container\" style=\"display: none; margin-top: 8px;\">\n                <div style=\"background: rgba(0,0,0,0.03); padding: 16px; border-radius: 8px;\">\n                    <div style=\"margin-bottom: 24px;\">\n                        <div style=\"font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 12px;\" data-i18n=\"statApiRequests\">API requests</div>\n                        <div style=\"width: 100%; height: 120px; position: relative;\">\n                            <canvas id=\"api-requests-chart\"></canvas>\n                        </div>\n                    </div>\n                    <div style=\"margin-bottom: 16px;\">\n                        <div style=\"font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 12px;\" data-i18n=\"statTokens\">Tokens</div>\n                        <div style=\"width: 100%; height: 140px; position: relative;\">\n                            <canvas id=\"tokens-chart\"></canvas>\n                        </div>\n                    </div>\n                    \n                    <button id=\"btn-export-stats\" class=\"btn btn-secondary\" style=\"width: 100%; margin-top: 8px; font-size: 13px; padding: 6px;\" data-i18n=\"btnExportStats\">Export Statistics</button>\n                </div>\n            </div>\n\n            <div class=\"modal-actions\">\n                <button id=\"btn-close-settings\" class=\"btn btn-secondary\" style=\"padding: 8px 16px; font-size: 14px;\" data-i18n=\"btnCancel\">Cancel</button>\n                <button id=\"btn-save-settings\" class=\"btn btn-primary\" style=\"padding: 8px 16px; font-size: 14px;\" data-i18n=\"btnSave\">Save</button>\n            </div>\n        </div>\n    </div>\n\n    <!-- Rename Modal -->\n    <div id=\"rename-modal\" class=\"modal-overlay\" style=\"display: none;\">\n        <div class=\"modal-content\">\n            <h3 class=\"modal-title\" data-i18n=\"renameTitle\">Đổi tên đoạn chat</h3>\n            <div class=\"form-group\">\n                <input type=\"text\" id=\"rename-input\" class=\"form-control\" data-i18n-placeholder=\"renamePlaceholder\" placeholder=\"Nhập tên mới...\">\n            </div>\n            <div class=\"modal-actions\">\n                <button id=\"btn-cancel-rename\" class=\"btn btn-secondary\" style=\"padding: 8px 16px; font-size: 14px;\" data-i18n=\"btnCancel\">Hủy</button>\n                <button id=\"btn-save-rename\" class=\"btn btn-primary\" style=\"padding: 8px 16px; font-size: 14px;\" data-i18n=\"btnSave\">Lưu</button>\n            </div>\n        </div>\n    </div>\n\n    <!-- Delete Confirm Modal -->\n    <div id=\"delete-modal\" class=\"modal-overlay\" style=\"display: none;\">\n        <div class=\"modal-content\">\n            <h3 class=\"modal-title\" data-i18n=\"deleteTitle\">Xóa đoạn chat</h3>\n            <p style=\"margin-bottom: 16px; font-size: 13px; color: var(--color-text-muted);\" data-i18n=\"deleteConfirm\">Bạn có chắc chắn muốn xóa đoạn chat này không? Hành động này không thể hoàn tác.</p>\n            <div class=\"modal-actions\">\n                <button id=\"btn-cancel-delete\" class=\"btn btn-secondary\" style=\"padding: 8px 16px; font-size: 14px;\" data-i18n=\"btnCancel\">Hủy</button>\n                <button id=\"btn-confirm-delete\" class=\"btn btn-primary\" style=\"padding: 8px 16px; font-size: 14px; background: #d83b01; border-color: #d83b01;\" data-i18n=\"optDelete\">Xóa</button>\n            </div>\n        </div>\n    </div>\n</body>\n</html>\n";
+var code = "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\" />\n    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>Auto LaTeX</title>\n    <!-- Office JavaScript API -->\n    <" + "script type=\"text/javascript\" src=\"https://appsforoffice.microsoft.com/lib/1/hosted/office.js\"><" + "/script>\n    <!-- Inter Font -->\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n    <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n    <link href=\"" + ___HTML_LOADER_IMPORT_0___ + "\" rel=\"stylesheet\" type=\"text/css\" />\n    <link href=\"" + ___HTML_LOADER_IMPORT_1___ + "\" rel=\"stylesheet\" type=\"text/css\" />\n    <link href=\"" + ___HTML_LOADER_IMPORT_2___ + "\" rel=\"stylesheet\" type=\"text/css\" />\n    <!-- KaTeX CSS for chat rendering -->\n    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css\" crossorigin=\"anonymous\">\n</head>\n<body>\n    <!-- Main Converter View -->\n    <div id=\"main-view\" class=\"app-container view-container view-visible\">\n        <header class=\"app-header\" style=\"position: relative;\">\n            <button id=\"btn-quick-lang\" aria-label=\"Toggle Language\" style=\"position: absolute; top: 20px; left: 20px; font-weight: 600; font-size: 14px; color: var(--color-primary); background: none; border: none; cursor: pointer;\">ENG</button>\n            <svg class=\"app-logo\" xmlns=\"http://www.w3.org/2000/svg\" width=\"36\" height=\"36\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 7V4h16v3\"/><path d=\"M9 20h6\"/><path d=\"M12 4v16\"/></svg>\n            <h1>Auto LaTeX</h1>\n        </header>\n        \n        <main id=\"app-body\" class=\"app-main\" style=\"display: none;\">\n            <p class=\"app-description\" data-i18n=\"appDescription\">Accurate and high-performance Math formula converter for Microsoft&nbsp;Word.</p>\n            \n            <div class=\"action-group\">\n                <button id=\"convert-doc\" class=\"btn btn-primary\" aria-label=\"Convert entire document\">\n                    <svg class=\"btn-icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><polyline points=\"14 2 14 8 20 8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/><path d=\"M10 9H8\"/></svg>\n                    <span data-i18n=\"convertAll\">Convert All</span>\n                </button>\n                \n                <button id=\"convert-sel\" class=\"btn btn-secondary\" aria-label=\"Convert selection\">\n                    <svg class=\"btn-icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z\"/><path d=\"M3.3 7 8.7 10\"/><path d=\"M8.7 17 3.3 14\"/><path d=\"M20.7 14 15.3 17\"/><path d=\"M15.3 10l5.4-3\"/><path d=\"M12 22v-8\"/><path d=\"M12 10V2\"/></svg>\n                    <span data-i18n=\"convertSelection\">Convert Selection</span>\n                </button>\n            </div>\n            \n            <p id=\"cancel-msg\" style=\"display: none; text-align: center; font-size: 13px; color: var(--color-text-muted); margin-top: 8px;\">\n                <span id=\"progress-text\">So long? </span><span id=\"cancel-link\" class=\"cancel-link\" data-i18n=\"cancelHere\">Cancel here</span>\n            </p>\n            \n            <footer class=\"app-footer\">\n                <p><span data-i18n=\"createdBy\">Created by</span> <strong>auhsuai</strong></p>\n                <div class=\"footer-links\">\n                    <a href=\"https://github.com/auhsuai/auto-latex\" target=\"_blank\" aria-label=\"GitHub\">\n                        <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4\"/><path d=\"M9 18c-4.51 2-5-2-7-2\"/></svg>\n                        GitHub\n                    </a>\n                    <span class=\"separator\">•</span>\n                    <a href=\"https://t.me/nguyen_tan_an\" target=\"_blank\" aria-label=\"Telegram\">\n                        <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m15 10-4 4 6 6 4-16-18 7 4 2 2 6 3-4\"/></svg>\n                        Telegram\n                    </a>\n                </div>\n            </footer>\n        </main>\n    </div>\n\n    <!-- Chat View (Hidden by Default) -->\n    <div id=\"chat-view\" class=\"app-container view-container view-hidden\" style=\"display: flex;\">\n        <header class=\"chat-header\">\n            <button id=\"btn-back\" class=\"icon-btn\" aria-label=\"Back to main view\">\n                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m12 19-7-7 7-7\"/><path d=\"M19 12H5\"/></svg>\n            </button>\n            <h2 id=\"chat-title\" style=\"flex: 1; text-align: center; margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;\">New Chat</h2>\n            <button id=\"btn-chat-menu\" class=\"icon-btn\" aria-label=\"Menu\">\n                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"4\" x2=\"20\" y1=\"12\" y2=\"12\"/><line x1=\"4\" x2=\"20\" y1=\"6\" y2=\"6\"/><line x1=\"4\" x2=\"20\" y1=\"18\" y2=\"18\"/></svg>\n            </button>\n        </header>\n\n        <!-- Sidebar -->\n        <div id=\"chat-sidebar-overlay\" class=\"sidebar-overlay\"></div>\n        <div id=\"chat-sidebar\" class=\"chat-sidebar\">\n            <div class=\"sidebar-header\" style=\"display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;\">\n                <h3 style=\"margin: 0; font-size: 14px;\" data-i18n=\"menuTitle\">Menu</h3>\n                <button id=\"btn-close-sidebar\" class=\"icon-btn\" aria-label=\"Close menu\">\n                    <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg>\n                </button>\n            </div>\n            \n            <div class=\"sidebar-scrollable\">\n                <div class=\"sidebar-section-title\" data-i18n=\"chatHistory\">Lịch sử chat</div>\n                <div style=\"padding: 0 16px 8px 16px;\">\n                    <div style=\"position: relative; display: flex; align-items: center;\">\n                        <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"position: absolute; left: 10px; color: var(--color-text-muted);\"><circle cx=\"11\" cy=\"11\" r=\"8\"></circle><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"></line></svg>\n                        <input type=\"text\" id=\"chat-search-input\" data-i18n-placeholder=\"searchChats\" placeholder=\"Search chats...\" class=\"form-control\" style=\"padding-left: 32px; height: 32px; font-size: 13px; border-radius: var(--radius-md);\">\n                    </div>\n                </div>\n                <button id=\"btn-new-chat\" class=\"sidebar-action-btn\" style=\"color: var(--color-primary); font-weight: 500;\">\n                    <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"margin-right: 8px;\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg>\n                    <span data-i18n=\"newChat\">Cuộc trò chuyện mới</span>\n                </button>\n                \n                <ul id=\"history-chats-list\" class=\"chat-list\" style=\"margin-top: 8px;\"></ul>\n            </div>\n            \n            <div class=\"sidebar-footer\">\n                <button id=\"btn-settings-api\" class=\"sidebar-action-btn\">\n                    <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"margin-right: 8px;\"><path d=\"M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg>\n                    <span data-i18n=\"apiSettings\">Cài đặt</span>\n                </button>\n            </div>\n        </div>\n\n        <div id=\"chat-messages\" class=\"chat-messages\">\n            <!-- Messages will be injected here -->\n            <div class=\"chat-msg ai-msg\">\n                <div class=\"msg-bubble\">\n                    Xin chào! Tôi là AI Math Assistant. Bôi đen văn bản/công thức trên Word hoặc gõ yêu cầu ở dưới để tôi tạo mã LaTeX cho bạn nhé.\n                </div>\n            </div>\n        </div>\n\n        <div class=\"chat-input-area\">\n            <!-- Floating Selection Prompt -->\n            <div id=\"selection-prompt\" class=\"selection-prompt\" style=\"display: none;\">\n                <button id=\"btn-quote-selection\" data-i18n=\"askAI\" class=\"btn-quote-only\">\n                    <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z\"/></svg>\n                    Ask AI\n                </button>\n            </div>\n\n            <div class=\"chat-input-wrapper\">\n                <!-- Quoted Context Block -->\n                <div id=\"quoted-context\" class=\"quoted-context\" style=\"display: none;\">\n                    <div class=\"quoted-icon\">\n                        <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M9 10l-5 5 5 5\"/><path d=\"M20 4v7a4 4 0 0 1-4 4H4\"/></svg>\n                    </div>\n                    <div id=\"quoted-text\" class=\"quoted-text\"></div>\n                    <button id=\"btn-remove-quote\" class=\"btn-remove-quote\" aria-label=\"Remove quote\">\n                        <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/></svg>\n                    </button>\n                </div>\n\n                <div class=\"input-controls-row\">\n\n                    <textarea id=\"chat-input\" data-i18n-placeholder=\"chatPlaceholder\" placeholder=\"Ask anything...\" rows=\"1\"></textarea>\n                    <div style=\"display: flex; gap: 6px;\">\n                        <button id=\"btn-toggle-thinking\" class=\"mode-toggle-btn\" aria-label=\"Toggle Thinking Mode\" title=\"Click to toggle Fast / Thinking mode\">\n                            <span id=\"thinking-text\">Fast</span>\n                        </button>\n                        <button id=\"btn-send-chat\" aria-label=\"Send message\">\n                            <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m22 2-7 20-4-9-9-4Z\"/><path d=\"M22 2 11 13\"/></svg>\n                        </button>\n                    </div>\n                </div>\n            </div>\n            <p class=\"chat-hint\" data-i18n=\"chatHint\">Tự động chèn kết quả vào tài liệu</p>\n        </div>\n        \n        <!-- Global Dropdown for Chat Items -->\n        <div id=\"item-options-dropdown\" class=\"dropdown-menu\" style=\"display: none; position: fixed; width: 160px; z-index: 2000;\">\n            <div class=\"dropdown-item\" id=\"opt-rename\">\n                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"margin-right: 6px;\"><path d=\"M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z\"/><path d=\"m15 5 4 4\"/></svg>\n                <span data-i18n=\"optRename\">Đổi tên</span>\n            </div>\n            <div class=\"dropdown-item\" id=\"opt-pin\">\n                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"margin-right: 6px;\"><line x1=\"12\" x2=\"12\" y1=\"17\" y2=\"22\"/><path d=\"M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.6V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3v4.6a2 2 0 0 1-1.11 1.95l-1.78.9A2 2 0 0 0 5 15.24Z\"/></svg>\n                <span id=\"opt-pin-text\" data-i18n=\"optPin\">Ghim</span>\n            </div>\n            <div class=\"dropdown-item\" id=\"opt-delete\" style=\"color: #d83b01;\">\n                <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"margin-right: 6px;\"><path d=\"M3 6h18\"/><path d=\"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6\"/><path d=\"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2\"/><line x1=\"10\" x2=\"10\" y1=\"11\" y2=\"17\"/><line x1=\"14\" x2=\"14\" y1=\"11\" y2=\"17\"/></svg>\n                <span data-i18n=\"optDelete\">Xóa</span>\n            </div>\n        </div>\n    </div>\n\n    <!-- Floating Action Button (FAB) -->\n    <button id=\"fab-chat\" class=\"fab fab-visible\" aria-label=\"Open AI Assistant\">\n        <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M7.9 20A9 9 0 1 0 4 16.1L2 22Z\"/><path d=\"M8 12h.01\"/><path d=\"M12 12h.01\"/><path d=\"M16 12h.01\"/></svg>\n    </button>\n\n    <!-- Settings Modal -->\n    <div id=\"settings-modal\" class=\"modal-overlay\" style=\"display: none;\">\n        <div class=\"modal-content\">\n            <h3 class=\"modal-title\" data-i18n=\"settingsTitle\">Settings</h3>\n            \n            <div class=\"form-group\">\n                <label for=\"app-language\" data-i18n=\"languageLabel\">Language / Ngôn ngữ</label>\n                <div class=\"custom-select-wrapper\" id=\"lang-select-wrapper\">\n                    <div class=\"custom-select\" id=\"lang-select-display\">\n                        <span id=\"lang-select-text\">English</span>\n                        <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"m6 9 6 6 6-6\"/></svg>\n                    </div>\n                    <div class=\"custom-select-options\" id=\"lang-select-options\" style=\"display: none;\">\n                        <div class=\"custom-select-option\" data-val=\"en\">English</div>\n                        <div class=\"custom-select-option\" data-val=\"vi\">Tiếng Việt</div>\n                    </div>\n                </div>\n            </div>\n\n            <div id=\"ai-settings-toggle\" style=\"margin-top: 24px; margin-bottom: 16px; font-size: 15px; font-weight: 600; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;\">\n                <span data-i18n=\"aiSettingsTitle\">AI Settings</span>\n                <svg id=\"ai-settings-chevron\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" style=\"transition: transform 0.2s; transform: rotate(-90deg);\"><path d=\"m6 9 6 6 6-6\"/></svg>\n            </div>\n\n            <div id=\"ai-settings-container\" style=\"display: none;\">\n                <div class=\"form-group\">\n                    <label for=\"ai-provider\" data-i18n=\"providerLabel\">AI Provider</label>\n                    <div class=\"custom-select-wrapper\" id=\"provider-select-wrapper\">\n                        <div class=\"custom-select\" id=\"provider-select-display\">\n                            <span id=\"provider-select-text\">Google Gemini (3.5 Flash)</span>\n                            <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"m6 9 6 6 6-6\"/></svg>\n                        </div>\n                        <div class=\"custom-select-options\" id=\"provider-select-options\" style=\"display: none;\">\n                            <div class=\"custom-select-option\" data-val=\"gemini\">Google Gemini (3.5 Flash)</div>\n                            <div class=\"custom-select-option\" data-val=\"openai\">OpenAI (GPT-5.4/mini)</div>\n                            <div class=\"custom-select-option\" data-val=\"deepseek\">DeepSeek (v4-flash)</div>\n                            <div class=\"custom-select-option\" data-val=\"minimax\">MiniMax (M3)</div>\n                        </div>\n                    </div>\n                </div>\n\n                <div class=\"form-group\">\n                    <label for=\"ai-api-key\" data-i18n=\"apiKeyLabel\">API Key</label>\n                    <input type=\"password\" id=\"ai-api-key\" class=\"form-control\" data-i18n-placeholder=\"apiKeyPlaceholder\" placeholder=\"Paste your API key here...\">\n                </div>\n\n            </div>\n\n            <div id=\"editor-settings-toggle\" style=\"margin-top: 16px; margin-bottom: 12px; font-size: 15px; font-weight: 600; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;\">\n                <span data-i18n=\"editorSettingsTitle\">Editor Settings</span>\n                <svg id=\"editor-settings-chevron\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" style=\"transition: transform 0.2s; transform: rotate(-90deg);\"><path d=\"m6 9 6 6 6-6\"/></svg>\n            </div>\n            \n            <div id=\"editor-settings-container\" style=\"display: none;\">\n                <div style=\"background: rgba(0,0,0,0.02); padding: 12px; border-radius: 6px; border: 1px solid var(--color-border);\">\n                    <div class=\"form-group\" style=\"display: flex; align-items: center; justify-content: space-between;\">\n                        <label for=\"auto-apply-edits\" data-i18n=\"autoApplyLabel\" style=\"margin-bottom: 0;\">Auto-apply AI Edits</label>\n                        <label class=\"switch\">\n                            <input type=\"checkbox\" id=\"auto-apply-edits\">\n                            <span class=\"slider round\"></span>\n                        </label>\n                    </div>\n\n                    <div class=\"form-group\" style=\"display: flex; align-items: center; justify-content: space-between; margin-top: 16px; margin-bottom: 0;\">\n                        <label for=\"insert-at-cursor\" data-i18n=\"insertAtCursorLabel\" style=\"margin-bottom: 0;\">Insert new formula at cursor</label>\n                        <label class=\"switch\">\n                            <input type=\"checkbox\" id=\"insert-at-cursor\">\n                            <span class=\"slider round\"></span>\n                        </label>\n                    </div>\n                </div>\n            </div>\n            <div id=\"usage-stats-toggle\" style=\"margin-top: 16px; margin-bottom: 12px; font-size: 15px; font-weight: 600; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;\">\n                <span data-i18n=\"usageStatsTitle\">Usage Statistics</span>\n                <svg id=\"usage-stats-chevron\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" style=\"transition: transform 0.2s; transform: rotate(-90deg);\"><path d=\"m6 9 6 6 6-6\"/></svg>\n            </div>\n\n            <div id=\"usage-stats-container\" style=\"display: none; margin-top: 8px;\">\n                <div style=\"background: rgba(0,0,0,0.03); padding: 16px; border-radius: 8px;\">\n                    <div style=\"margin-bottom: 24px;\">\n                        <div style=\"font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 12px;\" data-i18n=\"statApiRequests\">API requests</div>\n                        <div style=\"width: 100%; height: 120px; position: relative;\">\n                            <canvas id=\"api-requests-chart\"></canvas>\n                        </div>\n                    </div>\n                    <div style=\"margin-bottom: 16px;\">\n                        <div style=\"font-size: 14px; font-weight: 600; color: var(--color-text); margin-bottom: 12px;\" data-i18n=\"statTokens\">Tokens</div>\n                        <div style=\"width: 100%; height: 140px; position: relative;\">\n                            <canvas id=\"tokens-chart\"></canvas>\n                        </div>\n                    </div>\n                    \n                    <button id=\"btn-export-stats\" class=\"btn btn-secondary\" style=\"width: 100%; margin-top: 8px; font-size: 13px; padding: 6px;\" data-i18n=\"btnExportStats\">Export Statistics</button>\n                </div>\n            </div>\n\n            <div class=\"modal-actions\">\n                <button id=\"btn-close-settings\" class=\"btn btn-secondary\" style=\"padding: 8px 16px; font-size: 14px;\" data-i18n=\"btnCancel\">Cancel</button>\n                <button id=\"btn-save-settings\" class=\"btn btn-primary\" style=\"padding: 8px 16px; font-size: 14px;\" data-i18n=\"btnSave\">Save</button>\n            </div>\n        </div>\n    </div>\n\n    <!-- Rename Modal -->\n    <div id=\"rename-modal\" class=\"modal-overlay\" style=\"display: none;\">\n        <div class=\"modal-content\">\n            <h3 class=\"modal-title\" data-i18n=\"renameTitle\">Đổi tên đoạn chat</h3>\n            <div class=\"form-group\">\n                <input type=\"text\" id=\"rename-input\" class=\"form-control\" data-i18n-placeholder=\"renamePlaceholder\" placeholder=\"Nhập tên mới...\">\n            </div>\n            <div class=\"modal-actions\">\n                <button id=\"btn-cancel-rename\" class=\"btn btn-secondary\" style=\"padding: 8px 16px; font-size: 14px;\" data-i18n=\"btnCancel\">Hủy</button>\n                <button id=\"btn-save-rename\" class=\"btn btn-primary\" style=\"padding: 8px 16px; font-size: 14px;\" data-i18n=\"btnSave\">Lưu</button>\n            </div>\n        </div>\n    </div>\n\n    <!-- Delete Confirm Modal -->\n    <div id=\"delete-modal\" class=\"modal-overlay\" style=\"display: none;\">\n        <div class=\"modal-content\">\n            <h3 class=\"modal-title\" data-i18n=\"deleteTitle\">Xóa đoạn chat</h3>\n            <p style=\"margin-bottom: 16px; font-size: 13px; color: var(--color-text-muted);\" data-i18n=\"deleteConfirm\">Bạn có chắc chắn muốn xóa đoạn chat này không? Hành động này không thể hoàn tác.</p>\n            <div class=\"modal-actions\">\n                <button id=\"btn-cancel-delete\" class=\"btn btn-secondary\" style=\"padding: 8px 16px; font-size: 14px;\" data-i18n=\"btnCancel\">Hủy</button>\n                <button id=\"btn-confirm-delete\" class=\"btn btn-primary\" style=\"padding: 8px 16px; font-size: 14px; background: #d83b01; border-color: #d83b01;\" data-i18n=\"optDelete\">Xóa</button>\n            </div>\n        </div>\n    </div>\n</body>\n</html>\n";
 // Exports
 /* harmony default export */ __webpack_exports__["default"] = (code);
 }();

@@ -85,6 +85,19 @@ export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
     return sanitized;
 }
 
+export function getKaTeXHtml(latex: string, isBlock: boolean): string {
+    try {
+        return katex.renderToString(latex, {
+            displayMode: isBlock,
+            output: "htmlAndMathml",
+            throwOnError: false,
+            strict: false
+        });
+    } catch (e) {
+        return "";
+    }
+}
+
 export function getMathML(latex: string, isBlock: boolean): string | null {
     try {
         const html = katex.renderToString(latex, {
@@ -117,6 +130,9 @@ export function getMathML(latex: string, isBlock: boolean): string | null {
         if (match && match[0]) {
             let mathML = match[0];
             mathML = mathML.replace(/<semantics>([\s\S]*?)<annotation[\s\S]*?<\/annotation><\/semantics>/ig, "$1");
+            if (!isBlock) {
+                mathML = mathML.replace(/<math/, '<math display="inline"');
+            }
             // Edge Case 18: Fix Word dotted box for unary minus/plus after opening parenthesis
             mathML = mathML.replace(/(<mo[^>]*>[\(\[\{]<\/mo>)\s*(<mo[^>]*>[−\+±∓]<\/mo>)/g, "$1<mi>&#x200B;</mi>$2");
             return mathML;

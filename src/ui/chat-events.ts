@@ -9,12 +9,12 @@ export const setupChatEvents = (
 
     chatMessages.addEventListener("wheel", (e: WheelEvent) => {
         const target = e.target as HTMLElement;
-        const formula = target.closest(".clickable-formula") as HTMLElement;
-        if (formula && formula.scrollWidth > formula.clientWidth) {
+        const scrollableContainer = target.closest(".clickable-formula, .katex-display") as HTMLElement;
+        if (scrollableContainer && scrollableContainer.scrollWidth > scrollableContainer.clientWidth) {
             // Ngăn chặn cuộn dọc trang
             e.preventDefault();
             // Chuyển hướng cuộn dọc (deltaY) thành cuộn ngang
-            formula.scrollLeft += e.deltaY;
+            scrollableContainer.scrollLeft += e.deltaY;
         }
     }, { passive: false });
 

@@ -135,8 +135,15 @@
 
 /* Rendered Math inside Chat */
 .ai-msg .msg-bubble .katex-display {
-    margin: 8px 0;
+    margin: 4px 0 !important;
     overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.clickable-formula.block-formula {
+    margin: 4px 0;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 /* Skeleton Loading for AI */
@@ -411,11 +418,13 @@
     transition: background-color 0.2s ease;
 }
 
-.clickable-formula::-webkit-scrollbar {
+.clickable-formula::-webkit-scrollbar,
+.katex-display::-webkit-scrollbar {
     display: none;
 }
 
-.clickable-formula {
+.clickable-formula,
+.katex-display {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
