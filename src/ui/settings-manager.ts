@@ -149,22 +149,59 @@ export class SettingsManager {
             const stats = getAIUsageStats();
             const dates = Object.keys(stats.daily).sort();
             
-            let csv = "Date,API Calls,Prompt Tokens,Cache Hit Tokens,Cache Miss Tokens,Completion Tokens,Total Tokens\n";
+            const tableData: string[][] = [
+                ["Date", "API Calls", "Prompt Tokens", "Cache Hit Tokens", "Cache Miss Tokens", "Completion Tokens", "Total Tokens"]
+            ];
+            
             dates.forEach(date => {
                 const d = stats.daily[date];
-                csv += `${date},${d.apiCalls},${d.promptTokens},${d.cacheHitTokens},${d.cacheMissTokens},${d.completionTokens},${d.totalTokens}\n`;
+                tableData.push([
+                    date,
+                    d.apiCalls.toString(),
+                    d.promptTokens.toString(),
+                    d.cacheHitTokens.toString(),
+                    d.cacheMissTokens.toString(),
+                    d.completionTokens.toString(),
+                    d.totalTokens.toString()
+                ]);
             });
-            csv += `\nTotal,${stats.total.apiCalls},${stats.total.promptTokens},${stats.total.cacheHitTokens},${stats.total.cacheMissTokens},${stats.total.completionTokens},${stats.total.totalTokens}\n`;
             
-            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `auto-latex-usage-${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            tableData.push([
+                "Total",
+                stats.total.apiCalls.toString(),
+                stats.total.promptTokens.toString(),
+                stats.total.cacheHitTokens.toString(),
+                stats.total.cacheMissTokens.toString(),
+                stats.total.completionTokens.toString(),
+                stats.total.totalTokens.toString()
+            ]);
+            
+            Word.run(async (context) => {
+                const body = context.document.body;
+                
+                // Insert a paragraph before the table
+                body.insertParagraph("AI Usage Statistics", Word.InsertLocation.end).style = "Heading 2";
+                
+                // Insert the table at the end
+                const table = body.insertTable(tableData.length, tableData[0].length, Word.InsertLocation.end, tableData);
+                
+                // Format the table
+                table.style = "Grid Table 4 - Accent 1";
+                table.autoFitWindow();
+                
+                await context.sync();
+                
+                // UI Feedback
+                if (btnExportStats) {
+                    const originalText = btnExportStats.innerText;
+                    btnExportStats.innerText = "Exported to Word!";
+                    setTimeout(() => {
+                        btnExportStats.innerText = originalText;
+                    }, 2000);
+                }
+            }).catch(error => {
+                console.error("Error inserting stats table: ", error);
+            });
         });
     }
 

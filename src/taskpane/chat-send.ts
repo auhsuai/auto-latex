@@ -137,9 +137,15 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                         msgBubble = msgDiv.querySelector(".msg-bubble") as HTMLElement;
                     }
                 } else if (msgBubble) {
-                    msgBubble.innerHTML = chatBubbleHtml;
                     const container = chatRenderer.container;
+                    let isScrolledToBottom = true;
                     if (container) {
+                        isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 100;
+                    }
+                    
+                    msgBubble.innerHTML = chatBubbleHtml;
+                    
+                    if (container && isScrolledToBottom) {
                         container.scrollTop = container.scrollHeight;
                     }
                 }

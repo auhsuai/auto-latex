@@ -114,14 +114,15 @@ KHI NGƯỜI DÙNG YÊU CẦU CHỈNH SỬA TÀI LIỆU (Thay đổi văn bản 
 2. Tùy thuộc vào yêu cầu, hãy trả về MỘT TRONG CÁC thẻ XML sau để áp dụng thay đổi trực tiếp vào Word:
   - <replace_selection>văn bản thay thế</replace_selection>: Ghi đè vùng đang bôi đen.
   - <replace_paragraph>văn bản thay thế</replace_paragraph>: Ghi đè toàn bộ đoạn văn chứa con trỏ chuột.
-  - <replace_search target="chữ cần tìm">văn bản thay thế</replace_search>: Tìm chuỗi "chữ cần tìm" và ghi đè.
-  - <replace_heading target="tiêu đề cần tìm">văn bản thay thế</replace_heading>: Tìm tiêu đề và ghi đè nội dung ngay bên dưới nó.
-3. NẾU người dùng yêu cầu chèn nội dung vào một VỊ TRÍ CỤ THỂ (ví dụ: "chèn vào dưới đoạn X"), bạn KHÔNG ĐƯỢC dùng thẻ <insert> thông thường. Thay vào đó, hãy dùng thẻ <replace_search> để thay thế đoạn văn bản đó bằng chính nó cộng với nội dung bạn muốn chèn thêm. Ví dụ: <replace_search target="đoạn X">đoạn X \n\n <formula>...</formula></replace_search>.
+  - <replace_search target='chữ cần tìm'>văn bản thay thế</replace_search>: Tìm chuỗi và ghi đè. LƯU Ý: Bắt buộc dùng dấu nháy ĐƠN (target='...') để tránh lỗi XML. Chuỗi target phải trích xuất CHÍNH XÁC 100% từ văn bản gốc, cấm tóm tắt hay sai lệch.
+  - <replace_heading target='tiêu đề cần tìm'>văn bản thay thế</replace_heading>: Tìm tiêu đề và ghi đè nội dung bên dưới.
+3. NẾU người dùng yêu cầu chèn nội dung vào một VỊ TRÍ CỤ THỂ, hãy dùng thẻ <replace_search target='đoạn X'>đoạn X \n\n <formula>...</formula></replace_search>. (Lưu ý: Thẻ <formula> nằm trong <replace_search> hay <insert> đều hoàn toàn hợp lệ, trình phân tích vẫn sẽ hiểu).
 
-4. LUẬT RẤT QUAN TRỌNG VỀ TIẾT KIỆM TOKEN VÀ GIAO TIẾP:
-  - Chỉ trả về phần văn bản thực sự cần được thay thế hoặc viết lại BÊN TRONG THẺ XML. KHÔNG trả về toàn bộ ngữ cảnh hoặc viết lại cả đoạn nếu người dùng chỉ muốn sửa 1 câu.
-  - Nếu người dùng ra lệnh XÓA (ví dụ: "Xóa đoạn này đi"), hãy để trống bên trong thẻ, ví dụ: <replace_selection></replace_selection>. ĐỪNG ghi lại phần nội dung còn lại.
-  - BÊN NGOÀI thẻ XML, hãy viết MỘT CÂU NGẮN GỌN, LỊCH SỰ để phản hồi người dùng (ví dụ: "Tôi đã xóa đoạn văn đó rồi nhé, bạn có cần hỗ trợ gì thêm không?"). Tuyệt đối không giải thích dông dài.`;
+4. LUẬT RẤT QUAN TRỌNG VỀ ĐỊNH DẠNG VÀ TIẾT KIỆM TOKEN:
+  - TUYỆT ĐỐI KHÔNG sử dụng ký hiệu $ hoặc $$ bao quanh mã LaTeX bên trong thẻ <formula>. Mã LaTeX phải thuần túy (VD: <formula>a^2+b^2</formula>).
+  - CHỈ trả về phần văn bản thực sự thay đổi BÊN TRONG thẻ XML. Cấm lặp lại/chép lại toàn bộ văn bản của người dùng.
+  - TUYỆT ĐỐI KHÔNG trình bày các bước giải toán, không giải thích lý do sửa lỗi trừ khi bị yêu cầu "Hãy giải thích".
+  - BÊN NGOÀI thẻ XML, hãy viết MỘT CÂU NGẮN GỌN để phản hồi (ví dụ: "Tôi đã sửa lại công thức.").`;
 
 export interface ChatMessage {
     role: "user" | "assistant";
@@ -150,9 +151,14 @@ export async function sendChatMessage(
 
     // Prepare static system prompt
     const langInstruction = appLanguage === "vi" 
-        ? "\n\n7. QUAN TRỌNG: Hãy ưu tiên trả lời bằng Tiếng Việt trừ khi người dùng yêu cầu khác."
-        : "\n\n7. IMPORTANT: Please prioritize replying in English unless the user requests otherwise.";
-    const currentSystemPrompt = SYSTEM_PROMPT + langInstruction;
+        ? "\n\n7. QUAN TRỌNG: Hãy ưu tiên trả lời bằng Tiếng Việt."
+        : "\n\n7. IMPORTANT: Please prioritize replying in English.";
+        
+    const autoApplyInstruction = settings.autoApplyEdits
+        ? "\n\n8. LƯU Ý HỆ THỐNG: Chế độ 'Auto-Apply' ĐANG BẬT. Bất kỳ thẻ XML nào bạn xuất ra sẽ TỰ ĐỘNG CHÈN vào Word ngay lập tức. TUYỆT ĐỐI KHÔNG dặn người dùng 'hãy bấm nút Apply'. Hãy trả lời kiểu: 'Tôi đã tự động dán kết quả vào Word cho bạn'."
+        : "\n\n8. LƯU Ý HỆ THỐNG: Chế độ 'Auto-Apply' đang TẮT. Bạn có thể lịch sự nhắc người dùng 'Hãy bấm nút Apply để dán vào Word'.";
+
+    const currentSystemPrompt = SYSTEM_PROMPT + langInstruction + autoApplyInstruction;
 
     // Clone history to avoid modifying original array
     const messagesToSend = [...history];

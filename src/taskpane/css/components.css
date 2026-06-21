@@ -108,18 +108,15 @@
     box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.15);
 }
 .custom-select-options {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
     box-sizing: border-box;
     margin-top: 4px;
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-md);
-    z-index: 3000;
-    overflow: hidden;
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
     animation: fadeUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .custom-select-option {
