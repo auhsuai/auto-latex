@@ -1,1717 +1,241 @@
-import { getAISettings, saveAISettings, sendChatMessage, AIProvider, ChatMessage, getAIUsageStats } from "../shared/ai-service";
 import { Chart, registerables } from 'chart.js';
+import { SessionManager } from "../core/session-manager";
+import { SettingsManager } from "../ui/settings-manager";
+import { ConverterUIManager } from "../ui/converter-ui";
+import { translations } from "../utils/translations";
+import { QuoteManager } from "../ui/quote-manager";
+import { ChatRenderer } from "../ui/chat-renderer";
+import { setupChatEvents } from "../ui/chat-events";
+import { renderSidebar } from "../ui/sidebar";
+import { setupSessionOptions } from "../ui/session-options";
+import { handleSendChat } from "./chat-send";
+import { escapeHtml } from "../utils/helpers";
 
 Chart.register(...registerables);
 
 Office.onReady((info) => {
-  if (info.host === Office.HostType.Word) {
-    // ---- Elements Setup ----
-    const mainView = document.getElementById("main-view");
-    const chatView = document.getElementById("chat-view");
-    const fabChat = document.getElementById("fab-chat");
-    const appBody = document.getElementById("app-body");
-
-    // Converter UI elements
-    const convertDocBtn = document.getElementById("convert-doc") as HTMLButtonElement;
-    const convertSelBtn = document.getElementById("convert-sel") as HTMLButtonElement;
-    const cancelMsg = document.getElementById("cancel-msg");
-    const cancelLink = document.getElementById("cancel-link");
-
-    // Chat UI elements
-    const btnBack = document.getElementById("btn-back");
-    const btnSettings = document.getElementById("btn-settings");
-    const btnSendChat = document.getElementById("btn-send-chat") as HTMLButtonElement;
-    const chatInput = document.getElementById("chat-input") as HTMLTextAreaElement;
-    const chatMessages = document.getElementById("chat-messages");
-
-    // Settings UI elements
-    const settingsModal = document.getElementById("settings-modal");
-    const btnCloseSettings = document.getElementById("btn-close-settings");
-    const btnSaveSettings = document.getElementById("btn-save-settings");
-    const apiKeyInput = document.getElementById("ai-api-key") as HTMLInputElement;
-
-    // Custom Select logic
-    let tempSelectedProvider = "gemini";
-    let tempSelectedLanguage = appLanguage;
-
-    const updateCustomSelect = (wrapperId: string, value: string) => {
-        const wrapper = document.getElementById(wrapperId);
-        if (!wrapper) return;
-        const textSpan = wrapper.querySelector(".custom-select span");
-        const options = wrapper.querySelectorAll(".custom-select-option");
-        options.forEach(opt => {
-            if (opt.getAttribute("data-val") === value) {
-                opt.classList.add("selected");
-                if (textSpan) textSpan.innerHTML = opt.innerHTML;
-            } else {
-                opt.classList.remove("selected");
-            }
-        });
-    };
-
-    const initCustomSelect = (wrapperId: string, onChange: (val: string) => void) => {
-        const wrapper = document.getElementById(wrapperId);
-        if (!wrapper) return;
-        const display = wrapper.querySelector(".custom-select") as HTMLElement;
-        const optionsDiv = wrapper.querySelector(".custom-select-options") as HTMLElement;
-        const options = wrapper.querySelectorAll(".custom-select-option");
-
-        display.addEventListener("click", (e) => {
-            e.stopPropagation();
-            const isOpen = optionsDiv.style.display === "block";
-            document.querySelectorAll(".custom-select-options").forEach(el => (el as HTMLElement).style.display = "none");
-            document.querySelectorAll(".custom-select").forEach(el => el.classList.remove("active"));
-            if (!isOpen) {
-                optionsDiv.style.display = "block";
-                display.classList.add("active");
-            }
-        });
-
-        options.forEach(opt => {
-            opt.addEventListener("click", (e) => {
-                e.stopPropagation();
-                const val = opt.getAttribute("data-val");
-                if (val) onChange(val);
-                optionsDiv.style.display = "none";
-                display.classList.remove("active");
-                updateCustomSelect(wrapperId, val!);
-            });
-        });
-    };
-
-    initCustomSelect("lang-select-wrapper", (val) => tempSelectedLanguage = val);
-    initCustomSelect("provider-select-wrapper", (val) => tempSelectedProvider = val);
-
-    document.addEventListener("click", () => {
-        document.querySelectorAll(".custom-select-options").forEach(el => (el as HTMLElement).style.display = "none");
-        document.querySelectorAll(".custom-select").forEach(el => el.classList.remove("active"));
-    });
-
-    if (appBody) {
-        appBody.style.display = "flex";
-    }
-
-    // ---- View Toggles ----
-    fabChat?.addEventListener("click", () => {
-        if (mainView) mainView.style.display = "none";
-        if (fabChat) fabChat.style.display = "none";
-        if (chatView) {
-            chatView.style.display = "flex";
-            scrollToBottom();
-        }
-    });
-
-    btnBack?.addEventListener("click", () => {
-        if (chatView) chatView.style.display = "none";
-        if (mainView) mainView.style.display = "flex";
-        if (fabChat) fabChat.style.display = "flex";
-    });
-
-    // ---- Settings Logic ----
-    const loadSettingsToUI = () => {
-        const settings = getAISettings();
-        tempSelectedProvider = settings.provider;
-        tempSelectedLanguage = appLanguage;
-        if (apiKeyInput) apiKeyInput.value = settings.apiKey;
-        const autoApplyToggle = document.getElementById("auto-apply-edits") as HTMLInputElement;
-        if (autoApplyToggle) autoApplyToggle.checked = settings.autoApplyEdits;
-        const insertAtCursorToggle = document.getElementById("insert-at-cursor") as HTMLInputElement;
-        if (insertAtCursorToggle) insertAtCursorToggle.checked = settings.insertAtCursor;
-        updateCustomSelect("provider-select-wrapper", tempSelectedProvider);
-        updateCustomSelect("lang-select-wrapper", tempSelectedLanguage);
-
-        const stats = getAIUsageStats();
+    if (info.host === Office.HostType.Word) {
+        // Elements
+        const mainView = document.getElementById("main-view");
+        const chatView = document.getElementById("chat-view");
+        const fabChat = document.getElementById("fab-chat");
+        const appBody = document.getElementById("app-body");
         
-        // Cần render charts trước
-        renderUsageCharts(stats);
-    };
-
-    let apiRequestsChart: Chart | null = null;
-    let tokensChart: Chart | null = null;
-
-    const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>) => {
-        // Generate last 7 days
-        const labels: string[] = [];
-        const apiCallsData: number[] = [];
-        const cacheHitData: number[] = [];
-        const cacheMissData: number[] = [];
-        const outputData: number[] = [];
-
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateString = d.toISOString().split('T')[0];
-            labels.push(dateString.slice(5)); // "MM-DD"
-            
-            const dayStat = stats.daily[dateString] || { apiCalls: 0, cacheHitTokens: 0, cacheMissTokens: 0, completionTokens: 0 };
-            apiCallsData.push(dayStat.apiCalls);
-            cacheHitData.push(dayStat.cacheHitTokens);
-            cacheMissData.push(dayStat.cacheMissTokens);
-            outputData.push(dayStat.completionTokens);
-        }
-
-        const ctxApi = document.getElementById("api-requests-chart") as HTMLCanvasElement;
-        const ctxTokens = document.getElementById("tokens-chart") as HTMLCanvasElement;
-
-        // Xóa chart cũ nếu có
-        if (apiRequestsChart) apiRequestsChart.destroy();
-        if (tokensChart) tokensChart.destroy();
-
-        if (ctxApi) {
-            apiRequestsChart = new Chart(ctxApi, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'API requests',
-                        data: apiCallsData,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        pointHoverRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { color: '#666', font: { size: 10 }, precision: 0 } },
-                        x: { grid: { display: false }, border: { display: false }, ticks: { color: '#666', font: { size: 10 }, maxTicksLimit: 7 } }
-                    }
-                }
-            });
-        }
-
-        if (ctxTokens) {
-            tokensChart = new Chart(ctxTokens, {
-                type: 'bar',
-                data: {
-                    labels,
-                    datasets: [
-                        { label: 'Input (Cache hit)', data: cacheHitData, backgroundColor: '#93c5fd', stack: 'Stack 0', barPercentage: 0.6 },
-                        { label: 'Input (Cache miss)', data: cacheMissData, backgroundColor: '#3b82f6', stack: 'Stack 0', barPercentage: 0.6 },
-                        { label: 'Output', data: outputData, backgroundColor: '#1d4ed8', stack: 'Stack 0', barPercentage: 0.6 }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: (context) => `${context.dataset.label}: ${context.raw} tokens`
-                            }
-                        }
-                    },
-                    scales: {
-                        y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { color: '#666', font: { size: 10 }, precision: 0 } },
-                        x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { color: '#666', font: { size: 10 }, maxTicksLimit: 7 } }
-                    }
-                }
-            });
-        }
-    };
-
-    const btnQuickLang = document.getElementById("btn-quick-lang");
-    btnQuickLang?.addEventListener("click", () => {
-        appLanguage = appLanguage === "en" ? "vi" : "en";
-        localStorage.setItem("auto_latex_language", appLanguage);
-        applyLanguage(appLanguage);
-    });
-
-    btnSettings?.addEventListener("click", () => {
-        loadSettingsToUI();
-        if (settingsModal) settingsModal.style.display = "flex";
-    });
-
-    const aiSettingsToggle = document.getElementById("ai-settings-toggle");
-    const aiSettingsContainer = document.getElementById("ai-settings-container");
-    const aiSettingsChevron = document.getElementById("ai-settings-chevron");
-    
-    aiSettingsToggle?.addEventListener("click", () => {
-        if (aiSettingsContainer && aiSettingsChevron) {
-            const isHidden = aiSettingsContainer.style.display === "none";
-            aiSettingsContainer.style.display = isHidden ? "block" : "none";
-            aiSettingsChevron.style.transform = isHidden ? "rotate(0deg)" : "rotate(-90deg)";
-        }
-    });
-
-    const editorSettingsToggle = document.getElementById("editor-settings-toggle");
-    const editorSettingsContainer = document.getElementById("editor-settings-container");
-    const editorSettingsChevron = document.getElementById("editor-settings-chevron");
-
-    editorSettingsToggle?.addEventListener("click", () => {
-        if (editorSettingsContainer && editorSettingsChevron) {
-            const isHidden = editorSettingsContainer.style.display === "none";
-            editorSettingsContainer.style.display = isHidden ? "block" : "none";
-            editorSettingsChevron.style.transform = isHidden ? "rotate(0deg)" : "rotate(-90deg)";
-        }
-    });
-
-    const usageStatsToggle = document.getElementById("usage-stats-toggle");
-    const usageStatsContainer = document.getElementById("usage-stats-container");
-    const usageStatsChevron = document.getElementById("usage-stats-chevron");
-
-    usageStatsToggle?.addEventListener("click", () => {
-        if (usageStatsContainer && usageStatsChevron) {
-            const isHidden = usageStatsContainer.style.display === "none";
-            usageStatsContainer.style.display = isHidden ? "block" : "none";
-            usageStatsChevron.style.transform = isHidden ? "rotate(0deg)" : "rotate(-90deg)";
-        }
-    });
-
-    const btnExportStats = document.getElementById("btn-export-stats");
-    btnExportStats?.addEventListener("click", () => {
-        const stats = getAIUsageStats();
-        const dates = Object.keys(stats.daily).sort();
+        const btnBack = document.getElementById("btn-back");
+        const btnSendChat = document.getElementById("btn-send-chat") as HTMLButtonElement;
+        const chatInput = document.getElementById("chat-input") as HTMLTextAreaElement;
+        const chatMessages = document.getElementById("chat-messages");
+        const chatTitle = document.getElementById("chat-title");
         
-        // Build CSV
-        let csv = "Date,API Calls,Prompt Tokens,Cache Hit Tokens,Cache Miss Tokens,Completion Tokens,Total Tokens\n";
-        dates.forEach(date => {
-            const d = stats.daily[date];
-            csv += `${date},${d.apiCalls},${d.promptTokens},${d.cacheHitTokens},${d.cacheMissTokens},${d.completionTokens},${d.totalTokens}\n`;
-        });
-        csv += `\nTotal,${stats.total.apiCalls},${stats.total.promptTokens},${stats.total.cacheHitTokens},${stats.total.cacheMissTokens},${stats.total.completionTokens},${stats.total.totalTokens}\n`;
+        const btnChatMenu = document.getElementById("btn-chat-menu");
+        const chatSidebar = document.getElementById("chat-sidebar");
+        const chatSidebarOverlay = document.getElementById("chat-sidebar-overlay");
+        const btnCloseSidebar = document.getElementById("btn-close-sidebar");
+        const btnNewChat = document.getElementById("btn-new-chat");
+        const btnSettingsApi = document.getElementById("btn-settings-api");
+        const chatSearchInput = document.getElementById("chat-search-input") as HTMLInputElement;
+
+        let appLanguage: string = localStorage.getItem("auto_latex_language") || "en";
+        let isThinkingMode = false;
+        let searchChatQuery = "";
+
+        if (appBody) appBody.style.display = "flex";
+
+        // Managers
+        const sessionManager = new SessionManager();
+        const quoteManager = new QuoteManager();
+        const chatRenderer = new ChatRenderer("chat-messages");
         
-        // Download
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `auto-latex-usage-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    });
+        const converterUI = new ConverterUIManager(() => appLanguage);
+        const settingsManager = new SettingsManager(appLanguage);
 
-    btnCloseSettings?.addEventListener("click", () => {
-        if (settingsModal) settingsModal.style.display = "none";
-    });
+        quoteManager.init();
+        converterUI.init();
 
-    btnSaveSettings?.addEventListener("click", () => {
-        const apiKey = apiKeyInput ? apiKeyInput.value.trim() : "";
-        const autoApplyToggle = document.getElementById("auto-apply-edits") as HTMLInputElement;
-        const insertAtCursorToggle = document.getElementById("insert-at-cursor") as HTMLInputElement;
-        
-        saveAISettings({
-            provider: tempSelectedProvider as AIProvider,
-            apiKey: apiKey,
-            autoApplyEdits: autoApplyToggle ? autoApplyToggle.checked : false,
-            insertAtCursor: insertAtCursorToggle ? insertAtCursorToggle.checked : true
-        });
-
-        if (tempSelectedLanguage !== appLanguage) {
-            appLanguage = tempSelectedLanguage;
+        settingsManager.onLanguageChanged = (newLang) => {
+            appLanguage = newLang;
             localStorage.setItem("auto_latex_language", appLanguage);
             applyLanguage(appLanguage);
-        }
+        };
+        settingsManager.init();
 
-        if (settingsModal) settingsModal.style.display = "none";
-    });
-
-    // ---- Original Converter Logic ----
-    const handleConversion = async (btn: HTMLButtonElement, isSelection: boolean) => {
-        const originalText = btn.innerText;
-        const progressSpan = document.getElementById("progress-text");
-        let timeoutId: any = null;
-
-        const state = { 
-            isCancelled: false,
-            onProgress: (remaining: number, total: number) => {
-                if (cancelMsg && progressSpan) {
-                    const t = translations[appLanguage] || translations["en"];
-                    if (total > 0 && remaining > 0) {
-                        btn.innerText = t.convertingLeft.replace("{0}", remaining.toString());
-                        progressSpan.innerText = t.soLong;
-                    } else if (remaining === 0) {
-                        cancelMsg.style.display = "none";
-                        btn.innerText = t.finishing;
-                    }
-                }
+        // Language
+        const applyLanguage = (lang: string) => {
+            const t = translations[lang] || translations["en"];
+            document.querySelectorAll("[data-i18n]").forEach(el => {
+                const key = el.getAttribute("data-i18n");
+                if (key && t[key]) el.innerHTML = t[key];
+            });
+            document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+                const key = el.getAttribute("data-i18n-placeholder");
+                if (key && t[key]) (el as HTMLInputElement).placeholder = t[key];
+            });
+            
+            const langSelect = document.getElementById("app-language") as HTMLSelectElement;
+            if (langSelect) langSelect.value = lang;
+            
+            const msgBubble = document.querySelector(".ai-msg .msg-bubble");
+            if (msgBubble && (msgBubble.innerHTML.includes(translations["en"].aiWelcomeMsg) || msgBubble?.innerHTML.includes(translations["vi"].aiWelcomeMsg))) {
+                msgBubble.innerHTML = t.aiWelcomeMsg;
             }
+
+            const btnQuickLang = document.getElementById("btn-quick-lang");
+            if (btnQuickLang) btnQuickLang.innerText = lang.toUpperCase();
         };
 
-        try {
-            const t = translations[appLanguage] || translations["en"];
-            btn.disabled = true;
-            btn.innerText = t.converting;
+        // Sidebar Actions
+        const showOptionsHandler = setupSessionOptions(sessionManager, () => appLanguage);
 
-            if (cancelMsg && cancelLink) {
-                timeoutId = setTimeout(() => {
-                    if (!state.isCancelled && (btn.innerText === t.converting || btn.innerText.includes("{0}") || btn.innerText.includes("Converting") || btn.innerText.includes("Đang chuyển"))) {
-                        cancelMsg.style.display = "block";
-                    }
-                }, 5000);
+        const updateSidebar = () => {
+            renderSidebar(sessionManager, appLanguage, searchChatQuery, showOptionsHandler);
+        };
 
-                cancelLink.onclick = (e) => {
-                    e.preventDefault();
-                    state.isCancelled = true;
-                    btn.innerText = t.cancelling;
-                    cancelMsg.style.display = "none";
-                };
-            }
-
-            const { runConversion } = await import("../shared/converter");
-            await runConversion(isSelection, state);
-        } finally {
-            if (timeoutId) clearTimeout(timeoutId);
-            if (cancelMsg) cancelMsg.style.display = "none";
-            btn.disabled = false;
-            btn.innerText = originalText;
-        }
-    };
-
-    if (convertDocBtn) {
-        convertDocBtn.onclick = () => handleConversion(convertDocBtn, false);
-    }
-    if (convertSelBtn) {
-        convertSelBtn.onclick = () => handleConversion(convertSelBtn, true);
-    }
-
-    // ---- Multi-Session Chat Logic ----
-    let currentQuotedText = "";
-    let isQuoteFromWord = false;
-    let debounceSelectionTimer: any = null;
-    let currentTaskpaneSelection = "";
-
-    const selectionPrompt = document.getElementById("selection-prompt");
-    const btnQuoteSelection = document.getElementById("btn-quote-selection");
-    const quotedContext = document.getElementById("quoted-context");
-    const quotedTextEl = document.getElementById("quoted-text");
-    const btnRemoveQuote = document.getElementById("btn-remove-quote");
-    const btnAttachContext = document.getElementById("btn-attach-context");
-
-    const showSelectionPrompt = (rect?: DOMRect) => {
-        if (selectionPrompt) {
-            selectionPrompt.style.display = "flex";
-            if (rect) {
-                selectionPrompt.style.position = "fixed";
-                let topPos = rect.top - 8;
-                let transformStr = "translate(-50%, -100%)";
-                if (topPos < 40) {
-                    topPos = rect.bottom + 8;
-                    transformStr = "translate(-50%, 0)";
-                }
-                selectionPrompt.style.top = topPos + "px";
-                selectionPrompt.style.left = (rect.left + rect.width / 2) + "px";
-                selectionPrompt.style.transform = transformStr;
+        const renderCurrentChat = () => {
+            chatRenderer.clear();
+            const session = sessionManager.getCurrentSession();
+            if (!session || session.messages.length === 0) {
+                const t = translations[appLanguage] || translations["en"];
+                chatRenderer.appendAIMessage(t.aiWelcomeMsg, "", "");
             } else {
-                selectionPrompt.style.position = "absolute";
-                selectionPrompt.style.top = "-46px";
-                selectionPrompt.style.left = "50%";
-                selectionPrompt.style.transform = "translateX(-50%)";
-            }
-        }
-    };
-
-    const hideSelectionPrompt = () => {
-        if (selectionPrompt) {
-            selectionPrompt.style.display = "none";
-        }
-    };
-
-    let taskpaneSelectionTimer: any = null;
-    document.addEventListener("selectionchange", () => {
-        if (taskpaneSelectionTimer) clearTimeout(taskpaneSelectionTimer);
-        hideSelectionPrompt(); // Hide immediately while dragging
-
-        taskpaneSelectionTimer = setTimeout(() => {
-            const selection = window.getSelection();
-            const text = selection?.toString().trim();
-            if (text && text.length > 0 && selection && selection.rangeCount > 0) {
-                currentTaskpaneSelection = text;
-                const rect = selection.getRangeAt(0).getBoundingClientRect();
-                showSelectionPrompt(rect);
-            } else {
-                hideSelectionPrompt();
-            }
-        }, 300);
-    });
-
-    const onSelectionChanged = () => {
-        if (debounceSelectionTimer) clearTimeout(debounceSelectionTimer);
-        hideSelectionPrompt();
-        debounceSelectionTimer = setTimeout(() => {
-            Office.context.document.getSelectedDataAsync(Office.CoercionType.Text, (result) => {
-                if (result.status === Office.AsyncResultStatus.Succeeded) {
-                    const text = (result.value as string).trim();
-                    if (text && text.length > 0) {
-                        currentTaskpaneSelection = ""; // clear taskpane selection if word is selected
-                        showSelectionPrompt();
-                    } else {
-                        hideSelectionPrompt();
-                    }
-                } else {
-                    hideSelectionPrompt();
-                }
-            });
-        }, 300);
-    };
-
-    Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, onSelectionChanged);
-
-    const applyQuote = async () => {
-        try {
-            let textToQuote = currentTaskpaneSelection;
-            isQuoteFromWord = false;
-
-            if (!textToQuote) {
-                await Word.run(async (context) => {
-                    const selection = context.document.getSelection();
-                    context.load(selection, "text");
-                    await context.sync();
-                    textToQuote = selection.text.trim();
-                    if (textToQuote) isQuoteFromWord = true;
+                session.messages.forEach(m => {
+                    if (m.role === "user") chatRenderer.appendUserMessage(m.content, m.html);
+                    else chatRenderer.appendAIMessage(m.html || escapeHtml(m.content), m.content, m.toolbar || "");
                 });
             }
-
-            if (textToQuote) {
-                currentQuotedText = textToQuote;
-                if (quotedTextEl) {
-                    const displayQuote = currentQuotedText.replace(/[\r\n]+/g, " ");
-                    quotedTextEl.innerText = displayQuote.length > 50 ? displayQuote.substring(0, 50) + "..." : displayQuote;
-                }
-                if (quotedContext) quotedContext.style.display = "flex";
-                if (selectionPrompt) selectionPrompt.style.display = "none";
-                if (chatInput) chatInput.focus();
-                currentTaskpaneSelection = ""; // reset
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    // Prevent losing selection when clicking the buttons
-    btnQuoteSelection?.addEventListener("mousedown", (e) => e.preventDefault());
-    btnAttachContext?.addEventListener("mousedown", (e) => e.preventDefault());
-
-    btnQuoteSelection?.addEventListener("click", applyQuote);
-    btnAttachContext?.addEventListener("click", applyQuote);
-
-    btnRemoveQuote?.addEventListener("click", () => {
-        currentQuotedText = "";
-        if (quotedContext) quotedContext.style.display = "none";
-    });
-
-    interface ChatSession {
-        id: string;
-        name: string;
-        isPinned: boolean;
-        messages: ChatMessage[];
-        updatedAt: number;
-    }
-
-    const STORAGE_KEY = "auto_latex_chat_sessions";
-    let chatSessions: ChatSession[] = [];
-    let currentSessionId: string | null = null;
-    let targetSessionId: string | null = null;
-    let appLanguage: string = localStorage.getItem("auto_latex_language") || "en";
-
-    // Translations
-    const translations: Record<string, Record<string, string>> = {
-        en: {
-            menuTitle: "Menu",
-            chatHistory: "Chat History",
-            newChat: "New Chat",
-            apiSettings: "Settings",
-            chatPlaceholder: "Ask AI...",
-            chatHint: "AI can make mistakes. Please check important info.",
-            optRename: "Rename",
-            optPin: "Pin",
-            optUnpin: "Unpin",
-            optDelete: "Delete",
-            settingsTitle: "Settings",
-            aiSettingsTitle: "AI Settings",
-            editorSettingsTitle: "Editor Settings",
-            languageLabel: "Language / Ngôn ngữ",
-            providerLabel: "AI Provider",
-            apiKeyLabel: "API Key",
-            apiKeyPlaceholder: "Paste your API key here...",
-            autoApplyLabel: "Auto-apply AI Edits",
-            insertAtCursorLabel: "Insert new formula at cursor",
-            usageStatsTitle: "Usage Statistics",
-            statTotalCalls: "Total API Calls:",
-            statPromptTokens: "Prompt Tokens:",
-            statCompletionTokens: "Completion Tokens:",
-            statTotalTokens: "Total Tokens:",
-            btnExportStats: "Export Statistics",
-            btnApplyEdit: "Apply",
-            btnCancel: "Cancel",
-            btnSave: "Save",
-            renameTitle: "Rename Chat",
-            renamePlaceholder: "Enter new name...",
-            deleteTitle: "Delete Chat",
-            deleteConfirm: "Are you sure you want to delete this chat? This action cannot be undone.",
-            aiWelcomeMsg: "Hello! I am your AI Math Assistant. Highlight text/formulas in Word or type below to generate LaTeX code.",
-            defaultChatName: "New Chat",
-            promptRename: "Enter new chat name:",
-            confirmDelete: "Are you sure you want to delete this chat?",
-            converting: "Converting...",
-            convertingLeft: "Converting, {0} left...",
-            finishing: "Finishing...",
-            cancelling: "Cancelling...",
-            soLong: "So long? ",
-            appDescription: "Accurate and high-performance Math formula converter for Microsoft Word.",
-            convertAll: "Convert All",
-            convertSelection: "Convert Selection",
-            cancelHere: "Cancel here",
-            createdBy: "Created by",
-            textSelected: "Text selected",
-            askAI: "Ask AI",
-            searchChats: "Search chats..."
-        },
-        vi: {
-            menuTitle: "Menu",
-            chatHistory: "Lịch sử chat",
-            newChat: "Cuộc trò chuyện mới",
-            apiSettings: "Cài đặt",
-            chatPlaceholder: "Yêu cầu AI...",
-            chatHint: "AI có thể mắc lỗi. Hãy kiểm tra lại thông tin.",
-            optRename: "Đổi tên",
-            optPin: "Ghim",
-            optUnpin: "Bỏ ghim",
-            optDelete: "Xóa",
-            settingsTitle: "Cài đặt",
-            aiSettingsTitle: "Cài đặt AI",
-            editorSettingsTitle: "Cài đặt Editor",
-            languageLabel: "Language / Ngôn ngữ",
-            providerLabel: "Nhà cung cấp AI",
-            apiKeyLabel: "API Key",
-            apiKeyPlaceholder: "Dán mã API của bạn vào đây...",
-            autoApplyLabel: "Tự động áp dụng chỉnh sửa",
-            insertAtCursorLabel: "Chèn công thức mới vào vị trí con trỏ",
-            usageStatsTitle: "Thống kê sử dụng",
-            statTotalCalls: "Tổng số lần gọi AI:",
-            statPromptTokens: "Token ngữ cảnh (Prompt):",
-            statCompletionTokens: "Token phản hồi (Completion):",
-            statTotalTokens: "Tổng số Token:",
-            btnExportStats: "Xuất thống kê",
-            btnApplyEdit: "Áp dụng",
-            btnCancel: "Hủy",
-            btnSave: "Lưu",
-            renameTitle: "Đổi tên đoạn chat",
-            renamePlaceholder: "Nhập tên mới...",
-            deleteTitle: "Xóa đoạn chat",
-            deleteConfirm: "Bạn có chắc chắn muốn xóa đoạn chat này không? Hành động này không thể hoàn tác.",
-            aiWelcomeMsg: "Xin chào! Tôi là AI Math Assistant. Bôi đen văn bản/công thức trên Word hoặc gõ yêu cầu ở dưới để tôi tạo mã LaTeX cho bạn nhé.",
-            defaultChatName: "Tin nhắn mới",
-            promptRename: "Nhập tên đoạn chat mới:",
-            confirmDelete: "Bạn có chắc chắn muốn xóa đoạn chat này không?",
-            converting: "Đang chuyển đổi...",
-            convertingLeft: "Đang chuyển, còn {0}...",
-            finishing: "Đang hoàn tất...",
-            cancelling: "Đang hủy...",
-            soLong: "Lâu quá à? ",
-            appDescription: "Công cụ chuyển đổi công thức Toán học chính xác và hiệu suất cao cho Microsoft Word.",
-            convertAll: "Chuyển đổi Toàn bộ",
-            convertSelection: "Chuyển đổi Vùng chọn",
-            cancelHere: "Hủy tại đây",
-            createdBy: "Được phát triển bởi",
-            textSelected: "Đã chọn văn bản",
-            askAI: "Ask AI",
-            searchChats: "Tìm kiếm..."
-        }
-    };
-
-    const applyLanguage = (lang: string) => {
-        const t = translations[lang] || translations["en"];
-        document.querySelectorAll("[data-i18n]").forEach(el => {
-            const key = el.getAttribute("data-i18n");
-            if (key && t[key]) {
-                el.innerHTML = t[key];
-            }
-        });
-        document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
-            const key = el.getAttribute("data-i18n-placeholder");
-            if (key && t[key]) {
-                (el as HTMLInputElement).placeholder = t[key];
-            }
-        });
-        
-        const langSelect = document.getElementById("app-language") as HTMLSelectElement;
-        if (langSelect) langSelect.value = lang;
-        
-        // Update welcome message if currently rendered
-        const msgBubble = document.querySelector(".ai-msg .msg-bubble");
-        if (msgBubble && msgBubble.innerHTML.includes(translations["en"].aiWelcomeMsg) || msgBubble?.innerHTML.includes(translations["vi"].aiWelcomeMsg)) {
-            msgBubble.innerHTML = t.aiWelcomeMsg;
-        }
-
-        // Update Quick Lang Button
-        const btnQuickLang = document.getElementById("btn-quick-lang");
-        if (btnQuickLang) {
-            btnQuickLang.innerText = lang.toUpperCase();
-        }
-    };
-
-    // Elements
-    const btnChatMenu = document.getElementById("btn-chat-menu");
-    const chatSidebar = document.getElementById("chat-sidebar");
-    const chatSidebarOverlay = document.getElementById("chat-sidebar-overlay");
-    const btnCloseSidebar = document.getElementById("btn-close-sidebar");
-    const btnBackMain = document.getElementById("btn-back-main");
-    const btnNewChat = document.getElementById("btn-new-chat");
-    const historyChatsList = document.getElementById("history-chats-list");
-    const btnSettingsApi = document.getElementById("btn-settings-api");
-    const chatTitle = document.getElementById("chat-title");
-    const chatSearchInput = document.getElementById("chat-search-input") as HTMLInputElement;
-    let searchChatQuery = "";
-    
-    // Options
-    const btnChatOptions = document.getElementById("btn-chat-options");
-    const chatOptionsDropdown = document.getElementById("chat-options-dropdown");
-    const optRename = document.getElementById("opt-rename");
-    const optPin = document.getElementById("opt-pin");
-    const optDelete = document.getElementById("opt-delete");
-
-    // Modals
-    const renameModal = document.getElementById("rename-modal");
-    const renameInput = document.getElementById("rename-input") as HTMLInputElement;
-    const btnCancelRename = document.getElementById("btn-cancel-rename");
-    const btnSaveRename = document.getElementById("btn-save-rename");
-    
-    const deleteModal = document.getElementById("delete-modal");
-    const btnCancelDelete = document.getElementById("btn-cancel-delete");
-    const btnConfirmDelete = document.getElementById("btn-confirm-delete");
-
-    const saveSessions = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(chatSessions));
-
-    const escapeHtml = (unsafe: string) => {
-        return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    };
-
-    const scrollToBottom = () => {
-        if (!chatMessages) return;
-        requestAnimationFrame(() => {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        });
-    };
-
-    const appendUserMessage = (text: string, htmlContent?: string) => {
-        if (!chatMessages) return;
-        const div = document.createElement("div");
-        div.className = "chat-msg user-msg";
-        div.innerHTML = `<div class="msg-bubble" style="display: flex; flex-direction: column;">${htmlContent || escapeHtml(text)}</div>`;
-        chatMessages.appendChild(div);
-        scrollToBottom();
-    };
-
-    const appendAIMessage = (htmlContent: string, rawContent: string = "", toolbarHtml: string = "") => {
-        if (!chatMessages) return;
-        const div = document.createElement("div");
-        div.className = "chat-msg ai-msg";
-        
-        const copyBtnHtml = rawContent ? `<button class="btn-toolbar-action btn-copy-msg" title="Copy" data-copy-text="${encodeURIComponent(rawContent)}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-        </button>` : "";
-        
-        div.innerHTML = `
-            <div class="msg-bubble">${htmlContent}</div>
-            <div class="msg-toolbar" style="margin-top: 2px; display: flex; justify-content: space-between; align-items: center;">
-                <div class="toolbar-left" style="display: flex; gap: 8px;">${toolbarHtml}</div>
-                <div class="toolbar-right">${copyBtnHtml}</div>
-            </div>
-        `;
-        chatMessages.appendChild(div);
-        scrollToBottom();
-        return div;
-    };
-
-    const appendAIError = (errorStr: string) => {
-        if (!chatMessages) return;
-        const div = document.createElement("div");
-        div.className = "chat-msg ai-msg";
-        div.innerHTML = `<div class="msg-bubble" style="color: #d83b01;">Error: ${escapeHtml(errorStr)}</div>`;
-        chatMessages.appendChild(div);
-        scrollToBottom();
-    };
-
-    let skeletonEl: HTMLElement | null = null;
-    const showSkeleton = () => {
-        if (!chatMessages) return;
-        skeletonEl = document.createElement("div");
-        skeletonEl.className = "chat-msg ai-msg";
-        skeletonEl.innerHTML = `
-            <div class="skeleton-loader">
-                <div class="skeleton-line"></div>
-                <div class="skeleton-line"></div>
-                <div class="skeleton-line"></div>
-            </div>`;
-        chatMessages.appendChild(skeletonEl);
-        scrollToBottom();
-    };
-
-    const removeSkeleton = () => {
-        if (skeletonEl && skeletonEl.parentNode) {
-            skeletonEl.parentNode.removeChild(skeletonEl);
-        }
-        skeletonEl = null;
-    };
-
-    const renderSidebar = () => {
-        const historyChatsList = document.getElementById("history-chats-list");
-        if (!historyChatsList) return;
-        historyChatsList.innerHTML = "";
-        
-        let filteredSessions = chatSessions;
-        if (searchChatQuery) {
-            filteredSessions = chatSessions.filter(s => s.name.toLowerCase().includes(searchChatQuery));
-        }
-
-        // Clone and sort to not mutate original array order
-        const sorted = [...filteredSessions].sort((a, b) => {
-            if (a.isPinned && !b.isPinned) return -1;
-            if (!a.isPinned && b.isPinned) return 1;
-            return b.updatedAt - a.updatedAt;
-        });
-
-        sorted.forEach(session => {
-            const li = document.createElement("li");
-            li.className = `chat-list-item ${session.id === currentSessionId ? "active" : ""}`;
-            
-            const pinIconHtml = session.isPinned ? `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; color: var(--color-primary); flex-shrink: 0;"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.6V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3v4.6a2 2 0 0 1-1.11 1.95l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>` : '';
-            
-            li.innerHTML = `
-                ${pinIconHtml}
-                <span class="chat-name">${escapeHtml(session.name)}</span>
-                <button class="btn-item-opts" aria-label="Options">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                </button>
-            `;
-            li.onclick = () => {
-                switchSession(session.id);
-                closeSidebar();
-            };
-            
-            const btnOpts = li.querySelector('.btn-item-opts') as HTMLElement;
-            btnOpts.onclick = (e) => {
-                e.stopPropagation();
-                targetSessionId = session.id;
-                const dropdown = document.getElementById("item-options-dropdown");
-                if (dropdown) {
-                    const t = translations[appLanguage] || translations["en"];
-                    dropdown.style.display = "block";
-                    const rect = btnOpts.getBoundingClientRect();
-                    dropdown.style.top = (rect.bottom + 4) + "px";
-                    dropdown.style.left = (rect.right - 160) + "px";
-                    const optPin = document.getElementById("opt-pin");
-                    if (optPin) {
-                        if (session.isPinned) {
-                            optPin.style.color = "";
-                            optPin.innerHTML = `
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; color: var(--color-primary);"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.6V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3v4.6a2 2 0 0 1-1.11 1.95l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-                                <span id="opt-pin-text" data-i18n="optUnpin">${t.optUnpin || "Bỏ ghim"}</span>
-                            `;
-                        } else {
-                            optPin.style.color = "";
-                            optPin.innerHTML = `
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.6V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3v4.6a2 2 0 0 1-1.11 1.95l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-                                <span id="opt-pin-text" data-i18n="optPin">${t.optPin || "Ghim"}</span>
-                            `;
-                        }
-                    }
-                }
-            };
-            
-            historyChatsList.appendChild(li);
-        });
-    };
-
-    const renderCurrentChat = () => {
-        if (!chatMessages) return;
-        const session = chatSessions.find(s => s.id === currentSessionId);
-        chatMessages.innerHTML = '';
-        if (!session || session.messages.length === 0) {
-            const t = translations[appLanguage] || translations["en"];
-            chatMessages.innerHTML = `
-            <div class="chat-msg ai-msg">
-                <div class="msg-bubble">
-                    ${t.aiWelcomeMsg}
-                </div>
-            </div>`;
-        } else {
-            session.messages.forEach(m => {
-                if (m.role === "user") {
-                    appendUserMessage(m.content, m.html);
-                } else if (m.html) {
-                    appendAIMessage(m.html, m.content, m.toolbar || "");
-                } else {
-                    // Fallback for old messages without html
-                    appendAIMessage(escapeHtml(m.content), m.content);
-                }
-            });
-        }
-        scrollToBottom();
-    };
-
-    const switchSession = (id: string) => {
-        currentSessionId = id;
-        const session = chatSessions.find(s => s.id === id);
-        if (session && chatTitle) {
-            chatTitle.innerText = session.name;
-        }
-        renderSidebar();
-        renderCurrentChat();
-    };
-
-    const createNewSession = () => {
-        const t = translations[appLanguage] || translations["en"];
-        const newSession: ChatSession = {
-            id: Date.now().toString(),
-            name: t.defaultChatName,
-            isPinned: false,
-            messages: [],
-            updatedAt: Date.now()
         };
-        chatSessions.unshift(newSession);
-        switchSession(newSession.id);
-        saveSessions();
-    };
 
-    const loadSessions = () => {
-        try {
-            const data = localStorage.getItem(STORAGE_KEY);
-            if (data) chatSessions = JSON.parse(data);
-        } catch (e) {
-            console.error("Failed to load sessions");
-        }
-        if (chatSessions.length === 0) createNewSession();
-        else {
-            chatSessions.sort((a, b) => b.updatedAt - a.updatedAt);
-            switchSession(chatSessions[0].id);
-        }
-    };
-
-    const deleteCurrentSession = () => {
-        chatSessions = chatSessions.filter(s => s.id !== currentSessionId);
-        if (chatSessions.length === 0) createNewSession();
-        else {
-            chatSessions.sort((a, b) => b.updatedAt - a.updatedAt);
-            switchSession(chatSessions[0].id);
-        }
-        saveSessions();
-    };
-
-    const autoRenameSession = (session: ChatSession, firstMsg: string) => {
-        if (session.name !== "New Chat") return;
-        let newName = firstMsg.trim();
-        if (newName.length > 25) {
-            newName = newName.substring(0, 25) + "...";
-        }
-        session.name = newName;
-        if (chatTitle && session.id === currentSessionId) chatTitle.innerText = newName;
-        saveSessions();
-        renderSidebar();
-    };
-
-    const toggleSidebar = (show: boolean) => {
-        if (chatSidebar && chatSidebarOverlay) {
-            if (show) {
-                chatSidebarOverlay.style.display = "block";
-                chatSidebar.style.transform = "translateX(0)";
-            } else {
-                chatSidebarOverlay.style.display = "none";
-                chatSidebar.style.transform = "translateX(100%)";
+        sessionManager.onSessionsChanged = updateSidebar;
+        sessionManager.onSessionSwitched = (session) => {
+            const t = translations[appLanguage] || translations["en"];
+            if (chatTitle) {
+                if (session.name !== t.defaultChatName) chatTitle.innerText = session.name; 
+                else { session.name = t.defaultChatName; sessionManager.saveSessions(); chatTitle.innerText = t.defaultChatName; }
             }
-        }
-    };
-    const closeSidebar = () => toggleSidebar(false);
+            renderCurrentChat();
+        };
 
-    btnChatMenu?.addEventListener("click", () => toggleSidebar(true));
-    btnCloseSidebar?.addEventListener("click", closeSidebar);
-    chatSidebarOverlay?.addEventListener("click", closeSidebar);
-    
-    chatSearchInput?.addEventListener("input", (e) => {
-        searchChatQuery = (e.target as HTMLInputElement).value.toLowerCase();
-        renderSidebar();
-    });
+        const toggleSidebar = (show: boolean) => {
+            if (chatSidebar && chatSidebarOverlay) {
+                if (show) {
+                    chatSidebarOverlay.classList.add("visible");
+                    chatSidebar.classList.add("visible");
+                    document.body.classList.add("modal-open");
+                } else {
+                    chatSidebarOverlay.classList.remove("visible");
+                    chatSidebar.classList.remove("visible");
+                    document.body.classList.remove("modal-open");
+                }
+            }
+        };
 
-    btnNewChat?.addEventListener("click", () => {
-        createNewSession();
-        closeSidebar();
-    });
-    btnSettingsApi?.addEventListener("click", () => {
-        closeSidebar();
-        loadSettingsToUI();
-        if (settingsModal) settingsModal.style.display = "flex";
-    });
-
-    const btnToggleThinking = document.getElementById("btn-toggle-thinking");
-    const thinkingText = document.getElementById("thinking-text");
-    let isThinkingMode = false;
-
-    btnToggleThinking?.addEventListener("click", () => {
-        isThinkingMode = !isThinkingMode;
-        if (isThinkingMode) {
-            btnToggleThinking.classList.add("thinking-active");
-            if (thinkingText) thinkingText.innerText = "Thinking";
-        } else {
-            btnToggleThinking.classList.remove("thinking-active");
-            if (thinkingText) thinkingText.innerText = "Fast";
-        }
-    });
-
-    chatMessages?.addEventListener("wheel", (e: WheelEvent) => {
-        const target = e.target as HTMLElement;
-        const formula = target.closest(".clickable-formula") as HTMLElement;
-        if (formula && formula.scrollWidth > formula.clientWidth) {
-            // Ngăn chặn cuộn dọc trang
-            e.preventDefault();
-            // Chuyển hướng cuộn dọc (deltaY) thành cuộn ngang
-            formula.scrollLeft += e.deltaY;
-        }
-    }, { passive: false });
-
-    chatMessages?.addEventListener("click", async (e) => {
-        const target = e.target as HTMLElement;
-        const btnApply = target.closest(".btn-apply-edit") as HTMLButtonElement;
+        btnChatMenu?.addEventListener("click", () => toggleSidebar(true));
+        btnCloseSidebar?.addEventListener("click", () => toggleSidebar(false));
+        chatSidebarOverlay?.addEventListener("click", () => toggleSidebar(false));
         
-        if (btnApply) {
-            const card = btnApply.closest(".pending-edit-card") as HTMLElement;
-            if (!card) return;
-            
-            const type = card.getAttribute("data-edit-type");
-            const content = decodeURIComponent(card.getAttribute("data-edit-content") || "");
-            const targetStr = decodeURIComponent(card.getAttribute("data-edit-target") || "");
+        chatSearchInput?.addEventListener("input", (e) => {
+            searchChatQuery = (e.target as HTMLInputElement).value.toLowerCase();
+            updateSidebar();
+        });
 
-            btnApply.innerText = "Applying...";
-            btnApply.disabled = true;
+        btnNewChat?.addEventListener("click", () => {
+            sessionManager.createNewSession();
+            toggleSidebar(false);
+        });
 
-            const settings = getAISettings();
+        btnSettingsApi?.addEventListener("click", () => {
+            toggleSidebar(false);
+            settingsManager.openSettings();
+        });
 
-            try {
-                const { DocumentEditor } = await import("../shared/document-editor");
-                if (type === "replace_selection") await DocumentEditor.replaceSelection(content);
-                else if (type === "replace_paragraph") await DocumentEditor.replaceCurrentParagraph(content);
-                else if (type === "replace_search") await DocumentEditor.replaceSearchTerm(targetStr, content);
-                else if (type === "replace_heading") await DocumentEditor.replaceHeadingContent(targetStr, content);
-                else if (type === "insert_html") {
-                    await Word.run(async (context) => {
-                        if (settings.insertAtCursor) {
-                            const selection = context.document.getSelection();
-                            selection.insertHtml(content, Word.InsertLocation.replace);
-                        } else {
-                            const body = context.document.body;
-                            body.insertHtml(content, Word.InsertLocation.end);
-                        }
-                        await context.sync();
-                    });
-                }
-                
-                const notifText = appLanguage === "vi" ? "Thành công!" : "Success!";
-                const tSettings = translations[appLanguage] || translations["en"];
-                const btnApplyText = tSettings.btnApplyEdit || "Apply";
+        const btnQuickLang = document.getElementById("btn-quick-lang");
+        btnQuickLang?.addEventListener("click", () => {
+            const newLang = appLanguage === "en" ? "vi" : "en";
+            appLanguage = newLang;
+            localStorage.setItem("auto_latex_language", appLanguage);
+            applyLanguage(appLanguage);
+        });
 
-                btnApply.innerHTML = `<span style="color: var(--color-success, #107c41); font-weight: 500;">${notifText}</span>`;
-                setTimeout(() => {
-                    btnApply.innerHTML = `<span style="font-weight: 500;">${btnApplyText}</span>`;
-                    btnApply.disabled = false;
-                }, 10000);
-            } catch(err) {
-                btnApply.innerText = "Error!";
-                btnApply.disabled = false;
-            }
-        } else if (target.closest(".btn-copy-msg")) {
-            const btn = target.closest(".btn-copy-msg") as HTMLElement;
-            const textToCopy = decodeURIComponent(btn.getAttribute("data-copy-text") || "");
-            if (textToCopy) {
-                try {
-                    const chatMsg = btn.closest(".chat-msg") as HTMLElement;
-                    let htmlText = "";
-                    if (chatMsg) {
-                        const msgBubble = chatMsg.querySelector(".msg-bubble");
-                        if (msgBubble) {
-                            htmlText = msgBubble.innerHTML;
-                        }
-                    }
-                    
-                    if (htmlText && typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
-                        const htmlBlob = new Blob([htmlText], { type: "text/html" });
-                        const plainBlob = new Blob([textToCopy], { type: "text/plain" });
-                        const clipboardItem = new ClipboardItem({
-                            "text/html": htmlBlob,
-                            "text/plain": plainBlob
-                        });
-                        await navigator.clipboard.write([clipboardItem]);
-                    } else {
-                        await navigator.clipboard.writeText(textToCopy);
-                    }
+        // Chat Events (click formula, copy, apply edits)
+        setupChatEvents(chatMessages, () => appLanguage);
 
-                    const originalHtml = btn.innerHTML;
-                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-success);"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-                    setTimeout(() => {
-                        btn.innerHTML = originalHtml;
-                    }, 2000);
-                } catch (err) {
-                    console.error('Failed to copy text: ', err);
-                }
-            }
-        }
+        const btnToggleThinking = document.getElementById("btn-toggle-thinking");
+        const thinkingText = document.getElementById("thinking-text");
 
-        const formulaEl = target.closest('.clickable-formula') as HTMLElement;
-        if (formulaEl) {
-            const rawLatex = decodeURIComponent(formulaEl.getAttribute('data-latex') || "");
-            if (rawLatex) {
-                try {
-                    const mathML = formulaEl.innerHTML;
-                    
-                    if (typeof ClipboardItem !== "undefined" && navigator.clipboard.write) {
-                        const htmlBlob = new Blob([mathML], { type: "text/html" });
-                        const plainBlob = new Blob([rawLatex], { type: "text/plain" });
-                        const clipboardItem = new ClipboardItem({
-                            "text/html": htmlBlob,
-                            "text/plain": plainBlob
-                        });
-                        await navigator.clipboard.write([clipboardItem]);
-                    } else {
-                        await navigator.clipboard.writeText(rawLatex);
-                    }
-                    
-                    const originalTitle = formulaEl.getAttribute('title');
-                    if (originalTitle) formulaEl.removeAttribute('title');
-                    
-                    const tooltip = document.createElement("div");
-                    tooltip.innerText = "Copied!";
-                    tooltip.style.position = "fixed";
-                    tooltip.style.left = `${e.clientX + 10}px`;
-                    tooltip.style.top = `${e.clientY + 10}px`;
-                    tooltip.style.background = "var(--color-primary)";
-                    tooltip.style.color = "#ffffff";
-                    tooltip.style.border = "none";
-                    tooltip.style.padding = "4px 10px";
-                    tooltip.style.borderRadius = "6px";
-                    tooltip.style.fontSize = "12px";
-                    tooltip.style.fontWeight = "500";
-                    tooltip.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-                    tooltip.style.zIndex = "10000";
-                    tooltip.style.pointerEvents = "none";
-                    document.body.appendChild(tooltip);
-                    
-                    setTimeout(() => {
-                        if (originalTitle) formulaEl.setAttribute('title', originalTitle);
-                        document.body.removeChild(tooltip);
-                    }, 1500);
-                } catch (err) {
-                    console.error('Failed to copy latex: ', err);
-                }
-            }
-        }
-    });
-
-    document.addEventListener('copy', (e: ClipboardEvent) => {
-        const selection = window.getSelection();
-        if (!selection || selection.isCollapsed) return;
-
-        const container = document.getElementById("chat-messages");
-        if (!container || !container.contains(selection.anchorNode)) return;
-
-        const range = selection.getRangeAt(0);
-        const clonedSelection = range.cloneContents();
-        const div = document.createElement('div');
-        div.appendChild(clonedSelection);
-
-        const htmlText = div.innerHTML;
-
-        const formulas = div.querySelectorAll('.clickable-formula');
-        formulas.forEach(f => {
-            const rawLatex = decodeURIComponent(f.getAttribute('data-latex') || "");
-            if (rawLatex) {
-                const isBlock = f.tagName.toLowerCase() === 'div';
-                const delimiterLatex = isBlock ? `\\[ ${rawLatex} \\]` : `\\( ${rawLatex} \\)`;
-                const textNode = document.createTextNode(delimiterLatex);
-                f.parentNode?.replaceChild(textNode, f);
+        btnToggleThinking?.addEventListener("click", () => {
+            isThinkingMode = !isThinkingMode;
+            if (isThinkingMode) {
+                btnToggleThinking.classList.add("thinking-active");
+                if (thinkingText) thinkingText.innerText = "Thinking";
+            } else {
+                btnToggleThinking.classList.remove("thinking-active");
+                if (thinkingText) thinkingText.innerText = "Fast";
             }
         });
-        
-        const skeletons = div.querySelectorAll('.skeleton-line');
-        skeletons.forEach(s => s.remove());
 
-        // We append div temporarily to body to compute innerText correctly
-        div.style.position = 'absolute';
-        div.style.left = '-9999px';
-        document.body.appendChild(div);
-        const plainText = div.innerText;
-        document.body.removeChild(div);
-
-        if (e.clipboardData) {
-            e.clipboardData.setData('text/plain', plainText);
-            e.clipboardData.setData('text/html', htmlText);
-            e.preventDefault();
-        }
-    });
-
-    document.addEventListener("click", () => {
-        const dropdown = document.getElementById("item-options-dropdown");
-        if (dropdown) dropdown.style.display = "none";
-    });
-
-    optRename?.addEventListener("click", () => {
-        if (!targetSessionId) return;
-        const session = chatSessions.find(s => s.id === targetSessionId);
-        if (session) {
-            if (renameInput) renameInput.value = session.name === "New Chat" ? "" : session.name;
-            if (renameModal) renameModal.style.display = "flex";
-            setTimeout(() => renameInput?.focus(), 100);
-        }
-    });
-
-    btnCancelRename?.addEventListener("click", () => {
-        if (renameModal) renameModal.style.display = "none";
-    });
-
-    btnSaveRename?.addEventListener("click", () => {
-        if (!targetSessionId || !renameInput) return;
-        const session = chatSessions.find(s => s.id === targetSessionId);
-        if (session) {
-            const newName = renameInput.value;
-            if (newName && newName.trim()) {
-                session.name = newName.trim();
-                saveSessions();
-                if (currentSessionId === session.id) switchSession(session.id);
-                else renderSidebar();
+        // View Toggles
+        fabChat?.addEventListener("click", () => {
+            if (mainView) {
+                mainView.classList.remove("view-visible");
+                mainView.classList.add("view-hidden");
             }
-        }
-        if (renameModal) renameModal.style.display = "none";
-    });
-    
-    renameInput?.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") btnSaveRename?.click();
-    });
-    optPin?.addEventListener("click", () => {
-        if (!targetSessionId) return;
-        const session = chatSessions.find(s => s.id === targetSessionId);
-        if (session) {
-            session.isPinned = !session.isPinned;
-            session.updatedAt = Date.now();
-            saveSessions();
-            renderSidebar();
-            if (currentSessionId === session.id) switchSession(session.id);
-        }
-    });
-    optDelete?.addEventListener("click", () => {
-        if (!targetSessionId) return;
-        if (deleteModal) deleteModal.style.display = "flex";
-    });
-
-    btnCancelDelete?.addEventListener("click", () => {
-        if (deleteModal) deleteModal.style.display = "none";
-    });
-
-    btnConfirmDelete?.addEventListener("click", () => {
-        if (!targetSessionId) return;
-        chatSessions = chatSessions.filter(s => s.id !== targetSessionId);
-        if (chatSessions.length === 0) createNewSession();
-        else if (currentSessionId === targetSessionId) switchSession(chatSessions[0].id);
-        else renderSidebar();
-        saveSessions();
-        if (deleteModal) deleteModal.style.display = "none";
-    });
-
-    // Chat sending logic
-    const handleSendChat = async () => {
-        const prompt = chatInput?.value.trim();
-        if (!prompt && !currentQuotedText) return;
-
-        if (chatInput) chatInput.value = "";
-        btnSendChat.disabled = true;
-
-        const settings = getAISettings();
-        
-        let displayHtml = "";
-        let fullPromptForAI = prompt || "";
-        
-        if (currentQuotedText) {
-            const displayQuoteHtml = currentQuotedText.replace(/[\r\n]+/g, " ");
-            displayHtml += `<div style="font-size: 11.5px; opacity: 0.9; margin-bottom: 6px;"><span style="margin-right:4px;">↳</span>${escapeHtml(displayQuoteHtml.length > 80 ? displayQuoteHtml.substring(0, 80) + '...' : displayQuoteHtml)}</div>`;
-            const quoteLabel = isQuoteFromWord ? "Văn bản đang bôi đen trên Word" : "Trích dẫn từ Chat";
-            fullPromptForAI = `[${quoteLabel}]: "${currentQuotedText}"\n\n${prompt || "Vui lòng xử lý văn bản trên."}`;
-        }
-        if (prompt) {
-            displayHtml += escapeHtml(prompt).replace(/\n/g, '<br>');
-        } else {
-            displayHtml += "<i>[Gửi văn bản trích dẫn]</i>";
-        }
-
-        appendUserMessage(fullPromptForAI, displayHtml);
-        showSkeleton();
-
-        const session = chatSessions.find(s => s.id === currentSessionId)!;
-
-        // Clear quote UI
-        const savedQuoteForDocContext = currentQuotedText;
-        const savedIsQuoteFromWord = isQuoteFromWord;
-        currentQuotedText = "";
-        isQuoteFromWord = false;
-        if (quotedContext) quotedContext.style.display = "none";
-
-        try {
-            const { DocumentEditor } = await import("../shared/document-editor");
-            const docContext = await DocumentEditor.getDocumentContext();
-            
-            if (savedQuoteForDocContext && savedIsQuoteFromWord) {
-                docContext.selectionText = savedQuoteForDocContext;
-            } else if (savedQuoteForDocContext && !savedIsQuoteFromWord) {
-                // If it's a chat quote, do NOT send word selection to AI, it will confuse it
-                docContext.selectionText = "";
+            if (fabChat) {
+                fabChat.classList.remove("fab-visible");
+                fabChat.classList.add("fab-hidden");
             }
+            if (chatView) {
+                chatView.classList.remove("view-hidden");
+                chatView.classList.add("view-visible");
+            }
+            const container = chatRenderer.container;
+            if (container) container.scrollTop = container.scrollHeight;
+        });
 
-            // Add user message to history
-            session.messages.push({ role: "user", content: fullPromptForAI, html: displayHtml });
-            session.updatedAt = Date.now();
-            saveSessions();
-            
-            autoRenameSession(session, prompt);
+        btnBack?.addEventListener("click", () => {
+            if (chatView) {
+                chatView.classList.remove("view-visible");
+                chatView.classList.add("view-hidden");
+            }
+            if (mainView) {
+                mainView.classList.remove("view-hidden");
+                mainView.classList.add("view-visible");
+            }
+            if (fabChat) {
+                fabChat.classList.remove("fab-hidden");
+                fabChat.classList.add("fab-visible");
+            }
+        });
 
-            // Call AI with full history and language
-            let aiResponseText = "";
-            let msgDiv: HTMLElement | null = null;
-            let msgBubble: HTMLElement | null = null;
-            let isRendering = false;
-            let rafId: number | null = null;
-            
-            const { sanitizeLaTeX, getMathML } = await import("../shared/converter");
+        // Custom Select dismiss global listener
+        document.addEventListener("click", () => {
+            document.querySelectorAll(".custom-select-options").forEach(el => (el as HTMLElement).style.display = "none");
+            document.querySelectorAll(".custom-select").forEach(el => el.classList.remove("active"));
+        });
 
-            const parseMarkdownStream = (text: string) => {
-                let html = escapeHtml(text);
-                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                html = html.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-                html = html.replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">$1</code>');
-                html = html.replace(/\n/g, '<br>');
-                return html;
-            };
-
-            const processSegmentsStream = (textStr: string) => {
-                const formulaRegex = /<\s*formula\s*>([\s\S]*?)<\s*\/\s*formula\s*>|\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\\\(([\s\S]*?)\\\)/gi;
-                let match;
-                let lastIndex = 0;
-                const segments: any[] = [];
-                while ((match = formulaRegex.exec(textStr)) !== null) {
-                    const textPart = textStr.substring(lastIndex, match.index);
-                    if (textPart) segments.push({ type: 'text', content: textPart });
-                    
-                    let content = match[1];
-                    let isBlock = false;
-                    if (content !== undefined) {
-                        const trimmed = content.trim();
-                        if (trimmed.startsWith("$$") || trimmed.startsWith("\\[") || trimmed.includes("\\begin{")) isBlock = true;
-                    } else if (match[2] !== undefined) {
-                        content = match[2];
-                        isBlock = true;
-                    } else if (match[3] !== undefined) {
-                        content = match[3];
-                        isBlock = true;
-                    } else if (match[4] !== undefined) {
-                        content = match[4];
-                    }
-                    segments.push({ type: 'formula', content: content, isBlock: isBlock });
-                    lastIndex = formulaRegex.lastIndex;
-                }
-                const finalText = textStr.substring(lastIndex);
-                if (finalText) segments.push({ type: 'text', content: finalText });
-                return segments;
-            };
-
-            const renderStreamChunk = () => {
-                isRendering = true;
-                try {
-                    let cText = aiResponseText;
-                    cText = cText.replace(/<\s*insert\s*>[\s\S]*?(<\s*\/\s*insert\s*>)?/gi, "");
-                    cText = cText.replace(/<\s*replace_selection\s*>[\s\S]*?(<\s*\/\s*replace_selection\s*>)?/gi, "");
-                    cText = cText.replace(/<\s*replace_paragraph\s*>[\s\S]*?(<\s*\/\s*replace_paragraph\s*>)?/gi, "");
-                    cText = cText.replace(/<\s*replace_search[^>]*>[\s\S]*?(<\s*\/\s*replace_search\s*>)?/gi, "");
-                    cText = cText.replace(/<\s*replace_heading[^>]*>[\s\S]*?(<\s*\/\s*replace_heading\s*>)?/gi, "");
-
-                    const chatSegments = processSegmentsStream(cText);
-                    let chatBubbleHtml = "";
-                    if (chatSegments.length === 0) {
-                        chatBubbleHtml = parseMarkdownStream(cText);
-                    } else {
-                        for (const segment of chatSegments) {
-                            if (segment.type === 'text') {
-                                chatBubbleHtml += `<span>${parseMarkdownStream(segment.content)}</span>`;
-                            } else if (segment.type === 'formula') {
-                                let rawLatex = (segment.content || "").trim();
-                                if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
-                                    rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                                    segment.isBlock = true;
-                                }
-                                if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
-                                    rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                                    segment.isBlock = true;
-                                }
-                                if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
-                                    rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                                }
-                                const isBlock = segment.isBlock || rawLatex.includes("\\begin{");
-                                const latexClean = sanitizeLaTeX(rawLatex, isBlock);
-                                const mathML = getMathML(latexClean, isBlock);
-                                if (mathML) {
-                                    const safeLatex = encodeURIComponent(rawLatex);
-                                    if (isBlock) {
-                                        chatBubbleHtml += `<div class="clickable-formula" data-latex="${safeLatex}" style="margin-top: 8px; margin-bottom: 8px; overflow-x: auto; max-width: 100%; padding-bottom: 4px; cursor: pointer;" title="Click to copy LaTeX">${mathML}</div>`;
-                                    } else {
-                                        chatBubbleHtml += `<span class="clickable-formula" data-latex="${safeLatex}" style="display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; margin: 0 4px; padding-bottom: 2px; cursor: pointer;" title="Click to copy LaTeX">${mathML}</span>`;
-                                    }
-                                } else {
-                                    chatBubbleHtml += `<span style="color: #d83b01;">[Lỗi hiển thị công thức LaTeX]</span>`;
-                                }
-                            }
-                        }
-                    }
-
-                    chatBubbleHtml += `
-                        <div class="skeleton-line" style="height: 10px; width: 100%; margin-top: 8px; margin-bottom: 0; opacity: 0.7;"></div>`;
-
-                    if (!msgDiv) {
-                        removeSkeleton();
-                        msgDiv = appendAIMessage(chatBubbleHtml, "", "");
-                        if (msgDiv) {
-                            msgBubble = msgDiv.querySelector(".msg-bubble") as HTMLElement;
-                        }
-                    } else if (msgBubble) {
-                        msgBubble.innerHTML = chatBubbleHtml;
-                        scrollToBottom();
-                    }
-                } finally {
-                    isRendering = false;
-                }
-            };
-
-            await sendChatMessage(session.messages, "", appLanguage, docContext, isThinkingMode, (chunk) => {
-                aiResponseText = chunk;
-                if (rafId) cancelAnimationFrame(rafId);
-                rafId = requestAnimationFrame(renderStreamChunk);
+        // Send Chat action
+        const onSendChat = () => {
+            handleSendChat({
+                sessionManager,
+                quoteManager,
+                chatRenderer,
+                getLanguage: () => appLanguage,
+                getThinkingMode: () => isThinkingMode,
+                chatInput,
+                btnSendChat
             });
-            
-            if (rafId) cancelAnimationFrame(rafId);
-            while(isRendering) { await new Promise(r => setTimeout(r, 10)); }
-            
-            removeSkeleton();
+        };
 
-            let chatText = aiResponseText;
-            let appliedChanges = false;
-            let pendingEditsHtml = "";
-            const tSettings = translations[appLanguage] || translations["en"];
-            const btnApplyText = tSettings.btnApplyEdit || "Apply to Word";
-            let hasSpecialEdits = false;
-
-            const processSegments = (textStr: string) => {
-                const formulaRegex = /<\s*formula\s*>([\s\S]*?)<\s*\/\s*formula\s*>|\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\\\(([\s\S]*?)\\\)/gi;
-                let match;
-                let lastIndex = 0;
-                const segments: any[] = [];
-                while ((match = formulaRegex.exec(textStr)) !== null) {
-                    const textPart = textStr.substring(lastIndex, match.index);
-                    if (textPart) segments.push({ type: 'text', content: textPart });
-                    
-                    let content = match[1];
-                    let isBlock = false;
-                    if (content !== undefined) {
-                        const trimmed = content.trim();
-                        if (trimmed.startsWith("$$") || trimmed.startsWith("\\[") || trimmed.includes("\\begin{")) isBlock = true;
-                    } else if (match[2] !== undefined) {
-                        content = match[2];
-                        isBlock = true;
-                    } else if (match[3] !== undefined) {
-                        content = match[3];
-                        isBlock = true;
-                    } else if (match[4] !== undefined) {
-                        content = match[4];
-                    }
-
-                    segments.push({ type: 'formula', content: content, isBlock: isBlock });
-                    lastIndex = formulaRegex.lastIndex;
-                }
-                const finalText = textStr.substring(lastIndex);
-                if (finalText) segments.push({ type: 'text', content: finalText });
-                return segments;
-            };
-
-            const generateWordHtmlFromText = (textStr: string) => {
-                const wSegments = processSegments(textStr);
-                let cPara = "";
-                let wHtml = "<html><body style='font-family: Calibri, sans-serif; font-size: 11pt;'>";
-                let hasContent = false;
-                for (const segment of wSegments) {
-                    if (segment.type === 'text') {
-                        const escaped = escapeHtml(segment.content).replace(/\n/g, '<br>');
-                        cPara += escaped;
-                        if (escaped.trim() !== "") hasContent = true;
-                    } else if (segment.type === 'formula') {
-                        let rawLatex = segment.content.trim();
-                        if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
-                            rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                            segment.isBlock = true;
-                        }
-                        if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
-                            rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                            segment.isBlock = true;
-                        }
-                        if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
-                            rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                        }
-                        const isBlock = segment.isBlock || rawLatex.includes("\\begin{");
-                        const latexClean = sanitizeLaTeX(rawLatex, isBlock);
-                        const mathML = getMathML(latexClean, isBlock);
-                        if (mathML) {
-                            if (isBlock) {
-                                if (cPara.trim() !== "") {
-                                    wHtml += `<p style="margin-bottom: 8px;">${cPara}</p>`;
-                                    cPara = "";
-                                }
-                                wHtml += `<p style="margin-bottom: 8px;">${mathML}</p>`;
-                            } else {
-                                cPara += `<span style="margin: 0 4px;">${mathML}</span>`;
-                            }
-                            hasContent = true;
-                        }
-                    }
-                }
-                if (cPara.trim() !== "") {
-                    wHtml += `<p style="margin-bottom: 8px;">${cPara}</p>`;
-                }
-                wHtml += "</body></html>";
-                return { html: wHtml, hasContent };
-            };
-
-            const processEditMatch = async (match: RegExpExecArray | null, type: string, replaceStr: string, targetStr: string = "") => {
-                if (!match) return;
-                const content = match[replaceStr === "match1" ? 1 : 2].trim();
-                const target = targetStr === "match1" ? match[1] : "";
-                
-                hasSpecialEdits = true;
-                
-                const { html: wordHtmlContent } = generateWordHtmlFromText(content);
-                
-                if (settings.autoApplyEdits) {
-                    if (type === "replace_selection") await DocumentEditor.replaceSelection(wordHtmlContent);
-                    else if (type === "replace_paragraph") await DocumentEditor.replaceCurrentParagraph(wordHtmlContent);
-                    else if (type === "replace_search") await DocumentEditor.replaceSearchTerm(target, wordHtmlContent);
-                    else if (type === "replace_heading") await DocumentEditor.replaceHeadingContent(target, wordHtmlContent);
-                    appliedChanges = true;
-                }
-                if (!settings.autoApplyEdits) {
-                    const safeContent = encodeURIComponent(wordHtmlContent);
-                    const safeTarget = encodeURIComponent(target);
-                    pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="${type}" data-edit-content="${safeContent}" data-edit-target="${safeTarget}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
-                        <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
-                            <span style="font-weight: 500;">${btnApplyText}</span>
-                        </button>
-                    </div>`;
-                }
-                // CHỈ xóa thẻ mở/đóng, GIỮ LẠI nội dung công thức để hiển thị trên khung chat
-                chatText = chatText.replace(match[0], content);
-            };
-
-            await processEditMatch(/<\s*replace_selection\s*>([\s\S]*?)<\s*\/\s*replace_selection\s*>/i.exec(chatText), "replace_selection", "match1");
-            await processEditMatch(/<\s*replace_paragraph\s*>([\s\S]*?)<\s*\/\s*replace_paragraph\s*>/i.exec(chatText), "replace_paragraph", "match1");
-            await processEditMatch(/<\s*replace_search\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_search\s*>/i.exec(chatText), "replace_search", "match2", "match1");
-            await processEditMatch(/<\s*replace_heading\s+target="([^"]+)"\s*>([\s\S]*?)<\s*\/\s*replace_heading\s*>/i.exec(chatText), "replace_heading", "match2", "match1");
-
-            let contentForWord = "";
-            let insertCount = 0;
-            const insertRegex = /<\s*insert\s*>([\s\S]*?)<\s*\/\s*insert\s*>/gi;
-            let insertMatch;
-            while ((insertMatch = insertRegex.exec(chatText)) !== null) {
-                contentForWord += (insertCount > 0 ? "\n\n" : "") + insertMatch[1];
-                insertCount++;
+        btnSendChat?.addEventListener("click", onSendChat);
+        chatInput?.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                onSendChat();
             }
-            if (insertCount === 0 && !hasSpecialEdits) {
-                contentForWord = chatText;
-            }
-            const insertOnlyFormulas = insertCount === 0 && !hasSpecialEdits;
+        });
 
-            chatText = chatText.replace(/<\s*\/?\s*insert\s*>/gi, "");
-
-
-
-
-
-            const chatSegments = processSegments(chatText);
-            let chatBubbleHtml = "";
-            let wordHtml = "<html><body>";
-            let hasWordContent = false;
-
-            const parseMarkdown = (text: string) => {
-                let html = escapeHtml(text);
-                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                html = html.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-                html = html.replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 0.9em;">$1</code>');
-                html = html.replace(/\n/g, '<br>');
-                return html;
-            };
-
-            if (chatSegments.length === 0) {
-                chatBubbleHtml = parseMarkdown(chatText);
-            } else {
-                for (const segment of chatSegments) {
-                    if (segment.type === 'text') {
-                        chatBubbleHtml += `<span>${parseMarkdown(segment.content)}</span>`;
-                    } else if (segment.type === 'formula') {
-                        let rawLatex = segment.content.trim();
-                        if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
-                            rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                            segment.isBlock = true;
-                        }
-                        if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
-                            rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                            segment.isBlock = true;
-                        }
-                        if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
-                            rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                        }
-                        
-                        const isBlock = segment.isBlock || rawLatex.includes("\\begin{");
-                        const latexClean = sanitizeLaTeX(rawLatex, isBlock);
-                        const mathML = getMathML(latexClean, isBlock);
-
-                        if (mathML) {
-                            const safeLatex = encodeURIComponent(rawLatex);
-                            if (isBlock) {
-                                chatBubbleHtml += `<div class="clickable-formula" data-latex="${safeLatex}" style="margin-top: 8px; margin-bottom: 8px; overflow-x: auto; max-width: 100%; padding-bottom: 4px; cursor: pointer;" title="Click to copy LaTeX">${mathML}</div>`;
-                            } else {
-                                chatBubbleHtml += `<span class="clickable-formula" data-latex="${safeLatex}" style="display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; margin: 0 4px; padding-bottom: 2px; cursor: pointer;" title="Click to copy LaTeX">${mathML}</span>`;
-                            }
-                        } else {
-                            chatBubbleHtml += `<span style="color: #d83b01;">[Lỗi hiển thị công thức LaTeX]</span>`;
-                        }
-                    }
-                }
-            }
-            
-            // Render Word Insertion
-            const wordSegments = processSegments(contentForWord);
-            let currentParagraph = "";
-            for (const segment of wordSegments) {
-                if (segment.type === 'text' && !insertOnlyFormulas) {
-                    const escaped = escapeHtml(segment.content).replace(/\n/g, '<br>');
-                    currentParagraph += escaped;
-                    hasWordContent = true;
-                } else if (segment.type === 'formula') {
-                    let rawLatex = segment.content.trim();
-                    if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
-                        rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                        segment.isBlock = true;
-                    }
-                    if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
-                        rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                        segment.isBlock = true;
-                    }
-                    if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
-                        rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                    }
-                    const isBlock = segment.isBlock || rawLatex.includes("\\begin{");
-                    const latexClean = sanitizeLaTeX(rawLatex, isBlock);
-                    const mathML = getMathML(latexClean, isBlock);
-                    if (mathML) {
-                        if (isBlock) {
-                            if (currentParagraph.trim() !== "") {
-                                wordHtml += `<p style="margin-bottom: 8px;">${currentParagraph}</p>`;
-                                currentParagraph = "";
-                            }
-                            wordHtml += `<p style="margin-bottom: 8px;">${mathML}</p>`;
-                        } else {
-                            currentParagraph += `<span style="margin: 0 4px;">${mathML}</span>`;
-                        }
-                        hasWordContent = true;
-                    }
-                }
-            }
-            if (currentParagraph.trim() !== "") {
-                wordHtml += `<p style="margin-bottom: 8px;">${currentParagraph}</p>`;
-            }
-
-            if (hasWordContent && !appliedChanges) {
-                wordHtml += "</body></html>";
-                
-                const shouldAutoApply = settings.autoApplyEdits && !insertOnlyFormulas;
-                
-                if (shouldAutoApply) {
-                    await Word.run(async (context) => {
-                        if (settings.insertAtCursor) {
-                            const selection = context.document.getSelection();
-                            selection.insertHtml(wordHtml, Word.InsertLocation.replace);
-                        } else {
-                            const body = context.document.body;
-                            body.insertHtml(wordHtml, Word.InsertLocation.end);
-                        }
-                        await context.sync();
-                    });
-                    appliedChanges = true;
-                } else {
-                    const safeContent = encodeURIComponent(wordHtml);
-                    pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="insert_html" data-edit-content="${safeContent}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
-                        <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
-                            <span style="font-weight: 500;">${btnApplyText}</span>
-                        </button>
-                    </div>`;
-                }
-            }
-
-            if (chatBubbleHtml) {
-                if (msgDiv && msgBubble) {
-                    msgBubble.innerHTML = chatBubbleHtml;
-                    const toolbarContainer = msgDiv.querySelector(".toolbar-left");
-                    const copyContainer = msgDiv.querySelector(".toolbar-right");
-                    if (toolbarContainer) toolbarContainer.innerHTML = pendingEditsHtml;
-                    if (copyContainer) {
-                        copyContainer.innerHTML = `<button class="btn-toolbar-action btn-copy-msg" title="Copy" data-copy-text="${encodeURIComponent(aiResponseText)}">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        </button>`;
-                    }
-                } else {
-                    msgDiv = appendAIMessage(chatBubbleHtml, aiResponseText, pendingEditsHtml);
-                }
-                
-                session.messages.push({ role: "assistant", content: aiResponseText, html: chatBubbleHtml, toolbar: pendingEditsHtml });
-                session.updatedAt = Date.now();
-                saveSessions();
-
-                if (appliedChanges && msgDiv) {
-                    const btns = msgDiv.querySelectorAll(".btn-apply-edit");
-                    const notifText = appLanguage === "vi" ? "Thành công!" : "Success!";
-                    btns.forEach(btn => {
-                        const target = btn as HTMLButtonElement;
-                        target.innerHTML = `<span style="color: var(--color-text-muted); font-weight: 500; font-size: 13px; display: inline-flex; align-items: center; padding: 4px 6px;">${notifText}</span>`;
-                        target.disabled = true;
-                        setTimeout(() => {
-                            target.innerHTML = `<span style="font-weight: 500;">${btnApplyText}</span>`;
-                            target.disabled = false;
-                        }, 10000);
-                    });
-                }
-            }
-
-        } catch (e: any) {
-            removeSkeleton();
-            session.messages.pop(); // remove user message if failed
-            session.updatedAt = Date.now();
-            saveSessions();
-            appendAIError(e.message || "Unknown error");
-        } finally {
-            btnSendChat.disabled = false;
-        }
-    };
-
-    btnSendChat?.addEventListener("click", handleSendChat);
-    chatInput?.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSendChat();
-        }
-    });
-
-    // Load sessions and language on init
-    applyLanguage(appLanguage);
-    loadSessions();
-
-  }
+        // Init Language and Sessions
+        applyLanguage(appLanguage);
+        const t = translations[appLanguage] || translations["en"];
+        sessionManager.setDefaultChatName(t.defaultChatName);
+        sessionManager.loadSessions();
+    }
 });

@@ -37,7 +37,7 @@ function action(event: Office.AddinCommands.Event) {
  */
 async function convertDocGlobal(event: Office.AddinCommands.Event) {
   try {
-    const { runConversion } = await import("../shared/converter");
+    const { runConversion } = await import("../core/converter");
     await runConversion(false);
   } catch (error) {
     console.error("Lỗi khi chạy convertDocGlobal", error);
