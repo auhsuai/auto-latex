@@ -1,11 +1,13 @@
 import { getAISettings, saveAISettings, getAIUsageStats, AIProvider } from "../services/ai";
 import { renderUsageCharts } from "./usage-chart";
+import { trapFocus } from "../utils/helpers";
 
 export class SettingsManager {
     private tempSelectedProvider: string;
     private tempSelectedLanguage: string;
     private tempApiKeys: Record<string, string> = {};
     private selectedStatsProvider: string = 'all';
+    private cleanupFocus: () => void = () => {};
 
     public onLanguageChanged: (newLang: string) => void = () => {};
 
@@ -25,6 +27,7 @@ export class SettingsManager {
         if (settingsModal) {
             settingsModal.style.display = "flex";
             document.body.classList.add("modal-open");
+            this.cleanupFocus = trapFocus(settingsModal);
         }
     }
 
@@ -39,11 +42,13 @@ export class SettingsManager {
             if (settingsModal) {
                 settingsModal.style.display = "flex";
                 document.body.classList.add("modal-open");
+                this.cleanupFocus = trapFocus(settingsModal);
             }
         });
 
         btnCloseSettings?.addEventListener("click", () => {
             if (settingsModal) {
+                this.cleanupFocus();
                 settingsModal.classList.add("closing");
                 settingsModal.addEventListener("animationend", () => {
                     settingsModal.classList.remove("closing");
@@ -56,6 +61,7 @@ export class SettingsManager {
         btnSaveSettings?.addEventListener("click", () => {
             this.saveSettings();
             if (settingsModal) {
+                this.cleanupFocus();
                 settingsModal.classList.add("closing");
                 settingsModal.addEventListener("animationend", () => {
                     settingsModal.classList.remove("closing");
@@ -145,8 +151,10 @@ export class SettingsManager {
                 // Reset initial state depending on how you want it
                 if (container.style.display === "none") {
                     container.style.display = ""; // clear inline style
+                    toggle?.setAttribute("aria-expanded", "false");
                 } else {
                     container.classList.add("expanded");
+                    toggle?.setAttribute("aria-expanded", "true");
                     if (chevron) chevron.style.transform = "rotate(0deg)";
                 }
             }
@@ -157,9 +165,11 @@ export class SettingsManager {
                     if (isExpanded) {
                         container.style.overflow = "hidden";
                         container.classList.remove("expanded");
+                        toggle.setAttribute("aria-expanded", "false");
                         chevron.style.transform = "rotate(-90deg)";
                     } else {
                         container.classList.add("expanded");
+                        toggle.setAttribute("aria-expanded", "true");
                         chevron.style.transform = "rotate(0deg)";
                         setTimeout(() => {
                             if (container.classList.contains("expanded")) {
@@ -169,10 +179,18 @@ export class SettingsManager {
                     }
                 }
             });
+            
+            toggle?.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    toggle.click();
+                }
+            });
         };
 
         setupToggle("ai-settings-toggle", "ai-settings-container", "ai-settings-chevron");
         setupToggle("editor-settings-toggle", "editor-settings-container", "editor-settings-chevron");
+        setupToggle("key-bindings-toggle", "key-bindings-container", "key-bindings-chevron");
         setupToggle("usage-stats-toggle", "usage-stats-container", "usage-stats-chevron");
     }
 
@@ -299,9 +317,11 @@ export class SettingsManager {
         options.forEach(opt => {
             if (opt.getAttribute("data-val") === value) {
                 opt.classList.add("selected");
+                opt.setAttribute("aria-selected", "true");
                 if (textSpan) textSpan.innerHTML = opt.innerHTML;
             } else {
                 opt.classList.remove("selected");
+                opt.setAttribute("aria-selected", "false");
             }
         });
     }
@@ -311,27 +331,72 @@ export class SettingsManager {
         if (!wrapper) return;
         const display = wrapper.querySelector(".custom-select") as HTMLElement;
         const optionsDiv = wrapper.querySelector(".custom-select-options") as HTMLElement;
-        const options = wrapper.querySelectorAll(".custom-select-option");
+        const options = wrapper.querySelectorAll(".custom-select-option") as NodeListOf<HTMLElement>;
+
+        const toggleDropdown = (open: boolean) => {
+            if (open) {
+                optionsDiv.style.display = "block";
+                display.classList.add("active");
+                display.setAttribute("aria-expanded", "true");
+                // Focus selected option or first option
+                const selected = Array.from(options).find(opt => opt.classList.contains("selected")) || options[0];
+                if (selected) selected.focus();
+            } else {
+                optionsDiv.style.display = "none";
+                display.classList.remove("active");
+                display.setAttribute("aria-expanded", "false");
+            }
+        };
 
         display.addEventListener("click", (e) => {
             e.stopPropagation();
             const isOpen = optionsDiv.style.display === "block";
             document.querySelectorAll(".custom-select-options").forEach(el => (el as HTMLElement).style.display = "none");
-            document.querySelectorAll(".custom-select").forEach(el => el.classList.remove("active"));
-            if (!isOpen) {
-                optionsDiv.style.display = "block";
-                display.classList.add("active");
+            document.querySelectorAll(".custom-select").forEach(el => {
+                el.classList.remove("active");
+                el.setAttribute("aria-expanded", "false");
+            });
+            toggleDropdown(!isOpen);
+        });
+
+        display.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                display.click();
+            } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                toggleDropdown(true);
             }
         });
 
-        options.forEach(opt => {
+        options.forEach((opt, index) => {
+            opt.setAttribute("tabindex", "-1");
             opt.addEventListener("click", (e) => {
                 e.stopPropagation();
                 const val = opt.getAttribute("data-val");
                 if (val) onChange(val);
-                optionsDiv.style.display = "none";
-                display.classList.remove("active");
+                toggleDropdown(false);
                 this.updateCustomSelect(wrapperId, val!);
+                display.focus();
+            });
+
+            opt.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    opt.click();
+                } else if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    const next = options[index + 1];
+                    if (next) next.focus();
+                } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    const prev = options[index - 1];
+                    if (prev) prev.focus();
+                } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    toggleDropdown(false);
+                    display.focus();
+                }
             });
         });
     }

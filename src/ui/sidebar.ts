@@ -42,8 +42,9 @@ export const renderSidebar = (
             sessionManager.switchSession(session.id);
             const chatSidebarOverlay = document.getElementById("chat-sidebar-overlay");
             const chatSidebar = document.getElementById("chat-sidebar");
-            if (chatSidebarOverlay) chatSidebarOverlay.style.display = "none";
-            if (chatSidebar) chatSidebar.style.transform = "translateX(100%)";
+            if (chatSidebarOverlay) chatSidebarOverlay.classList.remove("visible");
+            if (chatSidebar) chatSidebar.classList.remove("visible");
+            document.body.classList.remove("modal-open");
         };
         
         const btnOpts = li.querySelector('.btn-item-opts') as HTMLElement;

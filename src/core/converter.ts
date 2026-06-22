@@ -11,8 +11,9 @@ export interface ConversionState {
 
 // Edge Case 10: Balance Braces
 function balanceBraces(latex: string): string {
-    let openCount = (latex.match(/\{/g) || []).length;
-    let closeCount = (latex.match(/\}/g) || []).length;
+    const unescaped = latex.replace(/\\[{}]/g, "");
+    let openCount = (unescaped.match(/\{/g) || []).length;
+    let closeCount = (unescaped.match(/\}/g) || []).length;
     if (openCount > closeCount) {
         latex += "}".repeat(openCount - closeCount);
     } else if (openCount < closeCount) {
@@ -36,15 +37,36 @@ function sanitizeVietnamese(latex: string): string {
     const textBlocks: string[] = [];
     
     // 1. Trích xuất các block \text{...} đã có ra thành placeholder để bảo vệ
-    let tempLatex = latex.replace(/\\text\{[^}]*\}/g, (match) => {
+    let tempLatex = latex.replace(/\\(?:text|textbf|textit|textrm|mathrm|operatorname)\{[^}]*\}/g, (match) => {
         textBlocks.push(match);
         return '__TEXT_BLOCK_' + (textBlocks.length - 1) + '__';
     });
 
-    // 2. Wrap các từ có chứa tiếng Việt (bao gồm cả chữ thường, gạch dưới nối liền)
+    // 2. Wrap các từ có chứa tiếng Việt
     const vnRegex = /([a-zA-Z_]*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]+[a-zA-Z_]*)/g;
-    tempLatex = tempLatex.replace(vnRegex, (match) => {
-        // KaTeX không cho phép dấu _ đứng trần trong \text{}, phải escape thành \_
+    
+    let result = "";
+    let depth = 0;
+    let segmentStart = 0;
+    for (let i = 0; i < tempLatex.length; i++) {
+        if (tempLatex[i] === '{' && (i === 0 || tempLatex[i-1] !== '\\')) {
+            if (depth === 0) {
+                result += tempLatex.substring(segmentStart, i).replace(vnRegex, (match) => {
+                    const escapedMatch = match.replace(/(?<!\\)_/g, '\\_');
+                    return `\\text{${escapedMatch}}`;
+                });
+                segmentStart = i;
+            }
+            depth++;
+        } else if (tempLatex[i] === '}' && (i === 0 || tempLatex[i-1] !== '\\')) {
+            depth--;
+            if (depth === 0) {
+                result += tempLatex.substring(segmentStart, i + 1);
+                segmentStart = i + 1;
+            }
+        }
+    }
+    result += tempLatex.substring(segmentStart).replace(vnRegex, (match) => {
         const escapedMatch = match.replace(/(?<!\\)_/g, '\\_');
         return `\\text{${escapedMatch}}`;
     });
@@ -52,16 +74,39 @@ function sanitizeVietnamese(latex: string): string {
     // 3. Phục hồi lại các block \text{...} cũ và escape _ cho chúng luôn
     textBlocks.forEach((block, i) => {
         const escapedBlock = block.replace(/(?<!\\)_/g, '\\_');
-        tempLatex = tempLatex.replace(`__TEXT_BLOCK_${i}__`, escapedBlock);
+        result = result.replace(`__TEXT_BLOCK_${i}__`, escapedBlock);
     });
 
-    return tempLatex;
+    return result;
 }
 
 // Edge Case 2: Environments without $$ are manually extracted, not mutated in text
 function extractNakedEnvironments(text: string): string[] {
-    const envRegex = /\\begin\{(cases|matrix|bmatrix|pmatrix|vmatrix|aligned|array|equation)\}[\s\S]*?\\end\{\1\}/g;
-    return text.match(envRegex) || [];
+    const results: string[] = [];
+    const envNames = '(?:cases|matrix|bmatrix|pmatrix|vmatrix|aligned|array|equation)';
+    const beginRegex = new RegExp(`\\\\begin\\{(${envNames})\\}`, 'g');
+    let match;
+    while ((match = beginRegex.exec(text)) !== null) {
+        const envName = match[1];
+        let depth = 1;
+        let pos = match.index + match[0].length;
+        while (depth > 0 && pos < text.length) {
+            const nextBegin = text.indexOf(`\\begin{${envName}}`, pos);
+            const nextEnd = text.indexOf(`\\end{${envName}}`, pos);
+            if (nextEnd === -1) break;
+            if (nextBegin !== -1 && nextBegin < nextEnd) {
+                depth++;
+                pos = nextBegin + `\\begin{${envName}}`.length;
+            } else {
+                depth--;
+                if (depth === 0) {
+                    results.push(text.substring(match.index, nextEnd + `\\end{${envName}}`.length));
+                }
+                pos = nextEnd + `\\end{${envName}}`.length;
+            }
+        }
+    }
+    return results;
 }
 
 export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
@@ -76,12 +121,12 @@ export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
     // Edge Case 16: Degree symbol
     sanitized = sanitized.replace(/°/g, '^\\circ');
 
-    sanitized = balanceBraces(sanitized);
     if (!isBlock) {
         sanitized = sanitizeTrailingSlashes(sanitized);
     }
     sanitized = sanitizeTokenMerge(sanitized);
     sanitized = sanitizeVietnamese(sanitized);
+    sanitized = balanceBraces(sanitized);
     return sanitized;
 }
 
@@ -98,6 +143,20 @@ export function getKaTeXHtml(latex: string, isBlock: boolean): string {
     }
 }
 
+function extractAndCleanMathML(html: string, isBlock: boolean): string | null {
+    const match = html.match(/<math[^>]*>[\s\S]*<\/math>/i);
+    if (match && match[0]) {
+        let mathML = match[0];
+        mathML = mathML.replace(/<semantics>([\s\S]*?)<annotation[\s\S]*?<\/annotation><\/semantics>/ig, "$1");
+        if (!isBlock) {
+            mathML = mathML.replace(/<math/, '<math display="inline"');
+        }
+        mathML = mathML.replace(/(<mo[^>]*>[\(\[\{]<\/mo>)\s*(<mo[^>]*>[−\+±∓]<\/mo>)/g, "$1<mi>&#x200B;</mi>$2");
+        return mathML;
+    }
+    return null;
+}
+
 export function getMathML(latex: string, isBlock: boolean): string | null {
     try {
         const html = katex.renderToString(latex, {
@@ -108,36 +167,23 @@ export function getMathML(latex: string, isBlock: boolean): string | null {
         });
         
         // Edge Case 17: Auto-healing missing \right
-        if (html.includes('class="katex-error"') && html.includes('\\right')) {
-            const healedLatex = latex + '\\right.';
-            const healedHtml = katex.renderToString(healedLatex, {
-                displayMode: isBlock,
-                output: "mathml",
-                throwOnError: false,
-                strict: false
-            });
-            const match = healedHtml.match(/<math[^>]*>[\s\S]*<\/math>/i);
-            if (match && match[0]) {
-                let mathML = match[0];
-                mathML = mathML.replace(/<semantics>([\s\S]*?)<annotation[\s\S]*?<\/annotation><\/semantics>/ig, "$1");
-                // Edge Case 18: Fix Word dotted box for unary minus/plus after opening parenthesis
-                mathML = mathML.replace(/(<mo[^>]*>[\(\[\{]<\/mo>)\s*(<mo[^>]*>[−\+±∓]<\/mo>)/g, "$1<mi>&#x200B;</mi>$2");
-                return mathML;
+        if (html.includes('class="katex-error"')) {
+            const leftCount = (latex.match(/\\left[\(\[\{\.\\|]/g) || []).length;
+            const rightCount = (latex.match(/\\right[\)\]\}\.\\|]/g) || []).length;
+            if (leftCount > rightCount) {
+                const healedLatex = latex + '\\right.'.repeat(leftCount - rightCount);
+                const healedHtml = katex.renderToString(healedLatex, {
+                    displayMode: isBlock,
+                    output: "mathml",
+                    throwOnError: false,
+                    strict: false
+                });
+                const mathML = extractAndCleanMathML(healedHtml, isBlock);
+                if (mathML) return mathML;
             }
         }
         
-        const match = html.match(/<math[^>]*>[\s\S]*<\/math>/i);
-        if (match && match[0]) {
-            let mathML = match[0];
-            mathML = mathML.replace(/<semantics>([\s\S]*?)<annotation[\s\S]*?<\/annotation><\/semantics>/ig, "$1");
-            if (!isBlock) {
-                mathML = mathML.replace(/<math/, '<math display="inline"');
-            }
-            // Edge Case 18: Fix Word dotted box for unary minus/plus after opening parenthesis
-            mathML = mathML.replace(/(<mo[^>]*>[\(\[\{]<\/mo>)\s*(<mo[^>]*>[−\+±∓]<\/mo>)/g, "$1<mi>&#x200B;</mi>$2");
-            return mathML;
-        }
-        return null;
+        return extractAndCleanMathML(html, isBlock);
     } catch (e) {
         console.error("KaTeX Error", e);
         return null;
@@ -183,12 +229,27 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
         if (node.type === 'math' || node.type === 'inlineMath') {
             let exactMath = fullText.substring(node.position.start.offset, node.position.end.offset);
             
-            let rawStr = "";
-            // Check fullText directly to determine the actual delimiters used.
-            if (fullText.includes(`**${exactMath}**`)) rawStr = `**${exactMath}**`;
-            else if (fullText.includes(`*${exactMath}*`)) rawStr = `*${exactMath}*`;
-            else if (fullText.includes(`_${exactMath}_`)) rawStr = `_${exactMath}_`;
-            else rawStr = exactMath;
+            let rawStr = exactMath;
+            const startOffset = node.position.start.offset;
+            const endOffset = node.position.end.offset;
+            
+            if (startOffset >= 3 && endOffset + 3 <= fullText.length && 
+                fullText.substring(startOffset - 3, startOffset) === '***' &&
+                fullText.substring(endOffset, endOffset + 3) === '***') {
+                rawStr = `***${exactMath}***`;
+            } else if (startOffset >= 2 && endOffset + 2 <= fullText.length && 
+                fullText.substring(startOffset - 2, startOffset) === '**' &&
+                fullText.substring(endOffset, endOffset + 2) === '**') {
+                rawStr = `**${exactMath}**`;
+            } else if (startOffset >= 1 && endOffset + 1 <= fullText.length && 
+                fullText.substring(startOffset - 1, startOffset) === '*' &&
+                fullText.substring(endOffset, endOffset + 1) === '*') {
+                rawStr = `*${exactMath}*`;
+            } else if (startOffset >= 1 && endOffset + 1 <= fullText.length && 
+                fullText.substring(startOffset - 1, startOffset) === '_' &&
+                fullText.substring(endOffset, endOffset + 1) === '_') {
+                rawStr = `_${exactMath}_`;
+            }
             
             mathNodes.push({
                 type: node.type,
@@ -205,7 +266,7 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
     // Chunking to support low-end machines and avoid Memory Bloat
     const BATCH_SIZE = 1; // Xử lý từng pattern một để có thể chunk quá trình chèn, giúp UI cập nhật mượt và Cancel ngay lập tức
     
-    const totalActualFormulas = mathNodes.length;
+    const totalActualFormulas = uniqueNodes.length;
     let processedActualFormulas = 0;
 
     if (state && state.onProgress) {
@@ -282,7 +343,11 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
                     const minLength = Math.min(task.startResults.items.length, task.endResults.items.length);
                     for (let j = 0; j < minLength; j++) {
                         const fullRange = task.startResults.items[j].expandTo(task.endResults.items[j]);
-                        rangesToReplace.push(fullRange);
+                        fullRange.load("text");
+                        await context.sync();
+                        if (fullRange.text.trim() === task.matchStr.trim()) {
+                            rangesToReplace.push(fullRange);
+                        }
                     }
                 }
                 
@@ -299,12 +364,6 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
 
                     if (currentChunkCount >= INSERT_CHUNK_SIZE) {
                         await context.sync();
-                        processedActualFormulas += currentChunkCount;
-                        if (processedActualFormulas > totalActualFormulas) processedActualFormulas = totalActualFormulas;
-                        
-                        if (state && state.onProgress) {
-                            state.onProgress(totalActualFormulas - processedActualFormulas, totalActualFormulas);
-                        }
                         currentChunkCount = 0;
                         await new Promise(resolve => setTimeout(resolve, 10));
                     }
@@ -313,17 +372,16 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
                 // Final sync for remainder
                 if (currentChunkCount > 0) {
                     await context.sync();
-                    processedActualFormulas += currentChunkCount;
-                    if (processedActualFormulas > totalActualFormulas) processedActualFormulas = totalActualFormulas;
-                    
-                    if (state && state.onProgress) {
-                        state.onProgress(totalActualFormulas - processedActualFormulas, totalActualFormulas);
-                    }
                     await new Promise(resolve => setTimeout(resolve, 10));
                 }
             } catch (err) {
                 console.error("Lỗi khi chuẩn bị chèn công thức:", task.matchStr, err);
             }
+        }
+
+        processedActualFormulas += chunkNodes.length;
+        if (state && state.onProgress) {
+            state.onProgress(totalActualFormulas - processedActualFormulas, totalActualFormulas);
         }
     }
   });

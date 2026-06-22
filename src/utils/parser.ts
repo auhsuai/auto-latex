@@ -1,4 +1,4 @@
-import { sanitizeLaTeX, getMathML } from "../core/converter";
+import { sanitizeLaTeX, getMathML, getKaTeXHtml } from "../core/converter";
 import { escapeHtml } from "./helpers";
 
 export const parseMarkdown = (text: string) => {
@@ -11,8 +11,54 @@ export const parseMarkdown = (text: string) => {
     return html;
 };
 
+export const renderInlineMathPreview = (text: string) => {
+    const parts = text.split(/(<\s*block_formula\s*>[\s\S]*?<\s*\/\s*block_formula\s*>|<\s*inline_formula\s*>[\s\S]*?<\s*\/\s*inline_formula\s*>|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\\\([\s\S]*?\\\)|\$(?:(?!\n\s*\n)[^\$])+\$)/gi);
+    
+    let html = "";
+    for (const part of parts) {
+        if (!part) continue;
+        const p = part.trim();
+        let latex = "";
+        let isMath = false;
+
+        if (p.startsWith('<block_formula>') && p.endsWith('</block_formula>')) {
+            latex = p.replace(/<\/?block_formula>/gi, "");
+            isMath = true;
+        } else if (p.startsWith('<inline_formula>') && p.endsWith('</inline_formula>')) {
+            latex = p.replace(/<\/?inline_formula>/gi, "");
+            isMath = true;
+        } else if (p.startsWith('$$') && p.endsWith('$$')) {
+            latex = p.substring(2, p.length - 2);
+            isMath = true;
+        } else if (p.startsWith('\\[') && p.endsWith('\\]')) {
+            latex = p.substring(2, p.length - 2);
+            isMath = true;
+        } else if (p.startsWith('\\(') && p.endsWith('\\)')) {
+            latex = p.substring(2, p.length - 2);
+            isMath = true;
+        } else if (p.startsWith('$') && p.endsWith('$')) {
+            latex = p.substring(1, p.length - 1);
+            isMath = true;
+        }
+
+        if (isMath && latex.trim()) {
+            const clean = sanitizeLaTeX(latex, false);
+            const rendered = getKaTeXHtml(clean, false);
+            if (rendered) {
+                html += `<span class="preview-math" style="display: inline-flex; align-items: center;">${rendered}</span>`;
+            } else {
+                html += escapeHtml(part);
+            }
+        } else {
+            html += escapeHtml(part).replace(/\n/g, '<br>');
+        }
+    }
+    return html;
+};
+
 export const processSegments = (textStr: string) => {
-    const formulaRegex = /<\s*formula\s*>([\s\S]*?)<\s*\/\s*formula\s*>|<\s*inline_formul[a-z]*\s*>([\s\S]*?)<\s*\/\s*inline_formul[a-z]*\s*>|<\s*block_formul[a-z]*\s*>([\s\S]*?)<\s*\/\s*block_formul[a-z]*\s*>|\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\\\(([\s\S]*?)\\\)|\$([^\$]+)\$/gi;
+    // Restrict inline $ to not span across paragraphs (double newlines) to prevent runaway math blocks
+    const formulaRegex = /<\s*formula\s*>([\s\S]*?)<\s*\/\s*formula\s*>|<\s*inline_formul[a-z]*\s*>([\s\S]*?)<\s*\/\s*inline_formul[a-z]*\s*>|<\s*block_formul[a-z]*\s*>([\s\S]*?)<\s*\/\s*block_formul[a-z]*\s*>|\\\[([\s\S]*?)\\\]|\$\$([\s\S]*?)\$\$|\\\(([\s\S]*?)\\\)|\$((?:(?!\n\s*\n)[^\$])+)\$/gi;
     let match;
     let lastIndex = 0;
     const segments: any[] = [];

@@ -10,6 +10,7 @@ export interface AISettings {
 const SETTINGS_KEY = 'auto_latex_ai_settings';
 
 export function getAISettings(): AISettings {
+    const defaultSettings: AISettings = { provider: 'gemini', apiKeys: {}, autoApplyEdits: false, insertAtCursor: true };
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) {
         try {
@@ -20,12 +21,12 @@ export function getAISettings(): AISettings {
                 delete parsed.apiKey;
             }
             if (!parsed.apiKeys) parsed.apiKeys = {};
-            return parsed;
+            return { ...defaultSettings, ...parsed };
         } catch (e) {
             console.error("Failed to parse AI Settings", e);
         }
     }
-    return { provider: 'gemini', apiKeys: {}, autoApplyEdits: false, insertAtCursor: true };
+    return defaultSettings;
 }
 
 export function saveAISettings(settings: AISettings) {
@@ -79,7 +80,8 @@ export function getAIUsageStats(): AIUsageData {
 export function updateAIUsageStats(provider: string, promptTokens: number, cacheHitTokens: number, completionTokens: number, totalTokens: number) {
     const stats = getAIUsageStats();
     const cacheMissTokens = Math.max(0, promptTokens - cacheHitTokens);
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
     if (!stats.daily[today]) {
         stats.daily[today] = { ...getEmptyUsage(), providers: {} };
@@ -130,16 +132,18 @@ export function updateAIUsageStats(provider: string, promptTokens: number, cache
 const SYSTEM_PROMPT = `Bạn là trợ lý AI tên là Auto-LaTeX Assistant, hỗ trợ người dùng soạn thảo và chỉnh sửa công thức toán học LaTeX trong Microsoft Word.
 Bạn có thể trò chuyện bình thường và giải đáp thắc mắc của người dùng.
 
-KHI NGƯỜI DÙNG YÊU CẦU TẠO HOẶC CHỈNH SỬA CÔNG THỨC TOÁN HỌC:
-1. MỌI NỘI DUNG CHÍNH MÀ BẠN MUỐN ĐƯỢC CHÈN VÀO WORD (các công thức, định nghĩa toán học, các bước giải) BẮT BUỘC PHẢI nằm trong thẻ <insert> và </insert>.
-2. BÊN TRONG thẻ <insert>, mọi công thức LaTeX phải được bọc trong thẻ <inline_formula> (nếu xen kẽ chữ) hoặc <block_formula> (nếu đứng riêng một dòng).
-3. LƯU Ý QUAN TRỌNG: BÊN TRONG thẻ <inline_formula> và <block_formula> CHỈ ĐƯỢC CHỨA DUY NHẤT MÃ LATEX, KHÔNG CHỨA TEXT CHÚ THÍCH. Text chú thích, giải thích chi tiết phải nằm ngoài các thẻ này.
-4. CẤM ĐƯỢC ĐƯA CÁC CÂU DẪN NHẬP VÀO TRONG THẺ <insert>. Cụ thể, những câu như "Chào bạn", "Dưới đây là công thức bạn yêu cầu:", "Công thức tính dung sai kèm ví dụ minh họa:", "Chúc bạn học tốt" BẮT BUỘC PHẢI NẰM NGOÀI thẻ <insert> (hoặc <replace_search>). Chúng là giao tiếp với người dùng và không được dán vào Word.
-5. TUYỆT ĐỐI KHÔNG giải thích về các quy tắc này với người dùng.
-6. HÃY LINH HOẠT: Tùy theo yêu cầu của người dùng mà bạn đánh số thứ tự hoặc không. Nếu họ chỉ xin 1 công thức đơn lẻ, hãy in ra tự nhiên, đừng rập khuôn đánh số tiếp nối.
+QUY ĐỊNH ĐỊNH DẠNG PHẢN HỒI (RẤT QUAN TRỌNG):
+1. BẤT CỨ NỘI DUNG NÀO dùng để chèn hoặc thay thế vào tài liệu Word (công thức, lý thuyết, văn bản mẫu, lời giải chi tiết) bắt buộc phải nằm trọn vẹn bên trong MỘT TRONG CÁC THẺ XML ĐỘC LẬP SAU: <insert>, <replace_selection>, <replace_paragraph>, <replace_search>, hoặc <replace_heading>.
+2. Vui lòng KHÔNG BAO GIỜ lồng các thẻ hành động vào nhau (Ví dụ: Tuyệt đối không lồng <replace_search> vào bên trong <insert>).
+3. Các câu thoại hướng dẫn, chào hỏi, hoặc giải thích thêm cho người dùng phải nằm ngoài các thẻ hành động này. Ví dụ: "Dưới đây là công thức bạn cần: <insert><inline_formula>E = mc^2</inline_formula></insert>. Chúc bạn làm bài tốt!"
+4. Bên trong các thẻ hành động, mọi công thức LaTeX phải được bọc trong thẻ <inline_formula> (nếu xen kẽ chữ) hoặc <block_formula> (nếu đứng riêng một dòng).
+5. Thẻ <inline_formula> và <block_formula> chỉ được chứa duy nhất mã LaTeX, không chứa text chú thích. Text bình thường cứ viết tự do bên ngoài các thẻ formula này.
+6. Tuyệt đối KHÔNG ĐƯỢC có ký tự xuống dòng thực tế (newline) ngay sau dấu > của thẻ mở <inline_formula> hoặc <block_formula>. Hãy viết liền mạch mã LaTeX ngay trên cùng một dòng. Xuống dòng thừa sẽ làm vỡ giao diện công thức.
+7. Vui lòng phản hồi tự nhiên như một con người và không giải thích các quy tắc kỹ thuật này với người dùng.
+8. Hãy linh hoạt định dạng nội dung (danh sách, đoạn văn) tùy theo ngữ cảnh, không rập khuôn đánh số nếu không cần thiết.
 
 MỘT SỐ VÍ DỤ:
-KHI NGƯỜI DÙNG YÊU CẦU CHÈN CÔNG THỨC MỚI (Insert):
+KHI NGƯỜI DÙNG YÊU CẦU CHÈN NỘI DUNG MỚI:
 User: "Cho tôi công thức hằng đẳng thức"
 Assistant:
 Dưới đây là các hằng đẳng thức đáng nhớ:
@@ -156,24 +160,23 @@ KHI NGƯỜI DÙNG YÊU CẦU CHỈNH SỬA TÀI LIỆU (Thay đổi văn bản 
 2. Tùy thuộc vào yêu cầu, hãy trả về MỘT TRONG CÁC thẻ XML sau để áp dụng thay đổi trực tiếp vào Word:
   - <replace_selection>văn bản thay thế</replace_selection>: Ghi đè vùng đang bôi đen.
   - <replace_paragraph>văn bản thay thế</replace_paragraph>: Ghi đè toàn bộ đoạn văn chứa con trỏ chuột.
-  - <replace_search target='chữ cần tìm'>văn bản thay thế</replace_search>: Tìm chuỗi và ghi đè. LƯU Ý: Bắt buộc dùng dấu nháy ĐƠN (target='...') để tránh lỗi XML. Chuỗi target phải trích xuất CHÍNH XÁC 100% từ văn bản gốc, cấm tóm tắt hay sai lệch.
-  - <replace_heading target='tiêu đề cần tìm'>văn bản thay thế</replace_heading>: Tìm tiêu đề và ghi đè nội dung bên dưới.
+  - <replace_search><target>chữ cần tìm</target><content>văn bản thay thế</content></replace_search>: Tìm chuỗi và ghi đè. LƯU Ý: Chuỗi <target> phải trích xuất CHÍNH XÁC từng khoảng trắng từ văn bản gốc. Nếu bạn cảm thấy <target> quá dài hoặc dễ bị sai lệch khoảng trắng/xuống dòng, hãy ƯU TIÊN dùng <replace_selection> hoặc <replace_paragraph> để thay thế cho an toàn.
+  - <replace_heading><target>tiêu đề cần tìm</target><content>văn bản thay thế</content></replace_heading>: Tìm tiêu đề và ghi đè nội dung bên dưới.
 3. NẾU người dùng yêu cầu chèn nội dung vào một VỊ TRÍ CỤ THỂ, hãy dùng thẻ:
-<replace_search target='đoạn X'>đoạn X 
+<replace_search><target>đoạn X</target><content>đoạn X 
 
-<block_formula>...</block_formula></replace_search>. 
+<block_formula>...</block_formula></content></replace_search>
 (LƯU Ý: Hãy nhấn phím Enter để xuống dòng thực tế, KHÔNG gõ chữ \n\n).
-CẤM đưa câu dẫn nhập vào trong thẻ <replace_search>, câu dẫn nhập phải nằm ngoài thẻ.
 
-4. LUẬT RẤT QUAN TRỌNG VỀ ĐỊNH DẠNG MÃ LATEX VÀ TEXT:
-  - NGUY HIỂM: TUYỆT ĐỐI KHÔNG BAO GIỜ sử dụng ký hiệu $ hoặc $$ bao quanh mã LaTeX bên trong thẻ <inline_formula> hay <block_formula>. Việc này sẽ làm HỎNG hệ thống rendering. Mã LaTeX BẮT BUỘC phải thuần túy (Ví dụ đúng: <inline_formula>a^2+b^2</inline_formula>).
-  - CHỈ trả về phần văn bản thực sự thay đổi BÊN TRONG thẻ XML. Cấm lặp lại/chép lại toàn bộ văn bản của người dùng.
-  - TUYỆT ĐỐI KHÔNG trình bày các bước giải toán, không giải thích lý do sửa lỗi trừ khi bị yêu cầu "Hãy giải thích".
-  - BÊN NGOÀI thẻ XML, hãy viết MỘT CÂU NGẮN GỌN, TỰ NHIÊN để phản hồi (ví dụ: "Dưới đây là phần bổ sung cho bạn:"). CẤM giải thích các hành động kỹ thuật như "tôi sẽ chèn vào cuối đoạn văn của bạn", "tôi sẽ thay thế", và TUYỆT ĐỐI KHÔNG ĐỀ CẬP đến thẻ XML. Hãy nói chuyện giống như con người bình thường.
+4. QUY ĐỊNH VỀ ĐỊNH DẠNG MÃ LATEX VÀ TEXT:
+  - VUI LÒNG KHÔNG BAO GIỜ sử dụng ký hiệu $ hoặc $$ bao quanh mã LaTeX bên trong thẻ <inline_formula> hay <block_formula>. Việc này sẽ làm HỎNG hệ thống rendering. Mã LaTeX BẮT BUỘC phải thuần túy (Ví dụ đúng: <inline_formula>a^2+b^2</inline_formula>).
+  - Chỉ lặp lại chính xác đoạn văn bản ngắn (<target>) dùng làm điểm neo tìm kiếm; TUYỆT ĐỐI KHÔNG sao chép hay lặp lại toàn bộ ngữ cảnh tài liệu dài mà hệ thống cung cấp.
+  - Vui lòng tập trung trực tiếp vào kết quả sửa đổi, tránh giải thích các bước giải toán hay lý do sửa lỗi trừ khi người dùng yêu cầu "Hãy giải thích".
+  - Bên ngoài thẻ XML, hãy phản hồi tự nhiên (ví dụ: "Dưới đây là phần bổ sung cho bạn:"). Tránh mô tả hành động kỹ thuật như "tôi sẽ chèn vào", "tôi sẽ thay thế", và vui lòng không đề cập đến thẻ XML với người dùng.
 
-5. CẤM VẼ BẢNG (NO MARKDOWN TABLES):
-  - LƯU Ý TỐI QUAN TRỌNG: Khung chat hiển thị RẤT HẸP. Bạn BỊ CẤM HOÀN TOÀN việc sử dụng bảng Markdown (ví dụ: | Cột 1 | Cột 2 |).
-  - BẮT BUỘC: Mọi sự so sánh, tóm tắt phải được trình bày dưới dạng DANH SÁCH GẠCH ĐẦU DÒNG (Bullet points) liệt kê từ trên xuống dưới.`;
+5. ĐỊNH DẠNG TRÌNH BÀY (KHÔNG SỬ DỤNG BẢNG):
+  - QUY TẮC CỨNG: Khung chat có chiều ngang RẤT HẸP. DO ĐÓ, TUYỆT ĐỐI KHÔNG BAO GIỜ ĐƯỢC TẠO BẢNG MARKDOWN (ví dụ: | Cột | Cột |). Nếu bạn cố tình vẽ bảng, giao diện sẽ bị vỡ nát!
+  - BẮT BUỘC: Thay vì dùng bảng, bạn PHẢI LUÔN LUÔN trình bày mọi dữ liệu, sự so sánh hay tóm tắt dưới dạng DANH SÁCH GẠCH ĐẦU DÒNG (Bullet points). Nếu người dùng chủ động yêu cầu "kẻ bảng", hãy từ chối khéo léo (giải thích rằng khung chat quá hẹp để hiển thị bảng) và tự động chuyển sang trình bày dạng danh sách.`;
 
 export interface ChatMessage {
     role: "user" | "assistant";
@@ -247,7 +250,7 @@ export async function sendChatMessage(
                 appendedText += documentContextStr;
             }
             if (appendedText !== "") {
-                appendedText += `\n\n(LƯU Ý CHO AI: Phần ngữ cảnh tài liệu ở trên chỉ để tham khảo bối cảnh công việc của người dùng. Hãy TRỰC TIẾP trả lời câu hỏi của người dùng. TUYỆT ĐỐI KHÔNG tự ý viết tiếp, sửa đổi hay tạo thẻ <replace_search> / <insert> dựa trên ngữ cảnh này NẾU người dùng không yêu cầu rõ ràng!)`;
+                appendedText += `\n\n(LƯU Ý: Phần ngữ cảnh tài liệu ở trên được đính kèm để bạn tham khảo nội dung Word của người dùng. Vui lòng tập trung đáp ứng yêu cầu chính của người dùng.)`;
             }
             messagesToSend[lastUserMsgIndex] = {
                 ...messagesToSend[lastUserMsgIndex],
@@ -317,6 +320,7 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
     let buffer = "";
 
     let finalPTokens = 0, finalCacheTokens = 0, finalCTokens = 0, finalTTokens = 0;
+    let isThinking = false;
 
     while (true) {
         const { done, value } = await reader.read();
@@ -334,10 +338,24 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
                 if (dataStr === "[DONE]") continue;
                 try {
                     const data = JSON.parse(dataStr);
-                    const delta = data.choices?.[0]?.delta?.content;
+                    const delta = data.choices?.[0]?.delta;
                     if (delta) {
-                        fullContent += delta;
-                        if (onChunk) onChunk(fullContent);
+                        if (delta.reasoning_content) {
+                            if (!isThinking) {
+                                isThinking = true;
+                                fullContent += "<think>\n";
+                            }
+                            fullContent += delta.reasoning_content;
+                            if (onChunk) onChunk(fullContent);
+                        }
+                        if (delta.content !== undefined && delta.content !== null) {
+                            if (isThinking) {
+                                isThinking = false;
+                                fullContent += "\n</think>\n";
+                            }
+                            fullContent += delta.content;
+                            if (onChunk) onChunk(fullContent);
+                        }
                     }
                     if (data.usage) {
                         finalPTokens = data.usage.prompt_tokens || 0;
@@ -362,10 +380,18 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
 async function callGeminiStream(provider: string, history: ChatMessage[], apiKey: string, fullSystemPrompt: string, model: string = "gemini-1.5-flash", isThinkingMode: boolean = false, onChunk?: (text: string) => void): Promise<string> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
     
-    const geminiContents = history.map(msg => ({
-        role: msg.role === "assistant" ? "model" : "user",
-        parts: [{ text: msg.content }]
-    }));
+    const geminiContents: any[] = [];
+    for (const msg of history) {
+        const role = msg.role === "assistant" ? "model" : "user";
+        if (geminiContents.length > 0 && geminiContents[geminiContents.length - 1].role === role) {
+            geminiContents[geminiContents.length - 1].parts[0].text += "\n\n" + msg.content;
+        } else {
+            geminiContents.push({ role, parts: [{ text: msg.content }] });
+        }
+    }
+    if (geminiContents.length > 0 && geminiContents[0].role === "model") {
+        geminiContents.unshift({ role: "user", parts: [{ text: "(Context init)" }] });
+    }
 
     const response = await fetch(url, {
         method: "POST",

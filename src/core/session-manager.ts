@@ -26,13 +26,30 @@ export class SessionManager {
     }
 
     public saveSessions() {
-        localStorage.setItem(this.storageKey, JSON.stringify(this.sessions));
+        const dataStr = JSON.stringify(this.sessions);
+        localStorage.setItem(this.storageKey, dataStr);
+        try {
+            if (Office && Office.context && Office.context.document && Office.context.document.settings) {
+                Office.context.document.settings.set(this.storageKey, dataStr);
+                Office.context.document.settings.saveAsync();
+            }
+        } catch (e) {
+            console.error("Failed to save to Document Settings", e);
+        }
         this.onSessionsChanged();
     }
 
     public loadSessions() {
+        let data: string | null = null;
         try {
-            const data = localStorage.getItem(this.storageKey);
+            // Ưu tiên tải từ file Word hiện tại trước
+            if (Office && Office.context && Office.context.document && Office.context.document.settings) {
+                data = Office.context.document.settings.get(this.storageKey) as string;
+            }
+            // Nếu file Word chưa có, tải từ LocalStorage
+            if (!data) {
+                data = localStorage.getItem(this.storageKey);
+            }
             if (data) this.sessions = JSON.parse(data);
         } catch (e) {
             console.error("Failed to load sessions");
@@ -46,6 +63,13 @@ export class SessionManager {
     }
 
     public createNewSession() {
+        // Kiểm tra xem đã có session nào trống (chưa có tin nhắn) chưa, nếu có thì chuyển qua dùng luôn
+        const existingEmptySession = this.sessions.find(s => s.messages.length === 0);
+        if (existingEmptySession) {
+            this.switchSession(existingEmptySession.id);
+            return;
+        }
+
         const newSession: ChatSession = {
             id: Date.now().toString(),
             name: this.defaultChatName,
@@ -101,6 +125,7 @@ export class SessionManager {
         if (!session) return;
         if (session.name !== this.defaultChatName) return;
         let newName = firstMsg.trim();
+        if (!newName) return;
         if (newName.length > 25) {
             newName = newName.substring(0, 25) + "...";
         }

@@ -49,7 +49,9 @@ export const translations: Record<string, Record<string, string>> = {
         textSelected: "Text selected",
         askAI: "Ask AI",
         searchChats: "Search chats...",
-        filterAll: "All"
+        filterAll: "All",
+        keyBindingsTitle: "Keyboard Shortcuts",
+        shortcutNewChatDesc: "Create new chat"
     },
     vi: {
         menuTitle: "Menu",
@@ -101,6 +103,8 @@ export const translations: Record<string, Record<string, string>> = {
         textSelected: "Đã bôi đen",
         askAI: "Hỏi AI",
         searchChats: "Tìm đoạn chat...",
-        filterAll: "Tất cả"
+        filterAll: "Tất cả",
+        keyBindingsTitle: "Phím tắt",
+        shortcutNewChatDesc: "Tạo đoạn chat mới"
     }
 };

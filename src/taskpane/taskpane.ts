@@ -61,6 +61,7 @@ Office.onReady((info) => {
 
         // Language
         const applyLanguage = (lang: string) => {
+            document.documentElement.lang = lang;
             const t = translations[lang] || translations["en"];
             document.querySelectorAll("[data-i18n]").forEach(el => {
                 const key = el.getAttribute("data-i18n");
@@ -142,6 +143,16 @@ Office.onReady((info) => {
             toggleSidebar(false);
         });
 
+        // Global Shortcut: Alt + N to create new chat
+        window.addEventListener("keyup", (e) => {
+            if (e.altKey && (e.key.toLowerCase() === "n" || e.code === "KeyN")) {
+                e.preventDefault();
+                sessionManager.createNewSession();
+                toggleSidebar(false);
+                if (chatInput) chatInput.focus();
+            }
+        });
+
         btnSettingsApi?.addEventListener("click", () => {
             toggleSidebar(false);
             settingsManager.openSettings();
@@ -212,8 +223,12 @@ Office.onReady((info) => {
             document.querySelectorAll(".custom-select").forEach(el => el.classList.remove("active"));
         });
 
+        // Draft Persistence
+        const draftKey = "auto_latex_chat_draft";
+        
         // Send Chat action
         const onSendChat = () => {
+            if (btnSendChat.disabled) return;
             handleSendChat({
                 sessionManager,
                 quoteManager,
@@ -223,6 +238,7 @@ Office.onReady((info) => {
                 chatInput,
                 btnSendChat
             });
+            localStorage.removeItem(draftKey);
         };
 
         btnSendChat?.addEventListener("click", onSendChat);
@@ -238,5 +254,13 @@ Office.onReady((info) => {
         const t = translations[appLanguage] || translations["en"];
         sessionManager.setDefaultChatName(t.defaultChatName);
         sessionManager.loadSessions();
+
+        const savedDraft = localStorage.getItem(draftKey);
+        if (savedDraft && chatInput) {
+            chatInput.value = savedDraft;
+        }
+        chatInput?.addEventListener("input", (e) => {
+            localStorage.setItem(draftKey, (e.target as HTMLTextAreaElement).value);
+        });
     }
 });

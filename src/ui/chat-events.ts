@@ -18,9 +18,24 @@ export const setupChatEvents = (
         }
     }, { passive: false });
 
-    chatMessages.addEventListener("click", async (e) => {
+    chatMessages.addEventListener("mousedown", (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        const quotedBlock = target.closest(".quoted-message-block");
+        if (quotedBlock) {
+            // Ngăn chặn MỌI hành động bôi đen chữ từ khối này
+            e.preventDefault();
+        }
+    });
+
+    chatMessages.addEventListener("click", async (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         const btnApply = target.closest(".btn-apply-edit") as HTMLButtonElement;
+        
+        // Tránh trigger click khi user đang bôi đen (copy text)
+        const currentSelection = window.getSelection();
+        if (currentSelection && currentSelection.toString().trim().length > 0) {
+            return;
+        }
         
         if (btnApply) {
             const card = btnApply.closest(".pending-edit-card") as HTMLElement;
@@ -150,6 +165,133 @@ export const setupChatEvents = (
                     }, 1500);
                 } catch (err) {
                     console.error('Failed to copy latex: ', err);
+                }
+            }
+        }
+        
+        const quotedBlock = target.closest('.quoted-message-block') as HTMLElement;
+        if (quotedBlock) {
+            const isFromWord = quotedBlock.getAttribute('data-from-word') === "true";
+            const originalQuote = decodeURIComponent(quotedBlock.getAttribute('data-original-quote') || "");
+            
+            if (isFromWord && originalQuote) {
+                Word.run(async (context) => {
+                    const searchResults = context.document.body.search(originalQuote, { matchCase: false, matchWholeWord: false });
+                    searchResults.load("items");
+                    await context.sync();
+                    
+                    if (searchResults.items.length > 0) {
+                        const range = searchResults.items[0];
+                        range.select();
+                        await context.sync();
+                    } else {
+                        const appLang = getLanguage();
+                        const notifText = appLang === "vi" ? "Không tìm thấy đoạn văn bản này!" : "Text not found!";
+                        const tooltip = document.createElement("div");
+                        tooltip.innerText = notifText;
+                        tooltip.style.position = "fixed";
+                        tooltip.style.left = `${e.clientX + 10}px`;
+                        tooltip.style.top = `${e.clientY + 10}px`;
+                        tooltip.style.background = "var(--color-surface, #ffffff)";
+                        tooltip.style.color = "var(--color-text, #323130)";
+                        tooltip.style.border = "1px solid var(--color-border, #edebe9)";
+                        tooltip.style.padding = "6px 12px";
+                        tooltip.style.borderRadius = "8px";
+                        tooltip.style.fontSize = "13px";
+                        tooltip.style.fontWeight = "500";
+                        tooltip.style.boxShadow = "0 8px 16px rgba(0,0,0,0.12)";
+                        tooltip.style.zIndex = "10000";
+                        tooltip.style.pointerEvents = "none";
+                        tooltip.style.animation = "popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+                        document.body.appendChild(tooltip);
+                        
+                        setTimeout(() => {
+                            if (document.body.contains(tooltip)) document.body.removeChild(tooltip);
+                        }, 2000);
+                    }
+                }).catch(err => {
+                    console.error("Error searching in Word", err);
+                });
+            } else if (!isFromWord && originalQuote) {
+                // Tìm tin nhắn trong khung chat chứa đoạn quote này
+                const msgType = quotedBlock.getAttribute('data-msg-type');
+                const msgId = quotedBlock.getAttribute('data-msg-id');
+                let foundMsg: HTMLElement | null = null;
+                
+                // Nếu có ID cụ thể, tìm chính xác tin nhắn đó luôn
+                if (msgId) {
+                    const exactMsg = document.getElementById(msgId);
+                    if (exactMsg && exactMsg.classList.contains('chat-msg')) {
+                        foundMsg = exactMsg.querySelector('.msg-bubble') as HTMLElement || exactMsg;
+                    }
+                }
+                
+                // Nếu không tìm thấy qua ID (ví dụ: tin nhắn cũ chưa có ID), dùng text search
+                if (!foundMsg) {
+                    let msgs = Array.from(chatMessages.querySelectorAll('.chat-msg'));
+                    
+                    // Nếu biết chính xác loại tin nhắn gốc, chỉ tìm trong loại đó
+                    if (msgType === 'user') {
+                        msgs = Array.from(chatMessages.querySelectorAll('.user-msg'));
+                    } else if (msgType === 'ai') {
+                        msgs = Array.from(chatMessages.querySelectorAll('.ai-msg'));
+                    }
+                    
+                    // Chuẩn hóa text để so sánh dễ hơn (bỏ khoảng trắng thừa)
+                    const normalize = (str: string) => str.replace(/\s+/g, ' ').trim().toLowerCase();
+                    const searchStr = normalize(originalQuote);
+                    
+                    for (let i = msgs.length - 1; i >= 0; i--) {
+                        const msgBubble = msgs[i].querySelector('.msg-bubble');
+                        if (msgBubble) {
+                            // Clone the node to remove quoted blocks before getting text
+                            const clone = msgBubble.cloneNode(true) as HTMLElement;
+                            const quotes = clone.querySelectorAll('.quoted-message-block');
+                            quotes.forEach(q => q.remove());
+                            
+                            const bubbleText = normalize(clone.innerText || clone.textContent || "");
+                            if (bubbleText && bubbleText.includes(searchStr)) {
+                                foundMsg = msgBubble as HTMLElement;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if (foundMsg) {
+                    foundMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    foundMsg.classList.remove('blink-focus');
+                    // Force reflow
+                    void foundMsg.offsetWidth;
+                    foundMsg.classList.add('blink-focus');
+                    
+                    setTimeout(() => {
+                        if (foundMsg) foundMsg.classList.remove('blink-focus');
+                    }, 1500);
+                } else {
+                    const appLang = getLanguage();
+                    const notifText = appLang === "vi" ? "Không tìm thấy tin nhắn này!" : "Message not found!";
+                    const tooltip = document.createElement("div");
+                    tooltip.innerText = notifText;
+                    tooltip.style.position = "fixed";
+                    tooltip.style.left = `${e.clientX + 10}px`;
+                    tooltip.style.top = `${e.clientY + 10}px`;
+                    tooltip.style.background = "var(--color-surface, #ffffff)";
+                    tooltip.style.color = "var(--color-text, #323130)";
+                    tooltip.style.border = "1px solid var(--color-border, #edebe9)";
+                    tooltip.style.padding = "6px 12px";
+                    tooltip.style.borderRadius = "8px";
+                    tooltip.style.fontSize = "13px";
+                    tooltip.style.fontWeight = "500";
+                    tooltip.style.boxShadow = "0 8px 16px rgba(0,0,0,0.12)";
+                    tooltip.style.zIndex = "10000";
+                    tooltip.style.pointerEvents = "none";
+                    tooltip.style.animation = "popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+                    document.body.appendChild(tooltip);
+                    
+                    setTimeout(() => {
+                        if (document.body.contains(tooltip)) document.body.removeChild(tooltip);
+                    }, 2000);
                 }
             }
         }

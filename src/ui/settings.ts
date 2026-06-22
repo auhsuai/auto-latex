@@ -46,7 +46,7 @@ export function initSettings(appLanguage: string, getTempSelectedLanguage: () =>
 
     const loadSettingsToUI = () => {
         const settings = getAISettings();
-        if (apiKeyInput) apiKeyInput.value = settings.apiKey;
+        if (apiKeyInput) apiKeyInput.value = settings.apiKeys[settings.provider] || "";
         const autoApplyToggle = document.getElementById("auto-apply-edits") as HTMLInputElement;
         if (autoApplyToggle) autoApplyToggle.checked = settings.autoApplyEdits;
         const insertAtCursorToggle = document.getElementById("insert-at-cursor") as HTMLInputElement;
@@ -116,9 +116,18 @@ export function initSettings(appLanguage: string, getTempSelectedLanguage: () =>
         const autoApplyToggle = document.getElementById("auto-apply-edits") as HTMLInputElement;
         const insertAtCursorToggle = document.getElementById("insert-at-cursor") as HTMLInputElement;
         
+        const currentSettings = getAISettings();
+        const provider = getTempSelectedProvider() as AIProvider;
+        const newApiKeys = { ...currentSettings.apiKeys };
+        if (apiKey) {
+            newApiKeys[provider] = apiKey;
+        } else {
+            delete newApiKeys[provider];
+        }
+
         saveAISettings({
-            provider: getTempSelectedProvider() as AIProvider,
-            apiKey: apiKey,
+            provider: provider,
+            apiKeys: newApiKeys,
             autoApplyEdits: autoApplyToggle ? autoApplyToggle.checked : false,
             insertAtCursor: insertAtCursorToggle ? insertAtCursorToggle.checked : true
         });

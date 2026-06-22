@@ -1,7 +1,21 @@
 import { escapeHtml, scrollToBottom } from "../utils/helpers";
 
 export class ChatRenderer {
-    constructor(private chatMessagesContainerId: string) {}
+    constructor(private chatMessagesContainerId: string) {
+        // Hỗ trợ cuộn ngang công thức dài bằng con lăn chuột thông thường
+        document.addEventListener('wheel', (e: WheelEvent) => {
+            const target = e.target as HTMLElement;
+            const mathContainer = target.closest('.katex-display, .katex, .clickable-formula.block-formula') as HTMLElement;
+            
+            if (mathContainer && mathContainer.scrollWidth > mathContainer.clientWidth) {
+                // Nếu người dùng lăn chuột dọc (deltaY)
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    e.preventDefault();
+                    mathContainer.scrollLeft += e.deltaY;
+                }
+            }
+        }, { passive: false });
+    }
 
     public get container(): HTMLElement | null {
         return document.getElementById(this.chatMessagesContainerId);
@@ -15,6 +29,7 @@ export class ChatRenderer {
         if (!this.container) return;
         const div = document.createElement("div");
         div.className = "chat-msg user-msg";
+        div.id = "chat-msg-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
         div.innerHTML = `<div class="msg-bubble" style="display: flex; flex-direction: column;">${htmlContent || escapeHtml(text)}</div>`;
         this.container.appendChild(div);
         scrollToBottom(this.chatMessagesContainerId);
@@ -24,6 +39,7 @@ export class ChatRenderer {
         if (!this.container) return null;
         const div = document.createElement("div");
         div.className = "chat-msg ai-msg";
+        div.id = "chat-msg-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
         
         const copyBtnHtml = rawContent ? `<button class="btn-toolbar-action btn-copy-msg" title="Copy" data-copy-text="${encodeURIComponent(rawContent)}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>

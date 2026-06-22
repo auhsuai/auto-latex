@@ -1,4 +1,5 @@
 import { SessionManager } from "../core/session-manager";
+import { trapFocus } from "../utils/helpers";
 import { translations } from "../utils/translations";
 
 export const setupSessionOptions = (
@@ -20,9 +21,13 @@ export const setupSessionOptions = (
     const btnCancelDelete = document.getElementById("btn-cancel-delete");
     const btnConfirmDelete = document.getElementById("btn-confirm-delete");
 
-    const hideModal = (modal: HTMLElement | null) => {
+    let cleanupRenameFocus: () => void = () => {};
+    let cleanupDeleteFocus: () => void = () => {};
+
+    const hideModal = (modal: HTMLElement | null, cleanup?: () => void) => {
         if (modal && modal.style.display !== "none") {
             modal.classList.add("closing");
+            if (cleanup) cleanup();
             modal.addEventListener("animationend", () => {
                 modal.classList.remove("closing");
                 modal.style.display = "none";
@@ -44,13 +49,16 @@ export const setupSessionOptions = (
             if (renameModal) {
                 renameModal.style.display = "flex";
                 document.body.classList.add("modal-open");
+                setTimeout(() => {
+                    cleanupRenameFocus = trapFocus(renameModal);
+                    renameInput?.focus();
+                }, 10);
             }
-            setTimeout(() => renameInput?.focus(), 100);
         }
     });
 
     btnCancelRename?.addEventListener("click", () => {
-        hideModal(renameModal);
+        hideModal(renameModal, cleanupRenameFocus);
     });
 
     btnSaveRename?.addEventListener("click", () => {
@@ -64,7 +72,7 @@ export const setupSessionOptions = (
                 if (sessionManager.currentSessionId === session.id) sessionManager.switchSession(session.id);
             }
         }
-        hideModal(renameModal);
+        hideModal(renameModal, cleanupRenameFocus);
     });
     
     renameInput?.addEventListener("keydown", (e) => {
@@ -87,17 +95,18 @@ export const setupSessionOptions = (
         if (deleteModal) {
             deleteModal.style.display = "flex";
             document.body.classList.add("modal-open");
+            cleanupDeleteFocus = trapFocus(deleteModal);
         }
     });
 
     btnCancelDelete?.addEventListener("click", () => {
-        hideModal(deleteModal);
+        hideModal(deleteModal, cleanupDeleteFocus);
     });
 
     btnConfirmDelete?.addEventListener("click", () => {
         if (!targetSessionId) return;
         sessionManager.deleteSession(targetSessionId);
-        hideModal(deleteModal);
+        hideModal(deleteModal, cleanupDeleteFocus);
     });
 
     // Hàm public được truyền ra ngoài để sidebar gọi
