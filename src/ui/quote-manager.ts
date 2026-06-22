@@ -258,7 +258,10 @@ export class QuoteManager {
                         case "sSub": // Subscript
                             const subBase = getFirstChild(child, "e");
                             const sub = getFirstChild(child, "sub");
-                            latex += `${subBase ? parseOmmlToLatex(subBase) : ""}_{${sub ? parseOmmlToLatex(sub) : ""}}`;
+                            let subBaseText = subBase ? parseOmmlToLatex(subBase) : "";
+                            let subBaseTrim = subBaseText.trim();
+                            if (["lim", "max", "min", "sup", "inf", "det"].includes(subBaseTrim)) subBaseText = "\\" + subBaseTrim;
+                            latex += `${subBaseText}_{${sub ? parseOmmlToLatex(sub) : ""}}`;
                             break;
                         case "sSubSup": // Subscript & Superscript
                             const subSupBase = getFirstChild(child, "e");
@@ -280,6 +283,131 @@ export class QuoteManager {
                             // Loại bỏ \left và \right vì trong OMML 1 thẻ d có thể bao quanh nhiều biểu thức nhỏ,
                             // việc ép dùng \left \right sẽ gây ra lỗi lệch cặp ngoặc (bracket mismatch) trong LaTeX
                             latex += `${begCh}${dE ? parseOmmlToLatex(dE) : ""}${endCh}`;
+                            break;
+                        case "nary": // N-ary operator (Sum, Integral, etc.)
+                            const naryPr = getFirstChild(child, "naryPr");
+                            let opStr = "\\int"; // Default OMML nAry is integral
+                            if (naryPr) {
+                                const chr = getFirstChild(naryPr, "chr");
+                                if (chr && chr.getAttribute("m:val")) {
+                                    const val = chr.getAttribute("m:val");
+                                    if (val === "∑") opStr = "\\sum";
+                                    else if (val === "∏") opStr = "\\prod";
+                                    else if (val === "∪") opStr = "\\bigcup";
+                                    else if (val === "∩") opStr = "\\bigcap";
+                                    else if (val === "∫") opStr = "\\int";
+                                    else if (val === "∬") opStr = "\\iint";
+                                    else if (val === "∭") opStr = "\\iiint";
+                                    else if (val === "∮") opStr = "\\oint";
+                                    else if (val === "∯") opStr = "\\oiint";
+                                    else if (val === "∰") opStr = "\\oiiint";
+                                }
+                            }
+                            const nArySub = getFirstChild(child, "sub");
+                            const nArySup = getFirstChild(child, "sup");
+                            const nAryE = getFirstChild(child, "e");
+                            
+                            latex += opStr;
+                            if (nArySub) latex += `_{${parseOmmlToLatex(nArySub)}}`;
+                            if (nArySup) latex += `^{${parseOmmlToLatex(nArySup)}}`;
+                            if (nAryE) latex += ` ${parseOmmlToLatex(nAryE)}`;
+                            break;
+                        case "limLow": // Limit (lower bound)
+                            const limLowE = getFirstChild(child, "e");
+                            const limLowLim = getFirstChild(child, "lim");
+                            let baseLow = limLowE ? parseOmmlToLatex(limLowE) : "";
+                            let baseLowTrim = baseLow.trim();
+                            if (["lim", "max", "min", "sup", "inf", "det"].includes(baseLowTrim)) baseLow = "\\" + baseLowTrim;
+                            else if (/^[a-zA-Z]+$/.test(baseLowTrim)) baseLow = `\\mathop{\\mathrm{${baseLowTrim}}}`;
+                            latex += `${baseLow}_{${limLowLim ? parseOmmlToLatex(limLowLim) : ""}}`;
+                            break;
+                        case "limUpp": // Limit (upper bound)
+                            const limUppE = getFirstChild(child, "e");
+                            const limUppLim = getFirstChild(child, "lim");
+                            let baseUpp = limUppE ? parseOmmlToLatex(limUppE) : "";
+                            let baseUppTrim = baseUpp.trim();
+                            if (/^[a-zA-Z]+$/.test(baseUppTrim)) baseUpp = `\\mathop{\\mathrm{${baseUppTrim}}}`;
+                            latex += `${baseUpp}^{${limUppLim ? parseOmmlToLatex(limUppLim) : ""}}`;
+                            break;
+                        case "m": // Matrix
+                            let rows: string[] = [];
+                            for (let j = 0; j < child.childNodes.length; j++) {
+                                const mr = child.childNodes[j] as Element;
+                                if (mr.nodeType === 1 && mr.localName === "mr") {
+                                    let cols: string[] = [];
+                                    for (let k = 0; k < mr.childNodes.length; k++) {
+                                        const eNode = mr.childNodes[k] as Element;
+                                        if (eNode.nodeType === 1 && eNode.localName === "e") {
+                                            cols.push(parseOmmlToLatex(eNode));
+                                        }
+                                    }
+                                    rows.push(cols.join(" & "));
+                                }
+                            }
+                            latex += `\\begin{matrix} ${rows.join(" \\\\ ")} \\end{matrix}`;
+                            break;
+                        case "eqArr": // Equation Array
+                            let eqLines: string[] = [];
+                            for (let j = 0; j < child.childNodes.length; j++) {
+                                const eNode = child.childNodes[j] as Element;
+                                if (eNode.nodeType === 1 && eNode.localName === "e") {
+                                    eqLines.push(parseOmmlToLatex(eNode));
+                                }
+                            }
+                            latex += `\\begin{matrix} ${eqLines.join(" \\\\ ")} \\end{matrix}`;
+                            break;
+                        case "acc": // Accent
+                            const accPr = getFirstChild(child, "accPr");
+                            let accChr = "\\hat";
+                            if (accPr) {
+                                const chr = getFirstChild(accPr, "chr");
+                                if (chr && chr.getAttribute("m:val")) {
+                                    const val = chr.getAttribute("m:val");
+                                    if (val === "⃗" || val === "→" || val === "➔") accChr = "\\vec";
+                                    else if (val === "̃" || val === "~") accChr = "\\tilde";
+                                    else if (val === "̄" || val === "−" || val === "-") accChr = "\\bar";
+                                    else if (val === "̇" || val === ".") accChr = "\\dot";
+                                    else if (val === "̈" || val === "..") accChr = "\\ddot";
+                                }
+                            }
+                            const accE = getFirstChild(child, "e");
+                            latex += `${accChr}{${accE ? parseOmmlToLatex(accE) : ""}}`;
+                            break;
+                        case "bar": // Bar over/under
+                            const barPr = getFirstChild(child, "barPr");
+                            let isTop = true;
+                            if (barPr) {
+                                const pos = getFirstChild(barPr, "pos");
+                                if (pos && pos.getAttribute("m:val") === "bot") isTop = false;
+                            }
+                            const barE = getFirstChild(child, "e");
+                            latex += isTop ? `\\overline{${barE ? parseOmmlToLatex(barE) : ""}}` : `\\underline{${barE ? parseOmmlToLatex(barE) : ""}}`;
+                            break;
+                        case "groupChr": // Underbrace/Overbrace
+                            const groupPr = getFirstChild(child, "groupChrPr");
+                            let groupCmd = "\\underbrace";
+                            if (groupPr) {
+                                const chr = getFirstChild(groupPr, "chr");
+                                if (chr && chr.getAttribute("m:val") === "⏞") groupCmd = "\\overbrace";
+                            }
+                            const groupE = getFirstChild(child, "e");
+                            latex += `${groupCmd}{${groupE ? parseOmmlToLatex(groupE) : ""}}`;
+                            break;
+                        case "func": // Function application (sin, cos)
+                            const fNameNode = getFirstChild(child, "fName");
+                            const funcE = getFirstChild(child, "e");
+                            let fNameText = fNameNode ? parseOmmlToLatex(fNameNode) : "";
+                            fNameText = fNameText.replace(/[\u2061]/g, "").trim(); // Remove invisible function application char
+                            
+                            if (["sin", "cos", "tan", "csc", "sec", "cot", "arcsin", "arccos", "arctan", "sinh", "cosh", "tanh", "log", "ln", "exp", "det"].includes(fNameText) ||
+                                /^(?:\\)?(?:lim|max|min|sup|inf)(?:$|[^a-zA-Z])/.test(fNameText)) {
+                                if (!fNameText.startsWith("\\")) {
+                                    fNameText = "\\" + fNameText;
+                                }
+                            } else if (fNameText) {
+                                fNameText = `\\mathrm{${fNameText}}`;
+                            }
+                            latex += `${fNameText} ${funcE ? parseOmmlToLatex(funcE) : ""}`;
                             break;
                         case "t": // Plain Text inside math
                             latex += child.textContent || "";

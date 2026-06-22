@@ -29,7 +29,16 @@ function sanitizeTrailingSlashes(latex: string): string {
 
 // Edge Case 6: Token Merging (e.g. \muF -> \mu F)
 function sanitizeTokenMerge(latex: string): string {
-    return latex.replace(/(\\(?:mu|pi|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|nu|xi|omicron|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|log|ln|exp|max|min|lim|det|sup|inf(?!ty)))([a-zA-Z0-9])/g, "$1 $2");
+    // Only add a space if the macro is followed by a letter/number AND is not a prefix of another valid macro (like \limits)
+    let res = latex.replace(/(\\(?:mu|pi|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|nu|xi|omicron|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|log|ln|exp|max|min|lim|det|sup|inf(?!ty)))([a-zA-Z0-9])/g, (match, p1, p2) => {
+        if (p1 === "\\lim" && p2 === "i") return match; // protect \limits, \liminf
+        if (p1 === "\\lim" && p2 === "s") return match; // protect \limsup
+        if (p1 === "\\sup" && p2 === "e") return match; // protect \supset, \supseteq (starts with \sup)
+        if (p1 === "\\inf" && p2 === "t") return match; // protect \infty
+        if (p1 === "\\pi" && p2 === "m") return match; // protect \simeq ? no, \pi isn't a prefix
+        return p1 + " " + p2;
+    });
+    return res;
 }
 
 // Edge Case 5: Vietnamese Characters inside text mode and protecting existing \text{} blocks
@@ -120,6 +129,36 @@ export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
     
     // Edge Case 16: Degree symbol
     sanitized = sanitized.replace(/°/g, '^\\circ');
+    
+    // Auto-convert common ASCII and Unicode arrows to LaTeX commands
+    sanitized = sanitized.replace(/(?<!\\)->/g, '\\to ');
+    sanitized = sanitized.replace(/(?<!\\)=>/g, '\\Rightarrow ');
+    sanitized = sanitized.replace(/(?<!\\)<-/g, '\\gets ');
+    sanitized = sanitized.replace(/→/g, '\\to ');
+    sanitized = sanitized.replace(/⇒/g, '\\Rightarrow ');
+    sanitized = sanitized.replace(/←/g, '\\gets ');
+    
+    // Fix an edge case where \lim was wrapped in \mathrm by the OMML parser
+    sanitized = sanitized.replace(/\\mathrm\{\s*\\?lim\s*\}/g, '\\lim');
+    sanitized = sanitized.replace(/\\mathrm\{\s*\\?max\s*\}/g, '\\max');
+    sanitized = sanitized.replace(/\\mathrm\{\s*\\?min\s*\}/g, '\\min');
+    
+    // Merge "\lim_{x} \to 0" into "\lim\limits_{x \to 0}" (Word's sSub might contain \_x)
+    sanitized = sanitized.replace(/(?:\\+)?\blim_\{([^}]+)\}\s*\\to\s*([^\s\\]+)/g, (match, p1, p2) => {
+        const cleanP1 = p1.replace(/^\\_/, '').trim();
+        return `\\lim\\limits_{${cleanP1} \\to ${p2}}`;
+    });
+    
+    // Auto-correct poorly typed limits like "lim _x \to 0" or "\lim _x \to 0" to "\lim\limits_{x \to 0}"
+    sanitized = sanitized.replace(/(?:\\+)?\blim\s*(?:\\)?_\s*([^\s\\]+)\s*\\to\s*([^\s\\]+)/g, '\\lim\\limits_{$1 \\to $2}');
+    
+    // Edge Case 18: Word OMML groups subsequent terms into the subscript if there's no space.
+    // e.g., \lim_{\left(x \to \infty\right)1/x} -> \lim\limits_{\left(x \to \infty\right)} 1/x
+    sanitized = sanitized.replace(/(?:\\+)?\blim_\{\s*((?:\\left)?\([^)]+\)(?:\\right)?)([^}]+)\}/g, '\\lim\\limits_{$1} $2');
+
+    // Force \lim_{...} to use \limits so it renders underneath instead of inline
+    sanitized = sanitized.replace(/(?:\\+)?\blim_\{/g, '\\lim\\limits_{');
+    sanitized = sanitized.replace(/(?:\\+)?\blim _\{/g, '\\lim\\limits_{');
 
     if (!isBlock) {
         sanitized = sanitizeTrailingSlashes(sanitized);

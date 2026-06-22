@@ -42,8 +42,8 @@ export const renderInlineMathPreview = (text: string) => {
         }
 
         if (isMath && latex.trim()) {
-            const clean = sanitizeLaTeX(latex, false);
-            const rendered = getKaTeXHtml(clean, false);
+            const clean = sanitizeLaTeX(latex, true);
+            const rendered = getKaTeXHtml(clean, true);
             if (rendered) {
                 html += `<span class="preview-math" style="display: inline-flex; align-items: center;">${rendered}</span>`;
             } else {
