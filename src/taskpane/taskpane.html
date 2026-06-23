@@ -109,6 +109,8 @@
             </div>
         </div>
 
+        <div id="chat-minimap" class="chat-minimap"></div>
+
         <div id="chat-messages" class="chat-messages">
             <!-- Messages will be injected here -->
             <div class="chat-msg ai-msg">
@@ -180,7 +182,12 @@
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" style="display: none;">
         <div class="modal-content">
-            <h3 id="settings-modal-title" class="modal-title" data-i18n="settingsTitle">Settings</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h3 id="settings-modal-title" class="modal-title" data-i18n="settingsTitle" style="margin-bottom: 0;">Settings</h3>
+                <button id="btn-close-settings" class="icon-btn" aria-label="Close" style="margin-top: -4px; margin-right: -8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
             
             <div class="form-group">
                 <label for="app-language" data-i18n="languageLabel">Language / Ngôn ngữ</label>
@@ -220,7 +227,13 @@
 
                 <div class="form-group">
                     <label for="ai-api-key" data-i18n="apiKeyLabel">API Key</label>
-                    <input type="password" id="ai-api-key" class="form-control" data-i18n-placeholder="apiKeyPlaceholder" placeholder="Paste your API key here...">
+                    <div class="password-input-wrapper">
+                        <input type="password" id="ai-api-key" class="form-control pr-10" data-i18n-placeholder="apiKeyPlaceholder" placeholder="Paste your API key here...">
+                        <button type="button" class="password-toggle-btn" id="toggle-api-key-btn" aria-label="Toggle API Key visibility">
+                            <svg id="eye-icon-show" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg id="eye-icon-hide" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        </button>
+                    </div>
                 </div>
 
             </div>
@@ -256,11 +269,33 @@
             
             <div id="key-bindings-container" style="display: none;">
                 <div class="settings-panel">
-                    <div class="settings-row mt-8 mb-8">
+                    <div class="settings-row mt-8 mb-16">
                         <span data-i18n="shortcutNewChatDesc" style="font-size: 13px; font-weight: 500; color: var(--color-text);">Create new chat</span>
-                        <div class="kbd-group">
-                            <kbd>Alt</kbd> + <kbd>N</kbd>
-                        </div>
+                        <div class="kbd-group"><kbd>Alt</kbd> + <kbd>N</kbd></div>
+                    </div>
+                    <div class="settings-row mb-16">
+                        <span data-i18n="shortcutOpenSettings" style="font-size: 13px; font-weight: 500; color: var(--color-text);">Open Settings</span>
+                        <div class="kbd-group"><kbd>Alt</kbd> + <kbd>S</kbd></div>
+                    </div>
+                    <div class="settings-row mb-16">
+                        <span data-i18n="shortcutToggleMenu" style="font-size: 13px; font-weight: 500; color: var(--color-text);">Open / Close menu</span>
+                        <div class="kbd-group"><kbd>Alt</kbd> + <kbd>M</kbd></div>
+                    </div>
+                    <div class="settings-row mb-16">
+                        <span data-i18n="shortcutToggleThinking" style="font-size: 13px; font-weight: 500; color: var(--color-text);">Toggle Fast / Thinking</span>
+                        <div class="kbd-group"><kbd>Alt</kbd> + <kbd>T</kbd></div>
+                    </div>
+                    <div class="settings-row mb-16">
+                        <span data-i18n="shortcutToggleLang" style="font-size: 13px; font-weight: 500; color: var(--color-text);">Switch language</span>
+                        <div class="kbd-group"><kbd>Alt</kbd> + <kbd>L</kbd></div>
+                    </div>
+                    <div class="settings-row mb-16">
+                        <span data-i18n="shortcutFocusChat" style="font-size: 13px; font-weight: 500; color: var(--color-text);">Focus chat input</span>
+                        <div class="kbd-group"><kbd>Alt</kbd> + <kbd>/</kbd></div>
+                    </div>
+                    <div class="settings-row mb-8">
+                        <span data-i18n="shortcutCloseModal" style="font-size: 13px; font-weight: 500; color: var(--color-text);">Close dialog / menu</span>
+                        <div class="kbd-group"><kbd>Esc</kbd></div>
                     </div>
                 </div>
             </div>
@@ -302,11 +337,6 @@
                     
                     <button id="btn-export-stats" class="btn btn-secondary" style="width: 100%; margin-top: 8px; font-size: 13px; padding: 6px;" data-i18n="btnExportStats">Export Statistics</button>
                 </div>
-            </div>
-
-            <div class="modal-actions">
-                <button id="btn-close-settings" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;" data-i18n="btnCancel">Cancel</button>
-                <button id="btn-save-settings" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;" data-i18n="btnSave">Save</button>
             </div>
         </div>
     </div>

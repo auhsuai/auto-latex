@@ -30,6 +30,13 @@
     overflow-y: auto;
     box-shadow: var(--shadow-lg);
     animation: scaleIn 250ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.modal-content::-webkit-scrollbar {
+    display: none;
+    width: 0;
 }
 
 .modal-overlay.closing .modal-content {
@@ -79,6 +86,37 @@
     box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.15);
 }
 
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper .form-control.pr-10 {
+    padding-right: 40px;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    color: var(--color-text-muted, #71717a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.password-toggle-btn:hover {
+    color: var(--color-text);
+    background-color: var(--color-hover, rgba(0,0,0,0.05));
+}
+
+
 /* Custom Select */
 .custom-select-wrapper {
     position: relative;
@@ -106,6 +144,12 @@
 .custom-select.active {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px rgba(43, 87, 154, 0.15);
+}
+.custom-select svg {
+    transition: transform 0.2s ease;
+}
+.custom-select.active svg {
+    transform: rotate(180deg);
 }
 .custom-select-options {
     position: absolute;

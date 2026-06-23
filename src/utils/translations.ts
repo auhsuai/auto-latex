@@ -51,7 +51,13 @@ export const translations: Record<string, Record<string, string>> = {
         searchChats: "Search chats...",
         filterAll: "All",
         keyBindingsTitle: "Keyboard Shortcuts",
-        shortcutNewChatDesc: "Create new chat"
+        shortcutNewChatDesc: "Create new chat",
+        shortcutOpenSettings: "Open Settings",
+        shortcutToggleMenu: "Open / Close menu",
+        shortcutToggleThinking: "Switch Thinking mode",
+        shortcutToggleLang: "Switch language",
+        shortcutFocusChat: "Focus chat input",
+        shortcutCloseModal: "Close dialog"
     },
     vi: {
         menuTitle: "Menu",
@@ -105,6 +111,12 @@ export const translations: Record<string, Record<string, string>> = {
         searchChats: "Tìm đoạn chat...",
         filterAll: "Tất cả",
         keyBindingsTitle: "Phím tắt",
-        shortcutNewChatDesc: "Tạo đoạn chat mới"
+        shortcutNewChatDesc: "Tạo đoạn chat mới",
+        shortcutOpenSettings: "Mở cài đặt",
+        shortcutToggleMenu: "Mở / Đóng Menu",
+        shortcutToggleThinking: "Thay đổi chế độ suy luận",
+        shortcutToggleLang: "Chuyển ngôn ngữ",
+        shortcutFocusChat: "Di chuyển đến ô nhập liệu",
+        shortcutCloseModal: "Đóng Menu"
     }
 };

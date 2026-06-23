@@ -1,6 +1,8 @@
 import { escapeHtml, scrollToBottom } from "../utils/helpers";
+import { ChatMinimapManager } from "./chat-minimap";
 
 export class ChatRenderer {
+    private minimapManager: ChatMinimapManager;
     constructor(private chatMessagesContainerId: string) {
         // Hỗ trợ cuộn ngang công thức dài bằng con lăn chuột thông thường
         document.addEventListener('wheel', (e: WheelEvent) => {
@@ -15,6 +17,8 @@ export class ChatRenderer {
                 }
             }
         }, { passive: false });
+
+        this.minimapManager = new ChatMinimapManager(this.chatMessagesContainerId, "chat-minimap");
     }
 
     public get container(): HTMLElement | null {
@@ -22,7 +26,10 @@ export class ChatRenderer {
     }
 
     public clear() {
-        if (this.container) this.container.innerHTML = "";
+        if (this.container) {
+            this.container.innerHTML = "";
+            this.minimapManager.update();
+        }
     }
 
     public appendUserMessage(text: string, htmlContent?: string) {
@@ -33,6 +40,7 @@ export class ChatRenderer {
         div.innerHTML = `<div class="msg-bubble" style="display: flex; flex-direction: column;">${htmlContent || escapeHtml(text)}</div>`;
         this.container.appendChild(div);
         scrollToBottom(this.chatMessagesContainerId);
+        this.minimapManager.update();
     }
 
     public appendAIMessage(htmlContent: string, rawContent: string = "", toolbarHtml: string = ""): HTMLElement | null {
@@ -54,6 +62,7 @@ export class ChatRenderer {
         `;
         this.container.appendChild(div);
         scrollToBottom(this.chatMessagesContainerId);
+        this.minimapManager.update();
         return div;
     }
 
@@ -64,6 +73,7 @@ export class ChatRenderer {
         div.innerHTML = `<div class="msg-bubble" style="color: #d83b01;">Error: ${escapeHtml(errorStr)}</div>`;
         this.container.appendChild(div);
         scrollToBottom(this.chatMessagesContainerId);
+        this.minimapManager.update();
     }
 
     public showSkeleton() {

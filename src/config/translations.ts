@@ -50,7 +50,15 @@ export const translations: Record<string, Record<string, string>> = {
         createdBy: "Created by",
         textSelected: "Text selected",
         askAI: "Ask AI",
-        searchChats: "Search chats..."
+        searchChats: "Search chats...",
+        keyBindingsTitle: "Keyboard Shortcuts",
+        shortcutNewChatDesc: "Create new chat",
+        shortcutOpenSettings: "Open Settings",
+        shortcutToggleMenu: "Open / Close menu",
+        shortcutToggleThinking: "Switch Thinking mode",
+        shortcutToggleLang: "Switch language",
+        shortcutFocusChat: "Focus chat input",
+        shortcutCloseModal: "Close dialog"
     },
     vi: {
         menuTitle: "Menu",
@@ -103,6 +111,14 @@ export const translations: Record<string, Record<string, string>> = {
         createdBy: "Được phát triển bởi",
         textSelected: "Đã chọn văn bản",
         askAI: "Ask AI",
-        searchChats: "Tìm kiếm..."
+        searchChats: "Tìm kiếm...",
+        keyBindingsTitle: "Phím tắt",
+        shortcutNewChatDesc: "Tạo đoạn chat mới",
+        shortcutOpenSettings: "Mở cài đặt",
+        shortcutToggleMenu: "Mở / Đóng Menu",
+        shortcutToggleThinking: "Thay đổi chế độ suy luận",
+        shortcutToggleLang: "Chuyển ngôn ngữ",
+        shortcutFocusChat: "Di chuyển đến ô nhập liệu",
+        shortcutCloseModal: "Đóng Menu"
     }
 };

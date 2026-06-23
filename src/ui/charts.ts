@@ -52,7 +52,17 @@ export const renderUsageCharts = async (stats: AIUsageData) => {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            displayColors: false,
+                            callbacks: {
+                                label: (context) => `${context.raw} requests`
+                            }
+                        }
+                    },
                     scales: {
                         y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { color: '#666', font: { size: 10 }, precision: 0 } },
                         x: { grid: { display: false }, border: { display: false }, ticks: { color: '#666', font: { size: 10 }, maxTicksLimit: 7 } }

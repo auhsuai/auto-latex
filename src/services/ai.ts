@@ -361,7 +361,7 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
                         finalPTokens = data.usage.prompt_tokens || 0;
                         finalCacheTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
                         finalCTokens = data.usage.completion_tokens || 0;
-                        finalTTokens = data.usage.total_tokens || 0;
+                        finalTTokens = data.usage.total_tokens || (finalPTokens + finalCTokens);
                     }
                 } catch (e) {
                     // Ignore parsing errors for partial chunks
@@ -370,9 +370,7 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
         }
     }
     
-    if (finalTTokens > 0) {
-        updateAIUsageStats(provider, finalPTokens, finalCacheTokens, finalCTokens, finalTTokens);
-    }
+    updateAIUsageStats(provider, finalPTokens, finalCacheTokens, finalCTokens, finalTTokens || (finalPTokens + finalCTokens));
     
     return fullContent.trim();
 }
@@ -448,7 +446,7 @@ async function callGeminiStream(provider: string, history: ChatMessage[], apiKey
                         finalPTokens = data.usageMetadata.promptTokenCount || 0;
                         finalCacheTokens = data.usageMetadata.cachedContentTokenCount || 0;
                         finalCTokens = data.usageMetadata.candidatesTokenCount || 0;
-                        finalTTokens = data.usageMetadata.totalTokenCount || 0;
+                        finalTTokens = data.usageMetadata.totalTokenCount || (finalPTokens + finalCTokens);
                     }
                 } catch (e) {
                     // Ignore parse errors
@@ -457,9 +455,7 @@ async function callGeminiStream(provider: string, history: ChatMessage[], apiKey
         }
     }
     
-    if (finalTTokens > 0) {
-        updateAIUsageStats(provider, finalPTokens, finalCacheTokens, finalCTokens, finalTTokens);
-    }
+    updateAIUsageStats(provider, finalPTokens, finalCacheTokens, finalCTokens, finalTTokens || (finalPTokens + finalCTokens));
     
     return fullContent.trim();
 }

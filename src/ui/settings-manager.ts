@@ -34,7 +34,6 @@ export class SettingsManager {
     public init() {
         const btnSettings = document.getElementById("btn-settings");
         const btnCloseSettings = document.getElementById("btn-close-settings");
-        const btnSaveSettings = document.getElementById("btn-save-settings");
         const settingsModal = document.getElementById("settings-modal");
 
         btnSettings?.addEventListener("click", () => {
@@ -47,6 +46,10 @@ export class SettingsManager {
         });
 
         btnCloseSettings?.addEventListener("click", () => {
+            // Unfocus input to trigger any pending blurs
+            if (document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+            }
             if (settingsModal) {
                 this.cleanupFocus();
                 settingsModal.classList.add("closing");
@@ -58,30 +61,40 @@ export class SettingsManager {
             }
         });
 
-        btnSaveSettings?.addEventListener("click", () => {
+        this.initCustomSelect("lang-select-wrapper", (val) => {
+            this.tempSelectedLanguage = val;
             this.saveSettings();
-            if (settingsModal) {
-                this.cleanupFocus();
-                settingsModal.classList.add("closing");
-                settingsModal.addEventListener("animationend", () => {
-                    settingsModal.classList.remove("closing");
-                    settingsModal.style.display = "none";
-                    document.body.classList.remove("modal-open");
-                }, { once: true });
-            }
         });
-
-        this.initCustomSelect("lang-select-wrapper", (val) => this.tempSelectedLanguage = val);
         this.initCustomSelect("provider-select-wrapper", (val) => {
             const apiKeyInput = document.getElementById("ai-api-key") as HTMLInputElement;
             if (apiKeyInput) {
                 this.tempApiKeys[this.tempSelectedProvider] = apiKeyInput.value.trim();
                 this.tempSelectedProvider = val;
                 apiKeyInput.value = this.tempApiKeys[val] || '';
+                this.saveSettings();
             } else {
                 this.tempSelectedProvider = val;
+                this.saveSettings();
             }
         });
+
+        const apiKeyInput = document.getElementById("ai-api-key") as HTMLInputElement;
+        if (apiKeyInput) {
+            apiKeyInput.addEventListener("blur", () => {
+                this.tempApiKeys[this.tempSelectedProvider] = apiKeyInput.value.trim();
+                this.saveSettings();
+            });
+        }
+
+        const autoApplyToggle = document.getElementById("auto-apply-edits") as HTMLInputElement;
+        if (autoApplyToggle) {
+            autoApplyToggle.addEventListener("change", () => this.saveSettings());
+        }
+
+        const insertAtCursorToggle = document.getElementById("insert-at-cursor") as HTMLInputElement;
+        if (insertAtCursorToggle) {
+            insertAtCursorToggle.addEventListener("change", () => this.saveSettings());
+        }
 
         this.initCustomSelect("stats-filter-wrapper", (val) => {
             this.selectedStatsProvider = val;
@@ -90,7 +103,32 @@ export class SettingsManager {
         });
 
         this.setupToggles();
+        this.setupApiKeyToggle();
         this.setupExportStats();
+    }
+
+    private setupApiKeyToggle() {
+        const toggleBtn = document.getElementById("toggle-api-key-btn");
+        const apiKeyInput = document.getElementById("ai-api-key") as HTMLInputElement;
+        const iconShow = document.getElementById("eye-icon-show");
+        const iconHide = document.getElementById("eye-icon-hide");
+
+        if (toggleBtn && apiKeyInput && iconShow && iconHide) {
+            toggleBtn.addEventListener("click", () => {
+                const isPassword = apiKeyInput.type === "password";
+                apiKeyInput.type = isPassword ? "text" : "password";
+                
+                if (isPassword) {
+                    iconShow.style.display = "none";
+                    iconHide.style.display = "block";
+                    toggleBtn.setAttribute("aria-label", "Hide API Key");
+                } else {
+                    iconShow.style.display = "block";
+                    iconHide.style.display = "none";
+                    toggleBtn.setAttribute("aria-label", "Show API Key");
+                }
+            });
+        }
     }
 
     private loadSettingsToUI() {
@@ -133,6 +171,11 @@ export class SettingsManager {
             autoApplyEdits: autoApplyToggle ? autoApplyToggle.checked : false,
             insertAtCursor: insertAtCursorToggle ? insertAtCursorToggle.checked : true
         });
+
+        const btnToggleThinking = document.getElementById("btn-toggle-thinking");
+        if (btnToggleThinking) {
+            btnToggleThinking.style.display = this.tempSelectedProvider === "minimax" ? "none" : "";
+        }
 
         if (this.tempSelectedLanguage !== this.currentAppLanguage) {
             this.currentAppLanguage = this.tempSelectedLanguage;

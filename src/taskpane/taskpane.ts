@@ -143,13 +143,84 @@ Office.onReady((info) => {
             toggleSidebar(false);
         });
 
-        // Global Shortcut: Alt + N to create new chat
+        // Global Shortcuts
         window.addEventListener("keyup", (e) => {
-            if (e.altKey && (e.key.toLowerCase() === "n" || e.code === "KeyN")) {
-                e.preventDefault();
-                sessionManager.createNewSession();
-                toggleSidebar(false);
-                if (chatInput) chatInput.focus();
+            // Escape to close modals and sidebars
+            if (e.key === "Escape") {
+                const settingsModal = document.getElementById("settings-modal");
+                const renameModal = document.getElementById("rename-modal");
+                const deleteModal = document.getElementById("delete-modal");
+                
+                if (settingsModal && settingsModal.style.display !== "none") {
+                    document.getElementById("btn-close-settings")?.click();
+                    return;
+                }
+                if (renameModal && renameModal.style.display !== "none") {
+                    document.getElementById("btn-cancel-rename")?.click();
+                    return;
+                }
+                if (deleteModal && deleteModal.style.display !== "none") {
+                    document.getElementById("btn-cancel-delete")?.click();
+                    return;
+                }
+                if (chatSidebar && chatSidebar.classList.contains("visible")) {
+                    toggleSidebar(false);
+                    return;
+                }
+                if (chatView && chatView.classList.contains("view-visible")) {
+                    btnBack?.click();
+                    return;
+                }
+                return;
+            }
+
+            if (e.altKey) {
+                const key = e.key.toLowerCase();
+                
+                // Alt + N: New Chat
+                if (key === "n" || e.code === "KeyN") {
+                    e.preventDefault();
+                    sessionManager.createNewSession();
+                    toggleSidebar(false);
+                    if (chatInput) chatInput.focus();
+                }
+                // Alt + S: Open Settings
+                else if (key === "s" || e.code === "KeyS") {
+                    e.preventDefault();
+                    toggleSidebar(false);
+                    settingsManager.openSettings();
+                }
+                // Alt + M: Toggle Menu (Sidebar)
+                else if (key === "m" || e.code === "KeyM") {
+                    e.preventDefault();
+                    const isVisible = chatSidebar?.classList.contains("visible");
+                    toggleSidebar(!isVisible);
+                }
+                // Alt + T: Toggle Thinking Mode
+                else if (key === "t" || e.code === "KeyT") {
+                    e.preventDefault();
+                    const btnToggleThinking = document.getElementById("btn-toggle-thinking");
+                    if (btnToggleThinking && btnToggleThinking.style.display !== "none") {
+                        btnToggleThinking.click();
+                    }
+                }
+                // Alt + L: Toggle Language
+                else if (key === "l" || e.code === "KeyL") {
+                    e.preventDefault();
+                    const btnQuickLang = document.getElementById("btn-quick-lang");
+                    btnQuickLang?.click();
+                }
+                // Alt + /: Focus chat input
+                else if (key === "/") {
+                    e.preventDefault();
+                    // If not in chat view, switch to it
+                    if (chatView && !chatView.classList.contains("view-visible")) {
+                        fabChat?.click();
+                    }
+                    setTimeout(() => {
+                        if (chatInput) chatInput.focus();
+                    }, 50);
+                }
             }
         });
 
@@ -172,6 +243,13 @@ Office.onReady((info) => {
 
         const btnToggleThinking = document.getElementById("btn-toggle-thinking");
         const thinkingText = document.getElementById("thinking-text");
+        
+        // Initial visibility check for thinking toggle
+        import("../services/ai").then(({ getAISettings }) => {
+            if (btnToggleThinking && getAISettings().provider === "minimax") {
+                btnToggleThinking.style.display = "none";
+            }
+        });
 
         btnToggleThinking?.addEventListener("click", () => {
             isThinkingMode = !isThinkingMode;
