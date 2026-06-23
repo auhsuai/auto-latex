@@ -174,7 +174,7 @@ export class SettingsManager {
 
         const btnToggleThinking = document.getElementById("btn-toggle-thinking");
         if (btnToggleThinking) {
-            btnToggleThinking.style.display = this.tempSelectedProvider === "minimax" ? "none" : "";
+            btnToggleThinking.style.display = "";
         }
 
         if (this.tempSelectedLanguage !== this.currentAppLanguage) {
@@ -277,9 +277,11 @@ export class SettingsManager {
             const providerMap: Record<string, string> = {
                 'gemini': 'Google Gemini',
                 'openai': 'OpenAI',
-                'deepseek': 'DeepSeek',
-                'minimax': 'MiniMax'
+                'deepseek': 'DeepSeek'
             };
+            if (process.env.NODE_ENV === "development") {
+                providerMap['claude'] = 'Claude';
+            }
 
             const providers = Object.keys(stats.providersTotal);
             providers.forEach(provider => {

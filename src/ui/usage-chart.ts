@@ -52,9 +52,10 @@ export const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>, sel
     const apiDatasets: any[] = [];
 
     if (isAll) {
-        const providers = ['openai', 'gemini', 'deepseek', 'minimax'];
-        const colors = ['#bfdbfe', '#93c5fd', '#3b82f6', '#1d4ed8'];
-        const providerNames = { openai: 'OpenAI', gemini: 'Gemini', deepseek: 'DeepSeek', minimax: 'MiniMax' };
+        const isDev = process.env.NODE_ENV === "development";
+        const providers = isDev ? ['openai', 'gemini', 'deepseek', 'claude'] : ['openai', 'gemini', 'deepseek'];
+        const providerColors: Record<string, string> = { openai: '#93c5fd', gemini: '#60a5fa', deepseek: '#3b82f6', claude: '#1d4ed8' };
+        const providerNames: Record<string, string> = { openai: 'OpenAI', gemini: 'Gemini', deepseek: 'DeepSeek', claude: 'Claude' };
 
         for (let p = 0; p < providers.length; p++) {
             const pName = providers[p];
@@ -70,7 +71,7 @@ export const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>, sel
                 apiDatasets.push({
                     label: providerNames[pName as keyof typeof providerNames] || pName,
                     data: pData,
-                    backgroundColor: colors[p],
+                    backgroundColor: providerColors[pName] || '#94a3b8',
                     stack: 'Stack 0',
                     barPercentage: 0.6
                 });
@@ -112,7 +113,8 @@ export const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>, sel
                     transition: left 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2), opacity 0.2s ease;
                     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
                     z-index: 1000;
-                    min-width: 210px;
+                    min-width: max-content;
+                    white-space: nowrap;
                     will-change: left, opacity;
                 }
                 .custom-chartjs-tooltip::before {

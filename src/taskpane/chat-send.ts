@@ -15,6 +15,8 @@ export interface ChatSendDeps {
     getThinkingMode: () => boolean;
     chatInput: HTMLTextAreaElement;
     btnSendChat: HTMLButtonElement;
+    isDialog?: boolean;
+    onStreamingStateChange?: (isStreaming: boolean) => void;
 }
 
 const renderFormula = (rawLatex: string, isBlock: boolean) => {
@@ -30,7 +32,7 @@ const renderFormula = (rawLatex: string, isBlock: boolean) => {
 };
 
 export const handleSendChat = async (deps: ChatSendDeps) => {
-    const { sessionManager, quoteManager, chatRenderer, getLanguage, getThinkingMode, chatInput, btnSendChat } = deps;
+    const { sessionManager, quoteManager, chatRenderer, getLanguage, getThinkingMode, chatInput, btnSendChat, isDialog, onStreamingStateChange } = deps;
     if (btnSendChat.disabled) return;
     const prompt = chatInput.value.trim();
     if (!prompt && !quoteManager.currentQuotedText) return;
@@ -75,8 +77,13 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
     let throttleTimer: any = null;
 
     try {
-        const { DocumentEditor } = await import("../core/document-editor");
-        const docContext = await DocumentEditor.getDocumentContext();
+        if (onStreamingStateChange) onStreamingStateChange(true);
+        
+        let docContext = { selectionText: "", paragraphText: "" };
+        if (!isDialog) {
+            const { DocumentEditor } = await import("../core/document-editor");
+            docContext = await DocumentEditor.getDocumentContext();
+        }
         
         if (savedQuoteForDocContext && savedIsQuoteFromWord) {
             docContext.selectionText = savedQuoteForDocContext;
@@ -287,14 +294,15 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                 
                 const { html: wordHtmlContent } = generateWordHtmlFromText(content);
                 
-                if (settings.autoApplyEdits) {
+                if (!isDialog && settings.autoApplyEdits) {
+                    const { DocumentEditor } = await import("../core/document-editor");
                     if (type === "replace_selection") await DocumentEditor.replaceSelection(wordHtmlContent);
                     else if (type === "replace_paragraph") await DocumentEditor.replaceCurrentParagraph(wordHtmlContent);
                     else if (type === "replace_search") await DocumentEditor.replaceSearchTerm(target, wordHtmlContent);
                     else if (type === "replace_heading") await DocumentEditor.replaceHeadingContent(target, wordHtmlContent);
                     appliedChanges = true;
                 }
-                if (!settings.autoApplyEdits) {
+                if (!isDialog && !settings.autoApplyEdits) {
                     const safeContent = encodeURIComponent(wordHtmlContent);
                     const safeTarget = encodeURIComponent(target);
                     pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="${type}" data-edit-content="${safeContent}" data-edit-target="${safeTarget}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
@@ -369,7 +377,7 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                 }
             }
         }
-        if (hasWordContent) {
+        if (hasWordContent && !isDialog) {
             const shouldAutoApply = settings.autoApplyEdits && !isPlainResponse;
             
             if (shouldAutoApply) {
@@ -445,6 +453,7 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
         sessionManager.saveSessions();
         chatRenderer.appendAIError(e.message || "Unknown error");
     } finally {
+        if (onStreamingStateChange) onStreamingStateChange(false);
         btnSendChat.disabled = false;
     }
 };

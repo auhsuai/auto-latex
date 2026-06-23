@@ -1,4 +1,4 @@
-export type AIProvider = 'openai' | 'gemini' | 'deepseek' | 'minimax';
+export type AIProvider = 'openai' | 'gemini' | 'deepseek' | 'claude';
 
 export interface AISettings {
     provider: AIProvider;
@@ -210,8 +210,8 @@ export async function sendChatMessage(
         : "\n\n7. IMPORTANT: Please prioritize replying in English.";
         
     const autoApplyInstruction = settings.autoApplyEdits
-        ? "\n\n8. LƯU Ý HỆ THỐNG: Chế độ 'Auto-Apply' ĐANG BẬT. Bất kỳ thẻ XML nào bạn xuất ra sẽ TỰ ĐỘNG CHÈN vào Word ngay lập tức. TUYỆT ĐỐI KHÔNG dặn người dùng 'hãy bấm nút Apply'. Hãy trả lời kiểu: 'Tôi đã tự động dán kết quả vào Word cho bạn'."
-        : "\n\n8. LƯU Ý HỆ THỐNG: Chế độ 'Auto-Apply' đang TẮT. Bạn có thể lịch sự nhắc người dùng 'Hãy bấm nút Apply để dán vào Word'.";
+        ? "\n\n8. LƯU Ý HỆ THỐNG: Chế độ 'Auto-Apply' ĐANG BẬT. Bất kỳ thẻ XML nào bạn xuất ra sẽ TỰ ĐỘNG CHÈN vào Word ngay lập tức. TUYỆT ĐỐI KHÔNG dặn người dùng 'hãy bấm nút Apply'. Ở cuối câu trả lời, hãy luôn gợi ý một câu hỏi mở ngắn gọn để người dùng có thể tiếp tục trò chuyện."
+        : "\n\n8. LƯU Ý HỆ THỐNG: TUYỆT ĐỐI KHÔNG nhắc người dùng 'hãy bấm nút Apply' hay hướng dẫn cách chèn vào Word. Thay vào đó, ở cuối câu trả lời, hãy luôn gợi ý một câu hỏi mở ngắn gọn liên quan đến chủ đề để người dùng có thể tiếp tục trò chuyện.";
 
     const thinkingInstruction = "\n\n9. LƯU Ý QUAN TRỌNG: NẾU BẠN SỬ DỤNG KHỐI SUY NGHĨ (THINKING), BẠN BẮT BUỘC PHẢI VIẾT CÂU TRẢ LỜI CHÍNH THỨC NẰM NGOÀI KHỐI SUY NGHĨ. TUYỆT ĐỐI KHÔNG ĐƯỢC CHỈ TRẢ LỜI BÊN TRONG KHỐI SUY NGHĨ.";
 
@@ -272,12 +272,19 @@ export async function sendChatMessage(
             ...(isThinkingMode ? { reasoning_effort: "high" } : {})
         };
         return callOpenAICompatibleStream(settings.provider, messagesToSend, apiKey, "https://api.deepseek.com/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk);
-    } else if (settings.provider === 'minimax') {
-        const model = "MiniMax-M3";
-        return callOpenAICompatibleStream(settings.provider, messagesToSend, apiKey, "https://api.tokenrouter.com/v1/chat/completions", model, currentSystemPrompt, {}, onChunk);
-    } else {
+    } else if (settings.provider === 'gemini') {
         const model = "gemini-3.5-flash";
         return callGeminiStream(settings.provider, messagesToSend, apiKey, currentSystemPrompt, model, isThinkingMode, onChunk);
+    } else if (settings.provider === 'claude') {
+        const model = "claude-sonnet-4.5";
+        const extraBodyParams = { 
+            max_tokens: 8192, 
+            stream_options: undefined 
+        };
+        // Sử dụng Server-to-Server Proxy để vượt CORS
+        return callOpenAICompatibleStream(settings.provider, messagesToSend, apiKey, "http://localhost:3001/v1/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk);
+    } else {
+        throw new Error(`Unsupported AI provider: ${settings.provider}`);
     }
 }
 
@@ -309,7 +316,8 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
 
     if (!response.ok) {
         const errText = await response.text();
-        throw new Error("OpenAI API Error: " + errText);
+        const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+        throw new Error(`${providerName} API Error: ` + errText);
     }
 
     if (!response.body) throw new Error("No response body");
@@ -336,9 +344,18 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
             if (line.startsWith("data: ")) {
                 const dataStr = line.slice(6);
                 if (dataStr === "[DONE]") continue;
+                let parsedData: any = null;
                 try {
-                    const data = JSON.parse(dataStr);
-                    const delta = data.choices?.[0]?.delta;
+                    parsedData = JSON.parse(dataStr);
+                } catch (e) {
+                    // Ignore parsing errors for partial chunks
+                }
+                
+                if (parsedData) {
+                    if (parsedData.error) {
+                        throw new Error(parsedData.error.message || JSON.stringify(parsedData.error));
+                    }
+                    const delta = parsedData.choices?.[0]?.delta;
                     if (delta) {
                         if (delta.reasoning_content) {
                             if (!isThinking) {
@@ -357,14 +374,12 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
                             if (onChunk) onChunk(fullContent);
                         }
                     }
-                    if (data.usage) {
-                        finalPTokens = data.usage.prompt_tokens || 0;
-                        finalCacheTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
-                        finalCTokens = data.usage.completion_tokens || 0;
-                        finalTTokens = data.usage.total_tokens || (finalPTokens + finalCTokens);
+                    if (parsedData.usage) {
+                        finalPTokens = parsedData.usage.prompt_tokens || 0;
+                        finalCacheTokens = parsedData.usage.prompt_tokens_details?.cached_tokens || 0;
+                        finalCTokens = parsedData.usage.completion_tokens || 0;
+                        finalTTokens = parsedData.usage.total_tokens || (finalPTokens + finalCTokens);
                     }
-                } catch (e) {
-                    // Ignore parsing errors for partial chunks
                 }
             }
         }
@@ -435,21 +450,28 @@ async function callGeminiStream(provider: string, history: ChatMessage[], apiKey
 
             if (line.startsWith("data: ")) {
                 const dataStr = line.slice(6);
+                let parsedData: any = null;
                 try {
-                    const data = JSON.parse(dataStr);
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    parsedData = JSON.parse(dataStr);
+                } catch (e) {
+                    // Ignore parse errors
+                }
+                
+                if (parsedData) {
+                    if (parsedData.error) {
+                        throw new Error(parsedData.error.message || JSON.stringify(parsedData.error));
+                    }
+                    const text = parsedData.candidates?.[0]?.content?.parts?.[0]?.text;
                     if (text) {
                         fullContent += text;
                         if (onChunk) onChunk(fullContent);
                     }
-                    if (data.usageMetadata) {
-                        finalPTokens = data.usageMetadata.promptTokenCount || 0;
-                        finalCacheTokens = data.usageMetadata.cachedContentTokenCount || 0;
-                        finalCTokens = data.usageMetadata.candidatesTokenCount || 0;
-                        finalTTokens = data.usageMetadata.totalTokenCount || (finalPTokens + finalCTokens);
+                    if (parsedData.usageMetadata) {
+                        finalPTokens = parsedData.usageMetadata.promptTokenCount || 0;
+                        finalCacheTokens = parsedData.usageMetadata.cachedContentTokenCount || 0;
+                        finalCTokens = parsedData.usageMetadata.candidatesTokenCount || 0;
+                        finalTTokens = parsedData.usageMetadata.totalTokenCount || (finalPTokens + finalCTokens);
                     }
-                } catch (e) {
-                    // Ignore parse errors
                 }
             }
         }

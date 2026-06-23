@@ -70,6 +70,9 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
             </button>
             <h2 id="chat-title" style="flex: 1; text-align: center; margin: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;">New Chat</h2>
+            <button id="btn-expand-dialog" class="icon-btn" aria-label="Expand to Dialog" title="Mở rộng ra giữa màn hình" style="margin-right: 4px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+            </button>
             <button id="btn-chat-menu" class="icon-btn" aria-label="Menu">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
             </button>
@@ -220,7 +223,7 @@
                             <div class="custom-select-option" data-val="gemini" role="option">Google Gemini (3.5 Flash)</div>
                             <div class="custom-select-option" data-val="openai" role="option">OpenAI (GPT-5.4/mini)</div>
                             <div class="custom-select-option" data-val="deepseek" role="option">DeepSeek (v4-flash)</div>
-                            <div class="custom-select-option" data-val="minimax" role="option">MiniMax (M3)</div>
+                            <div class="custom-select-option dev-only" data-val="claude" role="option">Claude (Sonnet 4.5)</div>
                         </div>
                     </div>
                 </div>
@@ -281,7 +284,7 @@
                         <span data-i18n="shortcutToggleMenu" style="font-size: 13px; font-weight: 500; color: var(--color-text);">Open / Close menu</span>
                         <div class="kbd-group"><kbd>Alt</kbd> + <kbd>M</kbd></div>
                     </div>
-                    <div class="settings-row mb-16">
+                    <div class="settings-row mb-16" id="shortcut-thinking-row">
                         <span data-i18n="shortcutToggleThinking" style="font-size: 13px; font-weight: 500; color: var(--color-text);">Toggle Fast / Thinking</span>
                         <div class="kbd-group"><kbd>Alt</kbd> + <kbd>T</kbd></div>
                     </div>
@@ -318,7 +321,7 @@
                                 <div class="custom-select-option" data-val="gemini" role="option" style="padding: 6px 8px; font-size: 12px;">Google Gemini</div>
                                 <div class="custom-select-option" data-val="openai" role="option" style="padding: 6px 8px; font-size: 12px;">OpenAI</div>
                                 <div class="custom-select-option" data-val="deepseek" role="option" style="padding: 6px 8px; font-size: 12px;">DeepSeek</div>
-                                <div class="custom-select-option" data-val="minimax" role="option" style="padding: 6px 8px; font-size: 12px;">MiniMax</div>
+                                <div class="custom-select-option dev-only" data-val="claude" role="option" style="padding: 6px 8px; font-size: 12px;">Claude</div>
                             </div>
                         </div>
                     </div>

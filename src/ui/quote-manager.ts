@@ -18,6 +18,7 @@ export class QuoteManager {
     private btnRemoveQuote: HTMLElement | null;
     private btnAttachContext: HTMLElement | null;
     private chatInput: HTMLTextAreaElement | null;
+    private isPromptFixed: boolean = false;
 
     constructor() {
         this.selectionPrompt = document.getElementById("selection-prompt");
@@ -39,7 +40,8 @@ export class QuoteManager {
                 const text = this.extractTextFromSelection(selection).trim();
                 if (text && text.length > 0 && selection && selection.rangeCount > 0) {
                     this.currentTaskpaneSelection = text;
-                    const rect = selection.getRangeAt(0).getBoundingClientRect();
+                    const rects = selection.getRangeAt(0).getClientRects();
+                    const rect = rects.length > 0 ? rects[0] : selection.getRangeAt(0).getBoundingClientRect();
                     
                     const targetNode = selection.anchorNode;
                     const chatMsg = targetNode?.parentElement ? targetNode.parentElement.closest('.chat-msg') : null;
@@ -58,8 +60,9 @@ export class QuoteManager {
             }, 300);
         });
 
-        Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, this.onSelectionChanged.bind(this));
-
+        if (Office.context.document) {
+            Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, this.onSelectionChanged.bind(this));
+        }
         // Prevent losing selection when clicking the buttons
         this.btnQuoteSelection?.addEventListener("mousedown", (e) => e.preventDefault());
         this.btnAttachContext?.addEventListener("mousedown", (e) => e.preventDefault());
@@ -70,23 +73,46 @@ export class QuoteManager {
         this.btnRemoveQuote?.addEventListener("click", () => {
             this.clearQuote();
         });
+        
+        // Hoàn toàn không dùng Javascript để tính lại tọa độ khi cuộn
+        // Trình duyệt sẽ tự làm việc đó khi ta ném popup vào trong #chat-messages
     }
 
     private showSelectionPrompt(rect?: DOMRect) {
         if (this.selectionPrompt) {
             this.selectionPrompt.style.display = "flex";
             if (rect) {
-                this.selectionPrompt.style.position = "fixed";
-                let topPos = rect.top - 8;
-                let transformStr = "translate(-50%, -100%)";
-                if (topPos < 40) {
-                    topPos = rect.bottom + 8;
-                    transformStr = "translate(-50%, 0)";
+                this.isPromptFixed = true;
+                
+                const chatMessages = document.getElementById("chat-messages");
+                if (chatMessages && this.selectionPrompt.parentElement !== chatMessages) {
+                    chatMessages.appendChild(this.selectionPrompt);
                 }
+                
+                this.selectionPrompt.style.position = "absolute";
+                const containerRect = chatMessages ? chatMessages.getBoundingClientRect() : { top: 0, left: 0 };
+                const scrollTop = chatMessages ? chatMessages.scrollTop : 0;
+                
+                // rect lúc này là tọa độ của dòng chữ đầu tiên (rất chuẩn)
+                let topPos = rect.top - containerRect.top + scrollTop - 8;
+                let transformStr = "translate(-50%, -100%)";
+                
                 this.selectionPrompt.style.top = topPos + "px";
-                this.selectionPrompt.style.left = (rect.left + rect.width / 2) + "px";
+                this.selectionPrompt.style.left = (rect.left - containerRect.left + rect.width / 2) + "px";
                 this.selectionPrompt.style.transform = transformStr;
             } else {
+                this.isPromptFixed = false;
+                
+                const inputArea = document.querySelector(".chat-input-area");
+                if (inputArea && this.selectionPrompt.parentElement !== inputArea) {
+                    const wrapper = inputArea.querySelector(".chat-input-wrapper");
+                    if (wrapper) {
+                        inputArea.insertBefore(this.selectionPrompt, wrapper);
+                    } else {
+                        inputArea.appendChild(this.selectionPrompt);
+                    }
+                }
+                
                 this.selectionPrompt.style.position = "absolute";
                 this.selectionPrompt.style.top = "-46px";
                 this.selectionPrompt.style.left = "50%";
@@ -467,5 +493,20 @@ export class QuoteManager {
         this.currentQuotedText = "";
         this.isQuoteFromWord = false;
         if (this.quotedContext) this.quotedContext.style.display = "none";
+    }
+
+    public setQuote(text: string, isFromWord: boolean = false) {
+        if (!text) return;
+        this.currentQuotedText = text;
+        this.isQuoteFromWord = isFromWord;
+        this.quotedMsgType = null;
+        this.quotedMsgId = null;
+
+        if (this.quotedTextEl) {
+            const displayQuote = this.currentQuotedText.replace(/[\r\n]+/g, " ");
+            this.quotedTextEl.innerHTML = renderInlineMathPreview(displayQuote);
+        }
+        if (this.quotedContext) this.quotedContext.style.display = "flex";
+        if (this.selectionPrompt) this.selectionPrompt.style.display = "none";
     }
 }

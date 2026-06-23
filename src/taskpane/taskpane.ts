@@ -11,6 +11,10 @@ import { setupSessionOptions } from "../ui/session-options";
 import { handleSendChat } from "./chat-send";
 import { escapeHtml } from "../utils/helpers";
 
+if (process.env.NODE_ENV !== "development") {
+    document.querySelectorAll('.dev-only').forEach(el => el.remove());
+}
+
 Chart.register(...registerables);
 
 Office.onReady((info) => {
@@ -37,6 +41,8 @@ Office.onReady((info) => {
 
         let appLanguage: string = localStorage.getItem("auto_latex_language") || "en";
         let isThinkingMode = false;
+        let activeDialog: Office.Dialog | null = null;
+        let isStreamingChat = false;
         let searchChatQuery = "";
 
         if (appBody) appBody.style.display = "flex";
@@ -58,6 +64,14 @@ Office.onReady((info) => {
             applyLanguage(appLanguage);
         };
         settingsManager.init();
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === "auto_latex_language" && e.newValue && e.newValue !== appLanguage) {
+                appLanguage = e.newValue;
+                applyLanguage(appLanguage);
+                settingsManager.setAppLanguage(appLanguage);
+            }
+        });
 
         // Language
         const applyLanguage = (lang: string) => {
@@ -244,10 +258,15 @@ Office.onReady((info) => {
         const btnToggleThinking = document.getElementById("btn-toggle-thinking");
         const thinkingText = document.getElementById("thinking-text");
         
-        // Initial visibility check for thinking toggle
+        // Show thinking toggle unless provider is Claude (which thinks by default)
         import("../services/ai").then(({ getAISettings }) => {
-            if (btnToggleThinking && getAISettings().provider === "minimax") {
-                btnToggleThinking.style.display = "none";
+            const settings = getAISettings();
+            if (btnToggleThinking) {
+                if (settings.provider === 'claude') {
+                    btnToggleThinking.style.display = "none";
+                } else {
+                    btnToggleThinking.style.display = "";
+                }
             }
         });
 
@@ -264,6 +283,10 @@ Office.onReady((info) => {
 
         // View Toggles
         fabChat?.addEventListener("click", () => {
+            if (activeDialog) {
+                activeDialog.close();
+                activeDialog = null;
+            }
             if (mainView) {
                 mainView.classList.remove("view-visible");
                 mainView.classList.add("view-hidden");
@@ -278,6 +301,15 @@ Office.onReady((info) => {
             }
             const container = chatRenderer.container;
             if (container) container.scrollTop = container.scrollHeight;
+
+            // Refresh sessions and load draft
+            sessionManager.loadSessions();
+            updateSidebar();
+            renderCurrentChat();
+            
+            const draft = sessionManager.loadDraft();
+            if (draft.prompt) chatInput.value = draft.prompt;
+            if (draft.quote && draft.quote.text) quoteManager.setQuote(draft.quote.text, draft.quote.isFromWord);
         });
 
         btnBack?.addEventListener("click", () => {
@@ -295,6 +327,54 @@ Office.onReady((info) => {
             }
         });
 
+        const btnExpandDialog = document.getElementById("btn-expand-dialog") as HTMLButtonElement;
+        if (btnExpandDialog) {
+            btnExpandDialog.addEventListener("click", () => {
+                if (isStreamingChat) return; // Prevent switching if streaming
+                
+                // Save draft
+                const currentPrompt = chatInput.value.trim();
+                const currentQuote = quoteManager.currentQuotedText || "";
+                const isFromWord = quoteManager.isQuoteFromWord;
+                sessionManager.saveDraft(currentPrompt, currentQuote, isFromWord);
+                
+                // Switch to main view locally
+                btnBack?.click();
+                
+                // Open Dialog
+                const dialogUrl = new URL("dialog.html", window.location.href).href;
+                Office.context.ui.displayDialogAsync(dialogUrl, { height: 75, width: 65, promptBeforeOpen: false }, (result) => {
+                    if (result.status === Office.AsyncResultStatus.Succeeded) {
+                        activeDialog = result.value;
+                        activeDialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg: any) => {
+                            const msg = JSON.parse(arg.message);
+                            if (msg.type === "dialogClosed") {
+                                activeDialog?.close();
+                                activeDialog = null;
+                                sessionManager.loadSessions();
+                                updateSidebar();
+                                renderCurrentChat();
+                                const draft = sessionManager.loadDraft();
+                                if (draft.prompt) chatInput.value = draft.prompt;
+                                if (draft.quote && draft.quote.text) quoteManager.setQuote(draft.quote.text, draft.quote.isFromWord);
+                            }
+                        });
+                        activeDialog.addEventHandler(Office.EventType.DialogEventReceived, (arg: any) => {
+                            if (arg.error === 12006) {
+                                activeDialog = null;
+                                sessionManager.loadSessions();
+                                updateSidebar();
+                                renderCurrentChat();
+                                const draft = sessionManager.loadDraft();
+                                if (draft.prompt) chatInput.value = draft.prompt;
+                                if (draft.quote && draft.quote.text) quoteManager.setQuote(draft.quote.text, draft.quote.isFromWord);
+                            }
+                        });
+                    }
+                });
+            });
+        }
+
         // Custom Select dismiss global listener
         document.addEventListener("click", () => {
             document.querySelectorAll(".custom-select-options").forEach(el => (el as HTMLElement).style.display = "none");
@@ -306,7 +386,6 @@ Office.onReady((info) => {
         
         // Send Chat action
         const onSendChat = () => {
-            if (btnSendChat.disabled) return;
             handleSendChat({
                 sessionManager,
                 quoteManager,
@@ -314,7 +393,14 @@ Office.onReady((info) => {
                 getLanguage: () => appLanguage,
                 getThinkingMode: () => isThinkingMode,
                 chatInput,
-                btnSendChat
+                btnSendChat,
+                onStreamingStateChange: (isStreaming) => {
+                    isStreamingChat = isStreaming;
+                    if (btnExpandDialog) {
+                        btnExpandDialog.style.opacity = isStreaming ? "0.5" : "1";
+                        btnExpandDialog.style.pointerEvents = isStreaming ? "none" : "auto";
+                    }
+                }
             });
             localStorage.removeItem(draftKey);
         };

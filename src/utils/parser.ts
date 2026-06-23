@@ -12,7 +12,29 @@ export const parseMarkdown = (text: string) => {
 };
 
 export const renderInlineMathPreview = (text: string) => {
-    const parts = text.split(/(<\s*block_formula\s*>[\s\S]*?<\s*\/\s*block_formula\s*>|<\s*inline_formula\s*>[\s\S]*?<\s*\/\s*inline_formula\s*>|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\\\([\s\S]*?\\\)|\$(?:(?!\n\s*\n)[^\$])+\$)/gi);
+    let processedText = text;
+    
+    // Auto-close unclosed tags at the end of the text (useful for streaming)
+    const blockOpen = (processedText.match(/<block_formula>/gi) || []).length;
+    const blockClose = (processedText.match(/<\/\s*block_formula>/gi) || []).length;
+    if (blockOpen > blockClose) processedText += '</block_formula>';
+
+    const inlineOpen = (processedText.match(/<inline_formula>/gi) || []).length;
+    const inlineClose = (processedText.match(/<\/\s*inline_formula>/gi) || []).length;
+    if (inlineOpen > inlineClose) processedText += '</inline_formula>';
+
+    const bracketOpen = (processedText.match(/\\\[/g) || []).length;
+    const bracketClose = (processedText.match(/\\\]/g) || []).length;
+    if (bracketOpen > bracketClose) processedText += '\\]';
+
+    const parenOpen = (processedText.match(/\\\(/g) || []).length;
+    const parenClose = (processedText.match(/\\\)/g) || []).length;
+    if (parenOpen > parenClose) processedText += '\\)';
+
+    const dollarCount = (processedText.match(/\$\$/g) || []).length;
+    if (dollarCount % 2 !== 0) processedText += '$$';
+
+    const parts = processedText.split(/(<\s*block_formula\s*>[\s\S]*?<\s*\/\s*block_formula\s*>|<\s*inline_formula\s*>[\s\S]*?<\s*\/\s*inline_formula\s*>|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\\\([\s\S]*?\\\)|\$(?:(?!\n\s*\n)[^\$])+\$)/gi);
     
     let html = "";
     for (const part of parts) {
@@ -42,10 +64,25 @@ export const renderInlineMathPreview = (text: string) => {
         }
 
         if (isMath && latex.trim()) {
-            const clean = sanitizeLaTeX(latex, true);
-            const rendered = getKaTeXHtml(clean, true);
-            if (rendered) {
+            let clean = sanitizeLaTeX(latex, true);
+            let rendered = getKaTeXHtml(clean, true);
+            
+            // Nếu KaTeX báo lỗi (thường là do stream dở dang), tiến hành tự động vá ngoặc
+            if (rendered && rendered.includes('class="katex-error"')) {
+                const autoClosedLatex = autoCloseLatex(clean);
+                const healedRendered = getKaTeXHtml(autoClosedLatex, true);
+                if (healedRendered && !healedRendered.includes('class="katex-error"')) {
+                    rendered = healedRendered;
+                }
+            }
+
+            if (rendered && !rendered.includes('class="katex-error"')) {
                 html += `<span class="preview-math" style="display: inline-flex; align-items: center;">${rendered}</span>`;
+            } else if (rendered && rendered.includes('class="katex-error"')) {
+                // Nếu vẫn lỗi sau khi vá (hoặc chưa vá hết), hiển thị khung loading mờ
+                html += `<span class="preview-math math-loading" style="display: inline-flex; align-items: center; opacity: 0.6; filter: blur(1px);">` + 
+                        (rendered.replace(/<span class="katex-error"[^>]*>([\s\S]*?)<\/span>/gi, "$1")) + 
+                        `</span>`;
             } else {
                 html += escapeHtml(part);
             }
@@ -55,6 +92,55 @@ export const renderInlineMathPreview = (text: string) => {
     }
     return html;
 };
+
+// Hàm tự động đóng ngoặc và các lệnh \left chưa hoàn thiện
+function autoCloseLatex(latex: string): string {
+    const stack: string[] = [];
+    let i = 0;
+    while (i < latex.length) {
+        if (latex[i] === '\\') {
+            const matchLeft = latex.substring(i).match(/^\\left([()\[\]{}|.\\])/);
+            if (matchLeft) {
+                const delim = matchLeft[1];
+                if (delim === '(') stack.push('\\right)');
+                else if (delim === '[') stack.push('\\right]');
+                else if (delim === '{' || delim === '\\') stack.push('\\right\\}');
+                else if (delim === '|') stack.push('\\right|');
+                else if (delim === '.') stack.push('\\right.');
+                i += matchLeft[0].length;
+                continue;
+            }
+            
+            const matchRight = latex.substring(i).match(/^\\right([()\[\]{}|.\\])/);
+            if (matchRight) {
+                if (stack.length > 0 && stack[stack.length - 1].startsWith('\\right')) {
+                    stack.pop();
+                }
+                i += matchRight[0].length;
+                continue;
+            }
+            // Skip escaped chars
+            if (i + 1 < latex.length && (latex[i+1] === '{' || latex[i+1] === '}')) {
+                i += 2;
+                continue;
+            }
+        }
+        
+        if (latex[i] === '{') {
+            stack.push('}');
+        } else if (latex[i] === '}') {
+            if (stack.length > 0 && stack[stack.length - 1] === '}') stack.pop();
+        }
+        i++;
+    }
+    
+    // Đắp thêm các đuôi còn thiếu vào cuối
+    let healed = latex;
+    while (stack.length > 0) {
+        healed += stack.pop();
+    }
+    return healed;
+}
 
 export const processSegments = (textStr: string) => {
     // Restrict inline $ to not span across paragraphs (double newlines) to prevent runaway math blocks

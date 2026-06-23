@@ -133,4 +133,24 @@ export class SessionManager {
         this.saveSessions();
         this.onSessionSwitched(session);
     }
+
+    public saveDraft(prompt: string, quoteText: string, isFromWord: boolean) {
+        localStorage.setItem('auto_latex_draft_prompt', prompt);
+        localStorage.setItem('auto_latex_draft_quote', JSON.stringify({text: quoteText, isFromWord}));
+    }
+
+    public loadDraft() {
+        const prompt = localStorage.getItem('auto_latex_draft_prompt') || '';
+        let quote = { text: '', isFromWord: false };
+        try {
+            const quoteStr = localStorage.getItem('auto_latex_draft_quote');
+            if (quoteStr) quote = JSON.parse(quoteStr);
+        } catch(e) {}
+        
+        // Chỉ đọc 1 lần (pop)
+        localStorage.removeItem('auto_latex_draft_prompt');
+        localStorage.removeItem('auto_latex_draft_quote');
+        
+        return { prompt, quote };
+    }
 }

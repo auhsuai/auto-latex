@@ -44,6 +44,7 @@
 }
 
 #chat-view {
+    position: relative;
     height: 100%;
     width: 100%;
     overflow: hidden;
@@ -78,7 +79,6 @@
     gap: 16px;
     background-color: var(--color-background);
     position: relative;
-    scroll-behavior: smooth;
     /* Hide scrollbar */
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -213,6 +213,7 @@
     overflow-x: auto;
     overflow-y: auto;
     padding: 4px 0; /* Thêm padding để không cắt cụt thanh ngang của căn/mũ cao */
+    margin: 0 !important; /* Xóa margin mặc định để khung hover ôm khít chiều cao */
     /* Để inline math có thể giới hạn max-width và overflow, cần đổi thành inline-block */
     display: inline-block;
     vertical-align: middle;
@@ -223,6 +224,7 @@
     overflow-x: auto;
     overflow-y: auto;
     padding: 4px 0;
+    width: fit-content;
 }
 
 .preview-math {

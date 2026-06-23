@@ -23,6 +23,10 @@
     --shadow-float: 0 8px 16px rgba(43, 87, 154, 0.2);
 }
 
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 html, body {
     width: 100%;
     height: 100%;
