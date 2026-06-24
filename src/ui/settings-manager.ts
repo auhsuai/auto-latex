@@ -277,11 +277,9 @@ export class SettingsManager {
             const providerMap: Record<string, string> = {
                 'gemini': 'Google Gemini',
                 'openai': 'OpenAI',
-                'deepseek': 'DeepSeek'
+                'deepseek': 'DeepSeek',
+                'kira': 'Kira AI'
             };
-            if (process.env.NODE_ENV === "development") {
-                providerMap['claude'] = 'Claude';
-            }
 
             const providers = Object.keys(stats.providersTotal);
             providers.forEach(provider => {

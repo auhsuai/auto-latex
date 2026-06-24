@@ -52,10 +52,9 @@ export const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>, sel
     const apiDatasets: any[] = [];
 
     if (isAll) {
-        const isDev = process.env.NODE_ENV === "development";
-        const providers = isDev ? ['openai', 'gemini', 'deepseek', 'claude'] : ['openai', 'gemini', 'deepseek'];
-        const providerColors: Record<string, string> = { openai: '#93c5fd', gemini: '#60a5fa', deepseek: '#3b82f6', claude: '#1d4ed8' };
-        const providerNames: Record<string, string> = { openai: 'OpenAI', gemini: 'Gemini', deepseek: 'DeepSeek', claude: 'Claude' };
+        const providers = ['openai', 'gemini', 'deepseek', 'kira'];
+        const providerColors: Record<string, string> = { openai: '#93c5fd', gemini: '#60a5fa', deepseek: '#3b82f6', kira: '#2563eb' };
+        const providerNames: Record<string, string> = { openai: 'OpenAI', gemini: 'Gemini', deepseek: 'DeepSeek', kira: 'Kira AI' };
 
         for (let p = 0; p < providers.length; p++) {
             const pName = providers[p];
@@ -63,7 +62,8 @@ export const renderUsageCharts = (stats: ReturnType<typeof getAIUsageStats>, sel
             for (let i = 6; i >= 0; i--) {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
-                const dateString = d.toISOString().split('T')[0];
+                const localD = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+                const dateString = localD.toISOString().split('T')[0];
                 const val = stats.daily[dateString]?.providers?.[pName]?.apiCalls || 0;
                 pData.push(val);
             }

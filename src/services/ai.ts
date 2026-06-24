@@ -1,4 +1,4 @@
-export type AIProvider = 'openai' | 'gemini' | 'deepseek' | 'claude';
+export type AIProvider = 'openai' | 'gemini' | 'deepseek' | 'kira';
 
 export interface AISettings {
     provider: AIProvider;
@@ -30,7 +30,12 @@ export function getAISettings(): AISettings {
 }
 
 export function saveAISettings(settings: AISettings) {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch (e) {
+        console.error("Failed to save AI settings (localStorage quota exceeded?)", e);
+        throw new Error("Failed to save settings. Please clear browser data or disable auto-save.");
+    }
 }
 
 const USAGE_KEY = 'auto_latex_ai_usage_v2';
@@ -125,7 +130,12 @@ export function updateAIUsageStats(provider: string, promptTokens: number, cache
     stats.daily[today].providers[provider].completionTokens += completionTokens;
     stats.daily[today].providers[provider].totalTokens += totalTokens;
 
-    localStorage.setItem(USAGE_KEY, JSON.stringify(stats));
+    try {
+        localStorage.setItem(USAGE_KEY, JSON.stringify(stats));
+    } catch (e) {
+        console.error("Failed to save AI usage stats (localStorage quota exceeded?)", e);
+        // Don't throw - usage stats are non-critical
+    }
 }
 
 
@@ -275,14 +285,9 @@ export async function sendChatMessage(
     } else if (settings.provider === 'gemini') {
         const model = "gemini-3.5-flash";
         return callGeminiStream(settings.provider, messagesToSend, apiKey, currentSystemPrompt, model, isThinkingMode, onChunk);
-    } else if (settings.provider === 'claude') {
-        const model = "claude-sonnet-4.5";
-        const extraBodyParams = { 
-            max_tokens: 8192, 
-            stream_options: undefined 
-        };
-        // Sử dụng Server-to-Server Proxy để vượt CORS
-        return callOpenAICompatibleStream(settings.provider, messagesToSend, apiKey, "http://localhost:3001/v1/chat/completions", model, currentSystemPrompt, extraBodyParams, onChunk);
+    } else if (settings.provider === 'kira') {
+        const model = "kira-mini-1.0";
+        return callOpenAICompatibleStream(settings.provider, messagesToSend, apiKey, "https://kiraai.vn/api/v1/chat/completions", model, currentSystemPrompt, {}, onChunk);
     } else {
         throw new Error(`Unsupported AI provider: ${settings.provider}`);
     }
@@ -383,6 +388,12 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
                 }
             }
         }
+    }
+    
+    if (finalPTokens === 0 && finalCTokens === 0) {
+        finalPTokens = Math.ceil(JSON.stringify(history).length / 4) + Math.ceil(fullSystemPrompt.length / 4);
+        finalCTokens = Math.ceil(fullContent.length / 4);
+        finalTTokens = finalPTokens + finalCTokens;
     }
     
     updateAIUsageStats(provider, finalPTokens, finalCacheTokens, finalCTokens, finalTTokens || (finalPTokens + finalCTokens));

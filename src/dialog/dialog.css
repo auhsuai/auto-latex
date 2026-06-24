@@ -1,0 +1,44 @@
+/* Dialog-specific CSS overrides */
+
+body.dialog-body {
+    background-color: var(--color-bg);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100vh;
+}
+
+#chat-view {
+    height: 100vh;
+    width: 100vw;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+}
+
+/* Make chat input area slightly larger in dialog */
+.chat-input-area {
+    padding: 16px;
+}
+
+.chat-input-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.chat-messages {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px 36px 20px 20px;
+}
+
+/* Hide back button since there is no main view */
+#btn-back {
+    display: none !important;
+}
+
+/* Center the chat title nicely since back button is gone */
+.chat-header {
+    justify-content: space-between;
+    padding: 0 16px;
+}

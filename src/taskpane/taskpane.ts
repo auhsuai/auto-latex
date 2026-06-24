@@ -258,11 +258,11 @@ Office.onReady((info) => {
         const btnToggleThinking = document.getElementById("btn-toggle-thinking");
         const thinkingText = document.getElementById("thinking-text");
         
-        // Show thinking toggle unless provider is Claude (which thinks by default)
+        // Show thinking toggle unless provider is Kira (no deep thinking support)
         import("../services/ai").then(({ getAISettings }) => {
             const settings = getAISettings();
             if (btnToggleThinking) {
-                if (settings.provider === 'claude') {
+                if (settings.provider === 'kira') {
                     btnToggleThinking.style.display = "none";
                 } else {
                     btnToggleThinking.style.display = "";
@@ -346,19 +346,31 @@ Office.onReady((info) => {
                 Office.context.ui.displayDialogAsync(dialogUrl, { height: 75, width: 65, promptBeforeOpen: false }, (result) => {
                     if (result.status === Office.AsyncResultStatus.Succeeded) {
                         activeDialog = result.value;
-                        activeDialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg: any) => {
+                        const msgHandler = (arg: any) => {
                             const msg = JSON.parse(arg.message);
-                            if (msg.type === "dialogClosed") {
+                            if (msg.type === "dialogClosed" || msg.type === "reopenFullscreen") {
                                 activeDialog?.close();
                                 activeDialog = null;
-                                sessionManager.loadSessions();
-                                updateSidebar();
-                                renderCurrentChat();
-                                const draft = sessionManager.loadDraft();
-                                if (draft.prompt) chatInput.value = draft.prompt;
-                                if (draft.quote && draft.quote.text) quoteManager.setQuote(draft.quote.text, draft.quote.isFromWord);
+                                if (msg.type === "reopenFullscreen") {
+                                    setTimeout(() => {
+                                        Office.context.ui.displayDialogAsync(dialogUrl, { height: 100, width: 100, promptBeforeOpen: false }, (res) => {
+                                            if (res.status === Office.AsyncResultStatus.Succeeded) {
+                                                activeDialog = res.value;
+                                                activeDialog.addEventHandler(Office.EventType.DialogMessageReceived, msgHandler);
+                                            }
+                                        });
+                                    }, 500);
+                                } else {
+                                    sessionManager.loadSessions();
+                                    updateSidebar();
+                                    renderCurrentChat();
+                                    const draft = sessionManager.loadDraft();
+                                    if (draft.prompt) chatInput.value = draft.prompt;
+                                    if (draft.quote && draft.quote.text) quoteManager.setQuote(draft.quote.text, draft.quote.isFromWord);
+                                }
                             }
-                        });
+                        };
+                        activeDialog.addEventHandler(Office.EventType.DialogMessageReceived, msgHandler);
                         activeDialog.addEventHandler(Office.EventType.DialogEventReceived, (arg: any) => {
                             if (arg.error === 12006) {
                                 activeDialog = null;
