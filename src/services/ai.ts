@@ -77,7 +77,7 @@ export function getAIUsageStats(): AIUsageData {
                 if (!data.daily[key].providers) data.daily[key].providers = {};
             }
             return data;
-        } catch (e) {}
+        } catch (e) { }
     }
     return { total: getEmptyUsage(), providersTotal: {}, daily: {} };
 }
@@ -151,6 +151,7 @@ QUY ĐỊNH ĐỊNH DẠNG PHẢN HỒI (RẤT QUAN TRỌNG):
 6. Tuyệt đối KHÔNG ĐƯỢC có ký tự xuống dòng thực tế (newline) ngay sau dấu > của thẻ mở <inline_formula> hoặc <block_formula>. Hãy viết liền mạch mã LaTeX ngay trên cùng một dòng. Xuống dòng thừa sẽ làm vỡ giao diện công thức.
 7. Vui lòng phản hồi tự nhiên như một con người và không giải thích các quy tắc kỹ thuật này với người dùng.
 8. Hãy linh hoạt định dạng nội dung (danh sách, đoạn văn) tùy theo ngữ cảnh, không rập khuôn đánh số nếu không cần thiết.
+9. CHỈ THỊ BẮT BUỘC (INLINE MATH): Mọi công thức toán học, biến số đơn lẻ (như m_0, v_e), hoặc ký hiệu khoa học nằm xen kẽ trong văn bản (cả trong lẫn ngoài các thẻ XML) ĐỀU PHẢI luôn được bọc trong cặp dấu $ (Ví dụ: $v_e$, $m_0$, $\Delta v$). Tuyệt đối không được xuất các biến số dưới dạng văn bản thường trần trụi.
 
 MỘT SỐ VÍ DỤ:
 KHI NGƯỜI DÙNG YÊU CẦU CHÈN NỘI DUNG MỚI:
@@ -163,7 +164,7 @@ Bình phương của một tổng:
 Bình phương của một hiệu:
 <block_formula>(a-b)^2 = a^2 - 2ab + b^2</block_formula>
 </insert>
-Bạn có thể ấn nút Apply để dán thẳng vào Word nha. Chúc bạn học tốt!
+Đây là một số hằng đẳng thức đáng nhớ, bạn có muốn tìm hiểu thêm về lịch sử phát triển của nó không?
 
 KHI NGƯỜI DÙNG YÊU CẦU CHỈNH SỬA TÀI LIỆU (Thay đổi văn bản hiện có):
 1. Hệ thống sẽ cung cấp cho bạn ngữ cảnh hiện tại của tài liệu (Văn bản đang bôi đen, hoặc Đoạn văn chứa con trỏ chuột).
@@ -201,8 +202,8 @@ export interface DocumentContext {
 }
 
 export async function sendChatMessage(
-    history: ChatMessage[], 
-    contextText: string = "", 
+    history: ChatMessage[],
+    contextText: string = "",
     appLanguage: string = "en",
     documentContext?: DocumentContext,
     isThinkingMode: boolean = false,
@@ -215,10 +216,10 @@ export async function sendChatMessage(
     }
 
     // Prepare static system prompt
-    const langInstruction = appLanguage === "vi" 
+    const langInstruction = appLanguage === "vi"
         ? "\n\n7. QUAN TRỌNG: Hãy ưu tiên trả lời bằng Tiếng Việt."
         : "\n\n7. IMPORTANT: Please prioritize replying in English.";
-        
+
     const autoApplyInstruction = settings.autoApplyEdits
         ? "\n\n8. LƯU Ý HỆ THỐNG: Chế độ 'Auto-Apply' ĐANG BẬT. Bất kỳ thẻ XML nào bạn xuất ra sẽ TỰ ĐỘNG CHÈN vào Word ngay lập tức. TUYỆT ĐỐI KHÔNG dặn người dùng 'hãy bấm nút Apply'. Ở cuối câu trả lời, hãy luôn gợi ý một câu hỏi mở ngắn gọn để người dùng có thể tiếp tục trò chuyện."
         : "\n\n8. LƯU Ý HỆ THỐNG: TUYỆT ĐỐI KHÔNG nhắc người dùng 'hãy bấm nút Apply' hay hướng dẫn cách chèn vào Word. Thay vào đó, ở cuối câu trả lời, hãy luôn gợi ý một câu hỏi mở ngắn gọn liên quan đến chủ đề để người dùng có thể tiếp tục trò chuyện.";
@@ -305,7 +306,7 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
         stream_options: { include_usage: true },
         ...extraBodyParams
     };
-    
+
     if (extraBodyParams.thinking && extraBodyParams.thinking.type === "enabled") {
         delete body.temperature;
     }
@@ -355,7 +356,7 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
                 } catch (e) {
                     // Ignore parsing errors for partial chunks
                 }
-                
+
                 if (parsedData) {
                     if (parsedData.error) {
                         throw new Error(parsedData.error.message || JSON.stringify(parsedData.error));
@@ -389,21 +390,21 @@ async function callOpenAICompatibleStream(provider: string, history: ChatMessage
             }
         }
     }
-    
+
     if (finalPTokens === 0 && finalCTokens === 0) {
         finalPTokens = Math.ceil(JSON.stringify(history).length / 4) + Math.ceil(fullSystemPrompt.length / 4);
         finalCTokens = Math.ceil(fullContent.length / 4);
         finalTTokens = finalPTokens + finalCTokens;
     }
-    
+
     updateAIUsageStats(provider, finalPTokens, finalCacheTokens, finalCTokens, finalTTokens || (finalPTokens + finalCTokens));
-    
+
     return fullContent.trim();
 }
 
 async function callGeminiStream(provider: string, history: ChatMessage[], apiKey: string, fullSystemPrompt: string, model: string = "gemini-1.5-flash", isThinkingMode: boolean = false, onChunk?: (text: string) => void): Promise<string> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-    
+
     const geminiContents: any[] = [];
     for (const msg of history) {
         const role = msg.role === "assistant" ? "model" : "user";
@@ -467,7 +468,7 @@ async function callGeminiStream(provider: string, history: ChatMessage[], apiKey
                 } catch (e) {
                     // Ignore parse errors
                 }
-                
+
                 if (parsedData) {
                     if (parsedData.error) {
                         throw new Error(parsedData.error.message || JSON.stringify(parsedData.error));
@@ -487,8 +488,8 @@ async function callGeminiStream(provider: string, history: ChatMessage[], apiKey
             }
         }
     }
-    
+
     updateAIUsageStats(provider, finalPTokens, finalCacheTokens, finalCTokens, finalTTokens || (finalPTokens + finalCTokens));
-    
+
     return fullContent.trim();
 }

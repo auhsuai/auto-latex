@@ -301,8 +301,14 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                     else if (type === "replace_search") await DocumentEditor.replaceSearchTerm(target, wordHtmlContent);
                     else if (type === "replace_heading") await DocumentEditor.replaceHeadingContent(target, wordHtmlContent);
                     appliedChanges = true;
-                }
-                if (!isDialog && !settings.autoApplyEdits) {
+                    
+                    const successText = appLanguage === "vi" ? "Đã tự động áp dụng" : "Auto-applied";
+                    pendingEditsHtml += `<div class="pending-edit-card" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
+                        <button class="btn-toolbar-action btn-apply-edit" disabled>
+                            <span style="color: var(--color-success, #107c41); font-weight: 500;">${successText}</span>
+                        </button>
+                    </div>`;
+                } else if (!appliedChanges) {
                     const safeContent = encodeURIComponent(wordHtmlContent);
                     const safeTarget = encodeURIComponent(target);
                     pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="${type}" data-edit-content="${safeContent}" data-edit-target="${safeTarget}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
@@ -377,8 +383,8 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                 }
             }
         }
-        if (hasWordContent && !isDialog) {
-            const shouldAutoApply = settings.autoApplyEdits && !isPlainResponse;
+        if (hasWordContent) {
+            const shouldAutoApply = !isDialog && settings.autoApplyEdits && !isPlainResponse;
             
             if (shouldAutoApply) {
                 await Word.run(async (context) => {
@@ -392,6 +398,13 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                     await context.sync();
                 });
                 appliedChanges = true;
+                
+                const successText = appLanguage === "vi" ? "Đã tự động áp dụng" : "Auto-applied";
+                pendingEditsHtml += `<div class="pending-edit-card" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
+                    <button class="btn-toolbar-action btn-apply-edit" disabled>
+                        <span style="color: var(--color-success, #107c41); font-weight: 500;">${successText}</span>
+                    </button>
+                </div>`;
             } else {
                 const safeContent = encodeURIComponent(wordHtml);
                 pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="insert_html" data-edit-content="${safeContent}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
@@ -422,16 +435,14 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
             sessionManager.saveSessions();
 
             if (appliedChanges && msgDiv) {
-                const btns = msgDiv.querySelectorAll(".btn-apply-edit");
+                // Since we already render the auto-applied button above, we don't strictly need this,
+                // but we keep it to ensure any other existing buttons are disabled.
+                const btns = msgDiv.querySelectorAll(".btn-apply-edit:not([disabled])");
                 const notifText = appLanguage === "vi" ? "Thành công!" : "Success!";
                 btns.forEach(btn => {
                     const target = btn as HTMLButtonElement;
                     target.innerHTML = `<span style="color: var(--color-text-muted); font-weight: 500; font-size: 13px; display: inline-flex; align-items: center; padding: 4px 6px;">${notifText}</span>`;
                     target.disabled = true;
-                    setTimeout(() => {
-                        target.innerHTML = `<span style="font-weight: 500;">${btnApplyText}</span>`;
-                        target.disabled = false;
-                    }, 10000);
                 });
             }
         }

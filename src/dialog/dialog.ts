@@ -18,6 +18,14 @@ let appLanguage: string;
 let isThinkingMode = false;
 let searchChatQuery = "";
 
+// Add styles specific to dialog to hide Apply buttons, since they can't be used here.
+const style = document.createElement("style");
+style.innerHTML = `
+    .btn-apply-edit { display: none !important; }
+    .btn-apply-heading { display: none !important; }
+`;
+document.head.appendChild(style);
+
 Office.onReady(async (info) => {
     if (info.host === Office.HostType.Word) {
         await initDialog();
