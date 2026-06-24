@@ -161,6 +161,29 @@
     opacity: 1;
 }
 
+.minimap-custom-tooltip {
+    position: fixed;
+    z-index: 9999;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.02);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+}
+
+.minimap-custom-tooltip.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
 .chat-msg {
     display: flex;
     flex-direction: column;

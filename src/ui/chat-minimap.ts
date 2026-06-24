@@ -2,6 +2,23 @@ export class ChatMinimapManager {
     private minimapContainer: HTMLElement | null = null;
     private observer: IntersectionObserver | null = null;
     private visibleElements = new Set<Element>();
+    private tooltipEl: HTMLElement | null = null;
+    private tooltipTimeout: number | null = null;
+
+    private initTooltip() {
+        if (this.tooltipEl) return;
+        this.tooltipEl = document.createElement("div");
+        this.tooltipEl.className = "minimap-custom-tooltip";
+        this.tooltipEl.style.pointerEvents = "none"; // Ép buộc không chặn sự kiện
+        document.body.appendChild(this.tooltipEl);
+        
+        // Ẩn tooltip ngay lập tức khi người dùng cuộn chuột (giống native tooltip)
+        const hideTooltip = () => {
+            if (this.tooltipEl) this.tooltipEl.classList.remove("visible");
+        };
+        window.addEventListener("wheel", hideTooltip, { passive: true });
+        window.addEventListener("touchmove", hideTooltip, { passive: true });
+    }
 
     constructor(
         private chatMessagesContainerId: string,
@@ -109,10 +126,60 @@ export class ChatMinimapManager {
                 const dash = document.createElement("div");
                 dash.className = "minimap-dash";
                 dash.setAttribute("data-turn-id", currentTurnId);
-                dash.title = "Jump to this conversation part";
+                
+                // Get user message text for tooltip
+                let msgText = msg.textContent || "";
+                msgText = msgText.trim();
+                if (msgText.length > 30) {
+                    msgText = msgText.substring(0, 27) + "...";
+                }
+                const displayMsgText = msgText || "Jump to this conversation part";
 
-                // Click to scroll to the start of the turn (user msg)
+                dash.addEventListener("mouseenter", (e: MouseEvent) => {
+                    this.tooltipTimeout = window.setTimeout(() => {
+                        this.initTooltip();
+                        this.tooltipEl!.textContent = displayMsgText;
+                        
+                        // Cần reset right trước khi lấy kích thước
+                        this.tooltipEl!.style.right = 'auto';
+                        
+                        const tooltipHeight = this.tooltipEl!.offsetHeight;
+                        const tooltipWidth = this.tooltipEl!.offsetWidth;
+                        
+                        let top = e.clientY + 15;
+                        let left = e.clientX - tooltipWidth / 2;
+                        
+                        // Chống tràn lề phải
+                        if (left + tooltipWidth > window.innerWidth) {
+                            left = window.innerWidth - tooltipWidth - 10;
+                        }
+                        // Chống tràn lề trái
+                        if (left < 10) {
+                            left = 10;
+                        }
+                        // Chống tràn đáy
+                        if (top + tooltipHeight > window.innerHeight) {
+                            top = e.clientY - tooltipHeight - 15;
+                        }
+                        
+                        this.tooltipEl!.style.top = `${top}px`;
+                        this.tooltipEl!.style.left = `${left}px`;
+                        
+                        this.tooltipEl!.classList.add("visible");
+                    }, 400);
+                });
+
+                dash.addEventListener("mouseleave", () => {
+                    if (this.tooltipTimeout) window.clearTimeout(this.tooltipTimeout);
+                    if (this.tooltipEl) {
+                        this.tooltipEl.classList.remove("visible");
+                    }
+                });
+
+                // Clear tooltip on click as well
                 dash.addEventListener("click", () => {
+                    if (this.tooltipTimeout) window.clearTimeout(this.tooltipTimeout);
+                    if (this.tooltipEl) this.tooltipEl.classList.remove("visible");
                     msg.scrollIntoView({ behavior: "smooth", block: "start" });
                 });
 
