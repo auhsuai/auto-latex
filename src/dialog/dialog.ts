@@ -18,9 +18,9 @@ let appLanguage: string;
 let isThinkingMode = false;
 let searchChatQuery = "";
 
-Office.onReady((info) => {
+Office.onReady(async (info) => {
     if (info.host === Office.HostType.Word) {
-        initDialog();
+        await initDialog();
     }
 });
 
@@ -201,7 +201,7 @@ async function initDialog() {
     });
 
     // Load Sessions and Draft
-    sessionManager.loadSessions();
+    await sessionManager.loadSessions(false); // Do not migrate in dialog
     const draft = sessionManager.loadDraft();
     if (draft.prompt) {
         chatInput.value = draft.prompt;

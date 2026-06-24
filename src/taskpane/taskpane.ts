@@ -17,7 +17,7 @@ if (process.env.NODE_ENV !== "development") {
 
 Chart.register(...registerables);
 
-Office.onReady((info) => {
+Office.onReady(async (info) => {
     if (info.host === Office.HostType.Word) {
         // Elements
         const mainView = document.getElementById("main-view");
@@ -282,7 +282,7 @@ Office.onReady((info) => {
         });
 
         // View Toggles
-        fabChat?.addEventListener("click", () => {
+        fabChat?.addEventListener("click", async () => {
             if (activeDialog) {
                 activeDialog.close();
                 activeDialog = null;
@@ -303,7 +303,7 @@ Office.onReady((info) => {
             if (container) container.scrollTop = container.scrollHeight;
 
             // Refresh sessions and load draft
-            sessionManager.loadSessions();
+            await sessionManager.loadSessions(true);
             updateSidebar();
             renderCurrentChat();
             
@@ -346,7 +346,7 @@ Office.onReady((info) => {
                 Office.context.ui.displayDialogAsync(dialogUrl, { height: 75, width: 65, promptBeforeOpen: false }, (result) => {
                     if (result.status === Office.AsyncResultStatus.Succeeded) {
                         activeDialog = result.value;
-                        const msgHandler = (arg: any) => {
+                        const msgHandler = async (arg: any) => {
                             const msg = JSON.parse(arg.message);
                             if (msg.type === "dialogClosed" || msg.type === "reopenFullscreen") {
                                 activeDialog?.close();
@@ -361,7 +361,7 @@ Office.onReady((info) => {
                                         });
                                     }, 500);
                                 } else {
-                                    sessionManager.loadSessions();
+                                    await sessionManager.loadSessions(true);
                                     updateSidebar();
                                     renderCurrentChat();
                                     const draft = sessionManager.loadDraft();
@@ -371,10 +371,10 @@ Office.onReady((info) => {
                             }
                         };
                         activeDialog.addEventHandler(Office.EventType.DialogMessageReceived, msgHandler);
-                        activeDialog.addEventHandler(Office.EventType.DialogEventReceived, (arg: any) => {
+                        activeDialog.addEventHandler(Office.EventType.DialogEventReceived, async (arg: any) => {
                             if (arg.error === 12006) {
                                 activeDialog = null;
-                                sessionManager.loadSessions();
+                                await sessionManager.loadSessions(true);
                                 updateSidebar();
                                 renderCurrentChat();
                                 const draft = sessionManager.loadDraft();
@@ -429,7 +429,7 @@ Office.onReady((info) => {
         applyLanguage(appLanguage);
         const t = translations[appLanguage] || translations["en"];
         sessionManager.setDefaultChatName(t.defaultChatName);
-        sessionManager.loadSessions();
+        await sessionManager.loadSessions(true);
 
         const savedDraft = localStorage.getItem(draftKey);
         if (savedDraft && chatInput) {

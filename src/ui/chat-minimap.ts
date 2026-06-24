@@ -9,6 +9,31 @@ export class ChatMinimapManager {
     ) {
         this.minimapContainer = document.getElementById(this.minimapContainerId);
         this.setupObserver();
+        this.setupScrollObserver();
+    }
+
+    private setupScrollObserver() {
+        if (!this.minimapContainer) return;
+        
+        const updateFades = () => {
+            const el = this.minimapContainer!;
+            const hasOverflow = el.scrollHeight > el.clientHeight;
+            
+            if (hasOverflow) {
+                const canScrollUp = el.scrollTop > 0;
+                // Thêm sai số 2px để tránh lỗi làm tròn
+                const canScrollDown = Math.ceil(el.scrollTop + el.clientHeight) < el.scrollHeight - 2;
+                el.style.setProperty('--mask-top', canScrollUp ? '0' : '1');
+                el.style.setProperty('--mask-bottom', canScrollDown ? '0' : '1');
+            } else {
+                el.style.setProperty('--mask-top', '1');
+                el.style.setProperty('--mask-bottom', '1');
+            }
+        };
+
+        this.minimapContainer.addEventListener('scroll', updateFades);
+        // Lắng nghe thêm sự kiện resize nếu cần
+        window.addEventListener('resize', updateFades);
     }
 
     private setupObserver() {
@@ -106,5 +131,12 @@ export class ChatMinimapManager {
                 }
             }
         });
+
+        // Trigger scroll event to update fades
+        setTimeout(() => {
+            if (this.minimapContainer) {
+                this.minimapContainer.dispatchEvent(new Event('scroll'));
+            }
+        }, 10);
     }
 }

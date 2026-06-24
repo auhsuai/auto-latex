@@ -1,4 +1,5 @@
 import { ChatMessage } from "../services/ai";
+import { setIDBItem, getIDBItem } from "../utils/idb";
 
 export interface ChatSession {
     id: string;
@@ -13,6 +14,7 @@ export class SessionManager {
     public sessions: ChatSession[] = [];
     public currentSessionId: string | null = null;
     private defaultChatName: string = "New Chat";
+    private saveQueue: Promise<void> = Promise.resolve();
 
     public onSessionsChanged: () => void = () => {};
     public onSessionSwitched: (session: ChatSession) => void = () => {};
@@ -27,33 +29,62 @@ export class SessionManager {
 
     public saveSessions() {
         const dataStr = JSON.stringify(this.sessions);
-        localStorage.setItem(this.storageKey, dataStr);
-        try {
-            if (Office && Office.context && Office.context.document && Office.context.document.settings) {
-                Office.context.document.settings.set(this.storageKey, dataStr);
-                Office.context.document.settings.saveAsync();
+        
+        // Áp dụng Save Queue để tránh lỗi Race Condition khi thao tác dồn dập
+        this.saveQueue = this.saveQueue.then(async () => {
+            try {
+                await setIDBItem(this.storageKey, dataStr);
+                
+                if (Office && Office.context && Office.context.document && Office.context.document.settings) {
+                    Office.context.document.settings.set(this.storageKey, dataStr);
+                    Office.context.document.settings.saveAsync();
+                }
+            } catch (e) {
+                console.error("[Storage] Failed to save sessions to IndexedDB", e);
             }
-        } catch (e) {
-            console.error("Failed to save to Document Settings", e);
-        }
+        }).catch(err => {
+            console.error("[Storage] Queue error", err);
+        });
+
         this.onSessionsChanged();
     }
 
-    public loadSessions() {
-        let data: string | null = null;
+    public async loadSessions(canMigrate: boolean = false) {
+        let dataStr: string | null = null;
         try {
-            // Ưu tiên tải từ file Word hiện tại trước
+            // Ưu tiên 1: Tải từ file Word hiện tại
             if (Office && Office.context && Office.context.document && Office.context.document.settings) {
-                data = Office.context.document.settings.get(this.storageKey) as string;
+                dataStr = Office.context.document.settings.get(this.storageKey) as string;
             }
-            // Nếu file Word chưa có, tải từ LocalStorage
-            if (!data) {
-                data = localStorage.getItem(this.storageKey);
+            
+            // Ưu tiên 2: Tải từ IndexedDB
+            if (!dataStr) {
+                dataStr = await getIDBItem(this.storageKey);
             }
-            if (data) this.sessions = JSON.parse(data);
+            
+            // Ưu tiên 3: Migration từ LocalStorage an toàn
+            if (!dataStr) {
+                const lsData = localStorage.getItem(this.storageKey);
+                if (lsData) {
+                    if (canMigrate) {
+                        try {
+                            await setIDBItem(this.storageKey, lsData);
+                            // Chỉ xóa khi đã ghi IndexedDB thành công 100%
+                            localStorage.removeItem(this.storageKey);
+                            console.log("[Storage] Successfully migrated data from LocalStorage to IndexedDB.");
+                        } catch (e) {
+                            console.error("[Storage] Migration failed. Keeping LocalStorage data.", e);
+                        }
+                    }
+                    dataStr = lsData;
+                }
+            }
+            
+            if (dataStr) this.sessions = JSON.parse(dataStr);
         } catch (e) {
-            console.error("Failed to load sessions");
+            console.error("Failed to load sessions", e);
         }
+        
         if (this.sessions.length === 0) {
             this.createNewSession();
         } else {
