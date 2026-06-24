@@ -1,9 +1,0 @@
-/* Auto LaTeX - Main Stylesheet
-   This file is kept as the entry point referenced by taskpane.html.
-   The actual styles are organized in the css/ subfolder:
-     - css/base.css       (variables, reset, buttons, keyframes, footer)
-     - css/chat.css       (chat UI, FAB, messages, input, skeleton)
-     - css/components.css (modal, form, sidebar, dropdown, toggle)
-   
-   They are linked directly in taskpane.html.
-*/
