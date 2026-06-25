@@ -25,9 +25,9 @@ const renderFormula = (rawLatex: string, isBlock: boolean) => {
     if (!katexHtml) return `<span style="color: #d83b01;">[Lỗi hiển thị công thức LaTeX]</span>`;
     const safeLatex = encodeURIComponent(rawLatex);
     if (isBlock) {
-        return `<div class="clickable-formula block-formula" data-latex="${safeLatex}" style="margin-top: 8px; margin-bottom: 8px; overflow-x: auto; max-width: 100%; padding-bottom: 4px; cursor: pointer;" title="Click to copy LaTeX">${katexHtml}</div>`;
+        return `<div class="clickable-formula block-formula" data-latex="${safeLatex}" style="margin-top: 8px; margin-bottom: 8px; overflow-x: auto; max-width: 100%; padding-bottom: 4px; cursor: pointer;">${katexHtml}</div>`;
     } else {
-        return `<span class="clickable-formula" data-latex="${safeLatex}" style="display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; margin: 0 4px; padding-bottom: 2px; cursor: pointer;" title="Click to copy LaTeX">${katexHtml}</span>`;
+        return `<span class="clickable-formula" data-latex="${safeLatex}" style="display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; margin: 0 4px; padding-bottom: 2px; cursor: pointer;">${katexHtml}</span>`;
     }
 };
 
@@ -53,7 +53,7 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
         const msgIdStr = quoteManager.quotedMsgId || "";
         const safeOriginalQuote = encodeURIComponent(quoteManager.currentQuotedText);
         const renderedQuoteHtml = renderInlineMathPreview(displayQuoteHtml);
-        displayHtml += `<div class="quoted-message-block" data-from-word="${fromWordStr}" data-msg-type="${msgTypeStr}" data-msg-id="${msgIdStr}" data-original-quote="${safeOriginalQuote}" title="Click to view context"><span style="margin-right:4px;">↳</span>${renderedQuoteHtml}</div>`;
+        displayHtml += `<div class="quoted-message-block" data-from-word="${fromWordStr}" data-msg-type="${msgTypeStr}" data-msg-id="${msgIdStr}" data-original-quote="${safeOriginalQuote}"><span style="margin-right:4px;">↳</span>${renderedQuoteHtml}</div>`;
         const quoteLabel = quoteManager.isQuoteFromWord ? "Văn bản đang bôi đen trên Word" : "Trích dẫn từ Chat";
         fullPromptForAI = `[${quoteLabel}]: "${quoteManager.currentQuotedText}"\n\n${prompt || "Vui lòng xử lý văn bản trên."}`;
     }
@@ -312,7 +312,7 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                     const safeContent = encodeURIComponent(wordHtmlContent);
                     const safeTarget = encodeURIComponent(target);
                     pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="${type}" data-edit-content="${safeContent}" data-edit-target="${safeTarget}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
-                        <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
+                        <button class="btn-toolbar-action btn-apply-edit">
                             <span style="font-weight: 500;">${btnApplyText}</span>
                         </button>
                     </div>`;
@@ -408,7 +408,7 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
             } else {
                 const safeContent = encodeURIComponent(wordHtml);
                 pendingEditsHtml += `<div class="pending-edit-card" data-edit-type="insert_html" data-edit-content="${safeContent}" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
-                    <button class="btn-toolbar-action btn-apply-edit" title="${btnApplyText}">
+                    <button class="btn-toolbar-action btn-apply-edit">
                         <span style="font-weight: 500;">${btnApplyText}</span>
                     </button>
                 </div>`;
@@ -422,7 +422,7 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                 const copyContainer = msgDiv.querySelector(".toolbar-right");
                 if (toolbarContainer) toolbarContainer.innerHTML = pendingEditsHtml;
                 if (copyContainer) {
-                    copyContainer.innerHTML = `<button class="btn-toolbar-action btn-copy-msg" title="Copy" data-copy-text="${encodeURIComponent(aiResponseText)}">
+                    copyContainer.innerHTML = `<button class="btn-toolbar-action btn-copy-msg" data-copy-text="${encodeURIComponent(aiResponseText)}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     </button>`;
                 }

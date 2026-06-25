@@ -109,6 +109,22 @@ export const setupSessionOptions = (
         hideModal(deleteModal, cleanupDeleteFocus);
     });
 
+    if (renameModal) {
+        renameModal.addEventListener("click", (e) => {
+            if (e.target === renameModal) {
+                btnCancelRename?.click();
+            }
+        });
+    }
+
+    if (deleteModal) {
+        deleteModal.addEventListener("click", (e) => {
+            if (e.target === deleteModal) {
+                btnCancelDelete?.click();
+            }
+        });
+    }
+
     // Hàm public được truyền ra ngoài để sidebar gọi
     return (id: string, btnOpts: HTMLElement) => {
         targetSessionId = id;

@@ -61,6 +61,14 @@ export class SettingsManager {
             }
         });
 
+        if (settingsModal) {
+            settingsModal.addEventListener("click", (e) => {
+                if (e.target === settingsModal) {
+                    btnCloseSettings?.click();
+                }
+            });
+        }
+
         this.initCustomSelect("lang-select-wrapper", (val) => {
             this.tempSelectedLanguage = val;
             this.saveSettings();

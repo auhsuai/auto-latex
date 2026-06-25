@@ -1,7 +1,7 @@
 /* Dialog-specific CSS overrides */
 
 body.dialog-body {
-    background-color: var(--color-bg);
+    background-color: var(--color-background);
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -26,9 +26,13 @@ body.dialog-body {
     margin: 0 auto;
 }
 
-.chat-messages {
+.chat-messages-wrapper {
     max-width: 800px;
     margin: 0 auto;
+    width: 100%;
+}
+
+.chat-messages {
     padding: 20px 36px 20px 20px;
 }
 
