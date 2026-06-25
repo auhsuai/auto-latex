@@ -4,7 +4,7 @@ export class ConverterUIManager {
     private cancelMsg: HTMLElement | null;
     private cancelLink: HTMLElement | null;
     private progressSpan: HTMLElement | null;
-    
+
     constructor(private getCurrentLanguage: () => string) {
         this.cancelMsg = document.getElementById("cancel-msg");
         this.cancelLink = document.getElementById("cancel-link");
@@ -21,14 +21,36 @@ export class ConverterUIManager {
         if (convertSelBtn) {
             convertSelBtn.onclick = () => this.handleConversion(convertSelBtn, true);
         }
+
+        // Global keyboard shortcut for the Convert interface
+        document.addEventListener('keydown', (e) => {
+            // Check if we are in the main (Convert) view by checking if it's visible
+            const mainView = document.getElementById("main-view");
+            if (!mainView || mainView.classList.contains("view-hidden") || mainView.style.display === "none") {
+                return; // Do nothing if in Chat or other views
+            }
+
+            // Ignore if typing in an input (just in case)
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return;
+            }
+
+            // Alt + C triggers Convert All
+            if (e.altKey && e.key.toLowerCase() === 'c') {
+                e.preventDefault();
+                if (convertDocBtn && !convertDocBtn.disabled) convertDocBtn.click();
+            }
+        });
     }
 
     private async handleConversion(btn: HTMLButtonElement, isSelection: boolean) {
-        const originalText = btn.innerText;
+        const originalHTML = btn.innerHTML;
+        const otherBtnId = btn.id === "convert-doc" ? "convert-sel" : "convert-doc";
+        const otherBtn = document.getElementById(otherBtnId) as HTMLButtonElement | null;
         let timeoutId: any = null;
         const appLanguage = this.getCurrentLanguage();
 
-        const state = { 
+        const state = {
             isCancelled: false,
             onProgress: (remaining: number, total: number) => {
                 if (this.cancelMsg && this.progressSpan) {
@@ -47,6 +69,7 @@ export class ConverterUIManager {
         try {
             const t = translations[appLanguage] || translations["en"];
             btn.disabled = true;
+            if (otherBtn) otherBtn.disabled = true;
             btn.innerText = t.converting;
 
             if (this.cancelMsg && this.cancelLink) {
@@ -66,11 +89,20 @@ export class ConverterUIManager {
 
             const { runConversion } = await import("../core/converter");
             await runConversion(isSelection, state);
+
+            // Success State (Button Checkmark Micro-interaction)
+            if (!state.isCancelled) {
+                const doneText = appLanguage === "vi" ? "Hoàn tất" : "Done";
+                btn.innerHTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>${doneText}</span>`;
+                // Wait 1s before restoring
+                await new Promise(r => setTimeout(r, 1000));
+            }
         } finally {
             if (timeoutId) clearTimeout(timeoutId);
             if (this.cancelMsg) this.cancelMsg.style.display = "none";
             btn.disabled = false;
-            btn.innerText = originalText;
+            if (otherBtn) otherBtn.disabled = false;
+            btn.innerHTML = originalHTML;
         }
     }
 }

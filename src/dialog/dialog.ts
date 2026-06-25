@@ -179,13 +179,25 @@ async function initDialog() {
     
 
     
+    const urlParams = new URLSearchParams(window.location.search);
+    const isFullscreen = urlParams.get("fullscreen") === "1";
+
     const btnFullscreen = document.getElementById("btn-dialog-fullscreen");
+    if (btnFullscreen) {
+        if (isFullscreen) {
+            btnFullscreen.setAttribute("title", appLanguage === "vi" ? "Thu nhỏ" : "Restore");
+            btnFullscreen.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M.172 15.828a.5.5 0 0 0 .707 0l4.096-4.096V14.5a.5.5 0 1 0 1 0v-3.975a.5.5 0 0 0-.5-.5H1.5a.5.5 0 0 0 0 1h2.768L.172 15.121a.5.5 0 0 0 0 .707zM15.828.172a.5.5 0 0 0-.707 0l-4.096 4.096V1.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H14.5a.5.5 0 0 0 0-1h-2.768L15.828.879a.5.5 0 0 0 0-.707z"/></svg>`;
+        } else {
+            btnFullscreen.setAttribute("title", appLanguage === "vi" ? "Phóng to" : "Fullscreen");
+        }
+    }
+
     btnFullscreen?.addEventListener("click", () => {
         const currentPrompt = chatInput.value.trim();
         const currentQuote = quoteManager.currentQuotedText || "";
         const isFromWord = quoteManager.isQuoteFromWord;
         sessionManager.saveDraft(currentPrompt, currentQuote, isFromWord);
-        Office.context.ui.messageParent(JSON.stringify({ type: "reopenFullscreen" }));
+        Office.context.ui.messageParent(JSON.stringify({ type: isFullscreen ? "reopenNormal" : "reopenFullscreen" }));
     });
 
     const btnSettingsApi = document.getElementById("btn-settings-api");

@@ -231,6 +231,7 @@ export function getMathML(latex: string, isBlock: boolean): string | null {
 
 export async function runConversion(onlySelection: boolean, state?: ConversionState) {
   return Word.run(async (context) => {
+    try {
     const docRange = onlySelection ? context.document.getSelection() : context.document.body;
     
     docRange.load("text");
@@ -381,11 +382,20 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
                 } else {
                     const minLength = Math.min(task.startResults.items.length, task.endResults.items.length);
                     for (let j = 0; j < minLength; j++) {
-                        const fullRange = task.startResults.items[j].expandTo(task.endResults.items[j]);
-                        fullRange.load("text");
-                        await context.sync();
-                        if (fullRange.text.trim() === task.matchStr.trim()) {
-                            rangesToReplace.push(fullRange);
+                        try {
+                            const fullRange = task.startResults.items[j].expandTo(task.endResults.items[j]);
+                            fullRange.load("text");
+                            await context.sync();
+                            // Protect against massive expanded ranges from mismatched start/end items
+                            if (fullRange.text.length > task.matchStr.length * 2 + 100) {
+                                console.warn("Skipping mismatched expanded range");
+                                continue;
+                            }
+                            if (fullRange.text.trim() === task.matchStr.trim()) {
+                                rangesToReplace.push(fullRange);
+                            }
+                        } catch (e) {
+                            console.warn("Failed to process long formula range", e);
                         }
                     }
                 }
@@ -422,6 +432,9 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
         if (state && state.onProgress) {
             state.onProgress(totalActualFormulas - processedActualFormulas, totalActualFormulas);
         }
+    }
+    } catch (error) {
+        console.error("Conversion failed:", error);
     }
   });
 }

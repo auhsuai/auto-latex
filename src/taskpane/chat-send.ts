@@ -305,7 +305,7 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                     const successText = appLanguage === "vi" ? "Đã tự động áp dụng" : "Auto-applied";
                     pendingEditsHtml += `<div class="pending-edit-card" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
                         <button class="btn-toolbar-action btn-apply-edit" disabled>
-                            <span style="color: var(--color-success, #107c41); font-weight: 500;">${successText}</span>
+                            <span style="color: var(--color-primary); font-weight: 500;">${successText}</span>
                         </button>
                     </div>`;
                 } else if (!appliedChanges) {
@@ -402,7 +402,7 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                 const successText = appLanguage === "vi" ? "Đã tự động áp dụng" : "Auto-applied";
                 pendingEditsHtml += `<div class="pending-edit-card" style="margin-top: 4px; margin-left: -4px; display: flex; justify-content: flex-start;">
                     <button class="btn-toolbar-action btn-apply-edit" disabled>
-                        <span style="color: var(--color-success, #107c41); font-weight: 500;">${successText}</span>
+                        <span style="color: var(--color-primary); font-weight: 500;">${successText}</span>
                     </button>
                 </div>`;
             } else {

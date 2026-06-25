@@ -173,8 +173,15 @@ export class SettingsManager {
         });
 
         const btnToggleThinking = document.getElementById("btn-toggle-thinking");
+        const shortcutRow = document.getElementById("shortcut-thinking-row");
         if (btnToggleThinking) {
-            btnToggleThinking.style.display = "";
+            if (this.tempSelectedProvider === 'kira') {
+                btnToggleThinking.style.display = "none";
+                if (shortcutRow) shortcutRow.style.display = "none";
+            } else {
+                btnToggleThinking.style.display = "";
+                if (shortcutRow) shortcutRow.style.display = "";
+            }
         }
 
         if (this.tempSelectedLanguage !== this.currentAppLanguage) {
@@ -191,12 +198,14 @@ export class SettingsManager {
             
             if (container) {
                 container.classList.add("accordion-content");
-                // Reset initial state depending on how you want it
                 if (container.style.display === "none") {
-                    container.style.display = ""; // clear inline style
+                    container.style.display = ""; 
+                    container.style.maxHeight = "0px";
                     toggle?.setAttribute("aria-expanded", "false");
                 } else {
                     container.classList.add("expanded");
+                    container.style.maxHeight = "none";
+                    container.style.overflow = "visible";
                     toggle?.setAttribute("aria-expanded", "true");
                     if (chevron) chevron.style.transform = "rotate(0deg)";
                 }
@@ -206,16 +215,23 @@ export class SettingsManager {
                 if (container && chevron) {
                     const isExpanded = container.classList.contains("expanded");
                     if (isExpanded) {
+                        container.style.maxHeight = container.scrollHeight + "px";
+                        // trigger reflow
+                        void container.offsetHeight;
+                        
                         container.style.overflow = "hidden";
+                        container.style.maxHeight = "0px";
                         container.classList.remove("expanded");
                         toggle.setAttribute("aria-expanded", "false");
                         chevron.style.transform = "rotate(-90deg)";
                     } else {
                         container.classList.add("expanded");
+                        container.style.maxHeight = container.scrollHeight + "px";
                         toggle.setAttribute("aria-expanded", "true");
                         chevron.style.transform = "rotate(0deg)";
                         setTimeout(() => {
                             if (container.classList.contains("expanded")) {
+                                container.style.maxHeight = "none";
                                 container.style.overflow = "visible";
                             }
                         }, 250);

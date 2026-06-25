@@ -97,6 +97,18 @@
     display: none;
 }
 
+@property --mask-top {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --mask-bottom {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
 /* Chat Minimap */
 .chat-minimap {
     position: absolute;
@@ -118,17 +130,29 @@
     --mask-bottom: 1;
     -webkit-mask-image: linear-gradient(to bottom, 
         rgba(0,0,0, var(--mask-top)) 0, 
-        black 12px, 
-        black calc(100% - 12px), 
+        black 24px, 
+        black calc(100% - 24px), 
         rgba(0,0,0, var(--mask-bottom)) 100%
     );
     mask-image: linear-gradient(to bottom, 
         rgba(0,0,0, var(--mask-top)) 0, 
-        black 12px, 
-        black calc(100% - 12px), 
+        black 24px, 
+        black calc(100% - 24px), 
         rgba(0,0,0, var(--mask-bottom)) 100%
     );
+    
+    /* Fade In / Out Effect */
+    opacity: 0;
+    transform: translateX(8px);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.3s, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.3s, --mask-top 0.3s ease, --mask-bottom 0.3s ease;
 }
+
+.chat-minimap:hover {
+    opacity: 1;
+    transform: translateX(0);
+    transition-delay: 0s, 0s, 0s, 0s;
+}
+
 .chat-minimap::-webkit-scrollbar {
     display: none;
 }

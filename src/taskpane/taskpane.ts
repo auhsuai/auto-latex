@@ -95,7 +95,7 @@ Office.onReady(async (info) => {
             }
 
             const btnQuickLang = document.getElementById("btn-quick-lang");
-            if (btnQuickLang) btnQuickLang.innerText = lang.toUpperCase();
+            if (btnQuickLang) btnQuickLang.innerText = lang === "vi" ? "VIE" : "ENG";
         };
 
         // Sidebar Actions
@@ -261,11 +261,14 @@ Office.onReady(async (info) => {
         // Show thinking toggle unless provider is Kira (no deep thinking support)
         import("../services/ai").then(({ getAISettings }) => {
             const settings = getAISettings();
+            const shortcutRow = document.getElementById("shortcut-thinking-row");
             if (btnToggleThinking) {
                 if (settings.provider === 'kira') {
                     btnToggleThinking.style.display = "none";
+                    if (shortcutRow) shortcutRow.style.display = "none";
                 } else {
                     btnToggleThinking.style.display = "";
+                    if (shortcutRow) shortcutRow.style.display = "";
                 }
             }
         });
@@ -348,25 +351,33 @@ Office.onReady(async (info) => {
                         activeDialog = result.value;
                         const msgHandler = async (arg: any) => {
                             const msg = JSON.parse(arg.message);
-                            if (msg.type === "dialogClosed" || msg.type === "reopenFullscreen") {
+                            if (msg.type === "dialogClosed" || msg.type === "reopenFullscreen" || msg.type === "reopenNormal") {
                                 activeDialog?.close();
                                 activeDialog = null;
-                                if (msg.type === "reopenFullscreen") {
+                                if (msg.type === "reopenFullscreen" || msg.type === "reopenNormal") {
                                     setTimeout(() => {
-                                        Office.context.ui.displayDialogAsync(dialogUrl, { height: 100, width: 100, promptBeforeOpen: false }, (res) => {
+                                        const urlObj = new URL(dialogUrl);
+                                        const isFullscreen = msg.type === "reopenFullscreen";
+                                        if (isFullscreen) {
+                                            urlObj.searchParams.set("fullscreen", "1");
+                                        } else {
+                                            urlObj.searchParams.delete("fullscreen");
+                                        }
+                                        Office.context.ui.displayDialogAsync(urlObj.href, { height: isFullscreen ? 100 : 75, width: isFullscreen ? 100 : 65, promptBeforeOpen: false }, (res) => {
                                             if (res.status === Office.AsyncResultStatus.Succeeded) {
                                                 activeDialog = res.value;
                                                 activeDialog.addEventHandler(Office.EventType.DialogMessageReceived, msgHandler);
+                                                activeDialog.addEventHandler(Office.EventType.DialogEventReceived, async (arg: any) => {
+                                                    if (arg.error === 12006) {
+                                                        activeDialog = null;
+                                                        fabChat?.click();
+                                                    }
+                                                });
                                             }
                                         });
                                     }, 500);
                                 } else {
-                                    await sessionManager.loadSessions(true);
-                                    updateSidebar();
-                                    renderCurrentChat();
-                                    const draft = sessionManager.loadDraft();
-                                    if (draft.prompt) chatInput.value = draft.prompt;
-                                    if (draft.quote && draft.quote.text) quoteManager.setQuote(draft.quote.text, draft.quote.isFromWord);
+                                    fabChat?.click();
                                 }
                             }
                         };
@@ -374,12 +385,7 @@ Office.onReady(async (info) => {
                         activeDialog.addEventHandler(Office.EventType.DialogEventReceived, async (arg: any) => {
                             if (arg.error === 12006) {
                                 activeDialog = null;
-                                await sessionManager.loadSessions(true);
-                                updateSidebar();
-                                renderCurrentChat();
-                                const draft = sessionManager.loadDraft();
-                                if (draft.prompt) chatInput.value = draft.prompt;
-                                if (draft.quote && draft.quote.text) quoteManager.setQuote(draft.quote.text, draft.quote.isFromWord);
+                                fabChat?.click();
                             }
                         });
                     }

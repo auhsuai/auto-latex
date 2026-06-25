@@ -37,7 +37,9 @@ export class SessionManager {
                 
                 if (Office && Office.context && Office.context.document && Office.context.document.settings) {
                     Office.context.document.settings.set(this.storageKey, dataStr);
-                    Office.context.document.settings.saveAsync();
+                    await new Promise<void>((resolve) => {
+                        Office.context.document.settings.saveAsync(() => resolve());
+                    });
                 }
             } catch (e) {
                 console.error("[Storage] Failed to save sessions to IndexedDB", e);
@@ -89,7 +91,12 @@ export class SessionManager {
             this.createNewSession();
         } else {
             this.sessions.sort((a, b) => b.updatedAt - a.updatedAt);
-            this.switchSession(this.sessions[0].id);
+            const savedSessionId = localStorage.getItem('auto_latex_current_session');
+            if (savedSessionId && this.sessions.some(s => s.id === savedSessionId)) {
+                this.switchSession(savedSessionId);
+            } else {
+                this.switchSession(this.sessions[0].id);
+            }
         }
     }
 
@@ -115,6 +122,7 @@ export class SessionManager {
 
     public switchSession(id: string) {
         this.currentSessionId = id;
+        localStorage.setItem('auto_latex_current_session', id);
         const session = this.getCurrentSession();
         if (session) {
             this.onSessionSwitched(session);
@@ -166,8 +174,16 @@ export class SessionManager {
     }
 
     public saveDraft(prompt: string, quoteText: string, isFromWord: boolean) {
-        localStorage.setItem('auto_latex_draft_prompt', prompt);
-        localStorage.setItem('auto_latex_draft_quote', JSON.stringify({text: quoteText, isFromWord}));
+        try {
+            localStorage.setItem('auto_latex_draft_prompt', prompt);
+            let safeText = quoteText;
+            if (safeText.length > 5000) {
+                safeText = safeText.substring(0, 5000) + '...';
+            }
+            localStorage.setItem('auto_latex_draft_quote', JSON.stringify({text: safeText, isFromWord}));
+        } catch (e) {
+            console.error("[Storage] Failed to save draft", e);
+        }
     }
 
     public loadDraft() {

@@ -45,11 +45,11 @@ export const setupChatEvents = (
             const content = decodeURIComponent(card.getAttribute("data-edit-content") || "");
             const targetStr = decodeURIComponent(card.getAttribute("data-edit-target") || "");
 
-            btnApply.innerText = "Applying...";
-            btnApply.disabled = true;
-
             const settings = getAISettings();
             const appLanguage = getLanguage();
+
+            btnApply.innerText = appLanguage === "vi" ? "Đang áp dụng..." : "Applying...";
+            btnApply.disabled = true;
 
             try {
                 const { DocumentEditor } = await import("../core/document-editor");
@@ -74,11 +74,11 @@ export const setupChatEvents = (
                 const tSettings = translations[appLanguage] || translations["en"];
                 const btnApplyText = tSettings.btnApplyEdit || "Apply";
 
-                btnApply.innerHTML = `<span style="color: var(--color-success, #107c41); font-weight: 500;">${notifText}</span>`;
+                btnApply.innerHTML = `<span style="color: var(--color-primary); font-weight: 500;">${notifText}</span>`;
                 setTimeout(() => {
                     btnApply.innerHTML = `<span style="font-weight: 500;">${btnApplyText}</span>`;
                     btnApply.disabled = false;
-                }, 10000);
+                }, 2000);
             } catch(err) {
                 btnApply.innerText = "Error!";
                 btnApply.disabled = false;
