@@ -18,7 +18,23 @@ Office.onReady(() => {
 async function convertDocGlobal(event: Office.AddinCommands.Event) {
   try {
     const { runConversion } = await import("../core/converter");
-    await runConversion(false);
+    
+    // Read settings from LocalStorage
+    const convertInline = localStorage.getItem("auto_latex_filter_inline") !== "false";
+    const convertBlock = localStorage.getItem("auto_latex_filter_block") !== "false";
+    const convertNaked = localStorage.getItem("auto_latex_filter_naked") !== "false";
+    const macrosEnabled = localStorage.getItem("auto_latex_enable_macros") !== "false";
+    const customMacros = localStorage.getItem("auto_latex_custom_macros") || "";
+
+    const options = {
+        convertInline,
+        convertBlock,
+        convertNaked,
+        forceDisplay: false,
+        macrosString: macrosEnabled ? customMacros : ""
+    };
+
+    await runConversion(false, undefined, options);
   } catch (error) {
     console.error("Lỗi khi chạy convertDocGlobal", error);
   } finally {

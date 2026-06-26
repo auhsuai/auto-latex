@@ -9,6 +9,15 @@ export interface ConversionState {
     onProgress?: (remaining: number, total: number) => void;
 }
 
+export interface ConvertOptions {
+    convertInline: boolean;
+    convertBlock: boolean;
+    convertNaked: boolean;
+    forceDisplay: boolean;
+    macrosString: string;
+    parsedMacros?: Record<string, string>;
+}
+
 // Edge Case 10: Balance Braces
 function balanceBraces(latex: string): string {
     const unescaped = latex.replace(/\\[{}]/g, "");
@@ -169,13 +178,43 @@ export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
     return sanitized;
 }
 
-export function getKaTeXHtml(latex: string, isBlock: boolean): string {
+export function parseMacros(macrosStr: string): Record<string, string> {
+    const macros: Record<string, string> = {};
+    if (!macrosStr) return macros;
+    const regex = /\\(?:newcommand|renewcommand|def)\s*(?:\{?\s*(\\[a-zA-Z]+)\s*\}?)\s*(?:\[(\d+)\])?\s*\{/g;
+    let match;
+    while ((match = regex.exec(macrosStr)) !== null) {
+        const name = match[1];
+        const bodyStart = regex.lastIndex;
+        let openBraces = 1;
+        let bodyEnd = bodyStart;
+        for (let i = bodyStart; i < macrosStr.length; i++) {
+            if (macrosStr[i] === '\\' && i + 1 < macrosStr.length) {
+                i++; // skip escaped chars
+                continue;
+            }
+            if (macrosStr[i] === '{') openBraces++;
+            if (macrosStr[i] === '}') openBraces--;
+            if (openBraces === 0) {
+                bodyEnd = i;
+                break;
+            }
+        }
+        const body = macrosStr.substring(bodyStart, bodyEnd);
+        macros[name] = body;
+        regex.lastIndex = bodyEnd + 1;
+    }
+    return macros;
+}
+
+export function getKaTeXHtml(latex: string, isBlock: boolean, macros?: Record<string, string>): string {
     try {
         return katex.renderToString(latex, {
             displayMode: isBlock,
             output: "htmlAndMathml",
             throwOnError: false,
-            strict: false
+            strict: false,
+            macros: macros || {}
         });
     } catch (e) {
         return "";
@@ -196,13 +235,14 @@ function extractAndCleanMathML(html: string, isBlock: boolean): string | null {
     return null;
 }
 
-export function getMathML(latex: string, isBlock: boolean): string | null {
+export function getMathML(latex: string, isBlock: boolean, macros?: Record<string, string>): string | null {
     try {
         const html = katex.renderToString(latex, {
             displayMode: isBlock,
             output: "mathml",
             throwOnError: false,
-            strict: false
+            strict: false,
+            macros: macros || {}
         });
         
         // Edge Case 17: Auto-healing missing \right
@@ -215,7 +255,8 @@ export function getMathML(latex: string, isBlock: boolean): string | null {
                     displayMode: isBlock,
                     output: "mathml",
                     throwOnError: false,
-                    strict: false
+                    strict: false,
+                    macros: macros || {}
                 });
                 const mathML = extractAndCleanMathML(healedHtml, isBlock);
                 if (mathML) return mathML;
@@ -229,11 +270,15 @@ export function getMathML(latex: string, isBlock: boolean): string | null {
     }
 }
 
-export async function runConversion(onlySelection: boolean, state?: ConversionState) {
+export async function runConversion(onlySelection: boolean, state?: ConversionState, options?: ConvertOptions) {
   return Word.run(async (context) => {
     try {
     const docRange = onlySelection ? context.document.getSelection() : context.document.body;
     
+    if (options && options.macrosString) {
+        options.parsedMacros = parseMacros(options.macrosString);
+    }
+
     docRange.load("text");
     await context.sync();
 
@@ -247,26 +292,34 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
     const mathNodes: { type: 'inlineMath' | 'math', value: string, rawStr: string }[] = [];
 
     // 1. Manually add naked environments
-    const nakedEnvs = extractNakedEnvironments(fullText);
-    for (const envStr of nakedEnvs) {
-        let isDuplicate = false;
-        visit(ast, (n: any) => {
-            if ((n.type === 'math' || n.type === 'inlineMath') && n.value.includes(envStr)) {
-                isDuplicate = true;
-            }
-        });
-        if (!isDuplicate) {
-            mathNodes.push({
-                type: 'math',
-                value: envStr,
-                rawStr: envStr
+    if (!options || options.convertNaked !== false) {
+        const nakedEnvs = extractNakedEnvironments(fullText);
+        for (const envStr of nakedEnvs) {
+            let isDuplicate = false;
+            visit(ast, (n: any) => {
+                if ((n.type === 'math' || n.type === 'inlineMath') && n.value.includes(envStr)) {
+                    isDuplicate = true;
+                }
             });
+            if (!isDuplicate) {
+                mathNodes.push({
+                    type: 'math',
+                    value: envStr,
+                    rawStr: envStr
+                });
+            }
         }
     }
 
     // 2. Visit AST to get parsed math
     visit(ast, (node: any) => {
         if (node.type === 'math' || node.type === 'inlineMath') {
+            const isBlockNode = node.type === 'math';
+            if (options) {
+                if (isBlockNode && options.convertBlock === false) return;
+                if (!isBlockNode && options.convertInline === false) return;
+            }
+            
             let exactMath = fullText.substring(node.position.start.offset, node.position.end.offset);
             
             let rawStr = exactMath;
@@ -337,7 +390,8 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
             }
 
             const latex = sanitizeLaTeX(cleanValue, isBlock);
-            const mathML = getMathML(latex, isBlock);
+            const macros = options ? options.parsedMacros : undefined;
+            const mathML = getMathML(latex, isBlock, macros);
             
             if (!mathML) continue;
             

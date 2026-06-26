@@ -39,6 +39,8 @@ Office.onReady(async (info) => {
         const btnSettingsApi = document.getElementById("btn-settings-api");
         const chatSearchInput = document.getElementById("chat-search-input") as HTMLInputElement;
 
+        const btnMainMenu = document.getElementById("btn-main-menu");
+
         let appLanguage: string = localStorage.getItem("auto_latex_language") || "en";
         let isThinkingMode = false;
         let activeDialog: Office.Dialog | null = null;
@@ -146,6 +148,10 @@ Office.onReady(async (info) => {
         btnChatMenu?.addEventListener("click", () => toggleSidebar(true));
         btnCloseSidebar?.addEventListener("click", () => toggleSidebar(false));
         chatSidebarOverlay?.addEventListener("click", () => toggleSidebar(false));
+
+        btnMainMenu?.addEventListener("click", () => {
+            settingsManager.openConverterSettings();
+        });
         
         chatSearchInput?.addEventListener("input", (e) => {
             searchChatQuery = (e.target as HTMLInputElement).value.toLowerCase();

@@ -57,7 +57,15 @@ export const translations: Record<string, Record<string, string>> = {
         shortcutToggleThinking: "Switch Thinking mode",
         shortcutToggleLang: "Switch language",
         shortcutFocusChat: "Focus chat input",
-        shortcutCloseModal: "Close dialog"
+        shortcutCloseModal: "Close dialog",
+        converterSettingsTitle: "Converter Settings",
+        filterSettingsTitle: "Filter Settings",
+        filterInlineTitle: "Inline Math",
+        filterBlockTitle: "Block Math",
+        filterNakedTitle: "LaTeX Environments",
+        enableMacrosTitle: "Enable Custom Macros",
+        macrosTitle: "Custom Macros",
+        macrosPlaceholder: "\\newcommand{\\R}{\\mathbb{R}}"
     },
     vi: {
         menuTitle: "Menu",
@@ -117,6 +125,14 @@ export const translations: Record<string, Record<string, string>> = {
         shortcutToggleThinking: "Thay đổi chế độ suy luận",
         shortcutToggleLang: "Chuyển ngôn ngữ",
         shortcutFocusChat: "Di chuyển đến ô nhập liệu",
-        shortcutCloseModal: "Đóng Menu"
+        shortcutCloseModal: "Đóng Menu",
+        converterSettingsTitle: "Cài đặt chuyển đổi",
+        filterSettingsTitle: "Cài đặt bộ lọc",
+        filterInlineTitle: "Công thức trong dòng",
+        filterBlockTitle: "Công thức độc lập",
+        filterNakedTitle: "Công thức phức hợp",
+        enableMacrosTitle: "Sử dụng Lệnh tùy chỉnh",
+        macrosTitle: "Lệnh tùy chỉnh",
+        macrosPlaceholder: "\\newcommand{\\R}{\\mathbb{R}}"
     }
 };

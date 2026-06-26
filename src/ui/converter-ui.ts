@@ -35,12 +35,88 @@ export class ConverterUIManager {
                 return;
             }
 
-            // Alt + C triggers Convert All
             if (e.altKey && e.key.toLowerCase() === 'c') {
                 e.preventDefault();
                 if (convertDocBtn && !convertDocBtn.disabled) convertDocBtn.click();
             }
         });
+
+        // Initialize Custom Macros from LocalStorage
+        const customMacrosInput = document.getElementById("custom-macros-input") as HTMLTextAreaElement;
+        const enableMacrosToggle = document.getElementById("enable-macros") as HTMLInputElement;
+
+        if (customMacrosInput) {
+            const savedMacros = localStorage.getItem("auto_latex_custom_macros");
+            if (savedMacros !== null) {
+                customMacrosInput.value = savedMacros;
+            }
+            if (enableMacrosToggle) {
+                const savedEnable = localStorage.getItem("auto_latex_enable_macros");
+                if (savedEnable !== null) {
+                    enableMacrosToggle.checked = savedEnable === "true";
+                }
+                enableMacrosToggle.addEventListener("change", () => {
+                    localStorage.setItem("auto_latex_enable_macros", enableMacrosToggle.checked.toString());
+                });
+            }
+            
+            // Handle Filter Toggles
+            const filterInline = document.getElementById("filter-inline") as HTMLInputElement;
+            const filterBlock = document.getElementById("filter-block") as HTMLInputElement;
+            const filterNaked = document.getElementById("filter-naked") as HTMLInputElement;
+
+            const setupFilterToggle = (el: HTMLInputElement | null, key: string) => {
+                if (!el) return;
+                const saved = localStorage.getItem(key);
+                if (saved !== null) {
+                    el.checked = saved === "true";
+                }
+                el.addEventListener("change", () => {
+                    localStorage.setItem(key, el.checked.toString());
+                });
+            };
+
+            setupFilterToggle(filterInline, "auto_latex_filter_inline");
+            setupFilterToggle(filterBlock, "auto_latex_filter_block");
+            setupFilterToggle(filterNaked, "auto_latex_filter_naked");
+
+            const autoResize = () => {
+                if (customMacrosInput.offsetWidth === 0) return; // Skip if hidden
+                customMacrosInput.style.height = 'auto';
+                customMacrosInput.style.height = customMacrosInput.scrollHeight + 'px';
+            };
+            customMacrosInput.addEventListener("input", () => {
+                localStorage.setItem("auto_latex_custom_macros", customMacrosInput.value);
+                autoResize();
+            });
+            
+            const observer = new ResizeObserver(() => {
+                window.requestAnimationFrame(() => {
+                    autoResize();
+                });
+            });
+            observer.observe(customMacrosInput);
+            
+            // Handle Copy Macros
+            const btnCopyMacros = document.getElementById("btn-copy-macros");
+            if (btnCopyMacros) {
+                btnCopyMacros.addEventListener("click", () => {
+                    if (customMacrosInput.value) {
+                        navigator.clipboard.writeText(customMacrosInput.value).then(() => {
+                            const originalSvg = btnCopyMacros.innerHTML;
+                            // Checkmark SVG with app primary color
+                            btnCopyMacros.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                            setTimeout(() => {
+                                btnCopyMacros.innerHTML = originalSvg;
+                            }, 2000);
+                        });
+                    }
+                });
+            }
+            
+            // Set initial height
+            setTimeout(autoResize, 0);
+        }
     }
 
     private async handleConversion(btn: HTMLButtonElement, isSelection: boolean) {
@@ -87,8 +163,24 @@ export class ConverterUIManager {
                 };
             }
 
+            const filterInline = document.getElementById("filter-inline") as HTMLInputElement;
+            const filterBlock = document.getElementById("filter-block") as HTMLInputElement;
+            const filterNaked = document.getElementById("filter-naked") as HTMLInputElement;
+            const customMacrosInput = document.getElementById("custom-macros-input") as HTMLTextAreaElement;
+            const enableMacrosToggle = document.getElementById("enable-macros") as HTMLInputElement;
+
+            const macrosEnabled = enableMacrosToggle ? enableMacrosToggle.checked : true;
+
+            const options = {
+                convertInline: filterInline ? filterInline.checked : true,
+                convertBlock: filterBlock ? filterBlock.checked : true,
+                convertNaked: filterNaked ? filterNaked.checked : true,
+                forceDisplay: false,
+                macrosString: (macrosEnabled && customMacrosInput) ? customMacrosInput.value : ""
+            };
+
             const { runConversion } = await import("../core/converter");
-            await runConversion(isSelection, state);
+            await runConversion(isSelection, state, options);
 
             // Success State (Button Checkmark Micro-interaction)
             if (!state.isCancelled) {

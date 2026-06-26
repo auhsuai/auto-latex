@@ -31,6 +31,15 @@ export class SettingsManager {
         }
     }
 
+    public openConverterSettings() {
+        const converterSettingsModal = document.getElementById("converter-settings-modal");
+        if (converterSettingsModal) {
+            converterSettingsModal.style.display = "flex";
+            document.body.classList.add("modal-open");
+            this.cleanupFocus = trapFocus(converterSettingsModal);
+        }
+    }
+
     public init() {
         const btnSettings = document.getElementById("btn-settings");
         const btnCloseSettings = document.getElementById("btn-close-settings");
@@ -65,6 +74,32 @@ export class SettingsManager {
             settingsModal.addEventListener("click", (e) => {
                 if (e.target === settingsModal) {
                     btnCloseSettings?.click();
+                }
+            });
+        }
+
+        const btnCloseConverterSettings = document.getElementById("btn-close-converter-settings");
+        const converterSettingsModal = document.getElementById("converter-settings-modal");
+
+        btnCloseConverterSettings?.addEventListener("click", () => {
+            if (document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur();
+            }
+            if (converterSettingsModal) {
+                this.cleanupFocus();
+                converterSettingsModal.classList.add("closing");
+                converterSettingsModal.addEventListener("animationend", () => {
+                    converterSettingsModal.classList.remove("closing");
+                    converterSettingsModal.style.display = "none";
+                    document.body.classList.remove("modal-open");
+                }, { once: true });
+            }
+        });
+
+        if (converterSettingsModal) {
+            converterSettingsModal.addEventListener("click", (e) => {
+                if (e.target === converterSettingsModal) {
+                    btnCloseConverterSettings?.click();
                 }
             });
         }
@@ -255,6 +290,8 @@ export class SettingsManager {
             });
         };
 
+        setupToggle("filter-settings-toggle", "filter-settings-container", "filter-settings-chevron");
+        setupToggle("macro-settings-toggle", "macro-settings-container", "macro-settings-chevron");
         setupToggle("ai-settings-toggle", "ai-settings-container", "ai-settings-chevron");
         setupToggle("editor-settings-toggle", "editor-settings-container", "editor-settings-chevron");
         setupToggle("key-bindings-toggle", "key-bindings-container", "key-bindings-chevron");

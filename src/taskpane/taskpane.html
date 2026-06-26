@@ -23,6 +23,9 @@
     <div id="main-view" class="app-container view-container view-visible">
         <header class="app-header" style="position: relative;">
             <button id="btn-quick-lang" aria-label="Toggle Language" style="position: absolute; top: 20px; left: 20px; font-weight: 600; font-size: 14px; color: var(--color-primary); background: none; border: none; cursor: pointer;">ENG</button>
+            <button id="btn-main-menu" class="icon-btn" aria-label="Menu" style="position: absolute; top: 16px; right: 16px; color: var(--color-text);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
             <svg class="app-logo" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
             <h1>Auto LaTeX</h1>
         </header>
@@ -60,6 +63,7 @@
                     </a>
                 </div>
             </footer>
+        </main>
         </main>
     </div>
 
@@ -207,7 +211,7 @@
                 </div>
             </div>
 
-            <div id="ai-settings-toggle" class="settings-section-header" role="button" tabindex="0" aria-expanded="false" aria-controls="ai-settings-container">
+            <div id="ai-settings-toggle" class="settings-section-header compact" role="button" tabindex="0" aria-expanded="false" aria-controls="ai-settings-container">
                 <span data-i18n="aiSettingsTitle">AI Settings</span>
                 <svg id="ai-settings-chevron" class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </div>
@@ -340,6 +344,72 @@
                     </div>
                     
                     <button id="btn-export-stats" class="btn btn-secondary" style="width: 100%; margin-top: 8px; font-size: 13px; padding: 6px;" data-i18n="btnExportStats">Export Statistics</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Converter Settings Modal -->
+    <div id="converter-settings-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="converter-settings-modal-title" style="display: none;">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h3 id="converter-settings-modal-title" class="modal-title" data-i18n="converterSettingsTitle">Cài đặt chuyển đổi</h3>
+                <button id="btn-close-converter-settings" class="icon-btn" aria-label="Close" style="margin-top: -4px; margin-right: -8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <div id="filter-settings-toggle" class="settings-section-header" role="button" tabindex="0" aria-expanded="true" aria-controls="filter-settings-container">
+                <span data-i18n="filterSettingsTitle">Cài đặt bộ lọc</span>
+                <svg id="filter-settings-chevron" class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform: rotate(0deg);"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            
+            <div id="filter-settings-container" class="accordion-content expanded" style="max-height: none; overflow: visible;">
+                <div class="settings-panel">
+                    <div class="form-group settings-row mb-16">
+                        <label for="filter-inline" class="mb-0" data-i18n="filterInlineTitle">Inline Math</label>
+                        <label class="switch">
+                            <input type="checkbox" id="filter-inline" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="form-group settings-row mb-16">
+                        <label for="filter-block" class="mb-0" data-i18n="filterBlockTitle">Block Math</label>
+                        <label class="switch">
+                            <input type="checkbox" id="filter-block" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="form-group settings-row mb-0">
+                        <label for="filter-naked" class="mb-0" style="font-size: 13px;" data-i18n="filterNakedTitle">Môi trường độc lập</label>
+                        <label class="switch">
+                            <input type="checkbox" id="filter-naked" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="macro-settings-toggle" class="settings-section-header" role="button" tabindex="0" aria-expanded="false" aria-controls="macro-settings-container">
+                <span data-i18n="macrosTitle">Custom Macros</span>
+                <svg id="macro-settings-chevron" class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            
+            <div id="macro-settings-container" style="display: none;">
+                <div class="settings-panel">
+                    <div class="form-group settings-row mb-16">
+                        <label for="enable-macros" class="mb-0" style="font-size: 13px;" data-i18n="enableMacrosTitle">Sử dụng Lệnh tùy chỉnh</label>
+                        <label class="switch">
+                            <input type="checkbox" id="enable-macros" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="form-group mb-0" style="position: relative;">
+                        <textarea id="custom-macros-input" class="form-control" rows="1" style="width: 100%; min-height: 32px; max-height: 220px; overflow-y: auto; font-size: 13px; border-radius: var(--radius-md); resize: none; font-family: monospace; padding: 6px 30px 6px 12px; line-height: 1.5;" data-i18n-placeholder="macrosPlaceholder" placeholder="\newcommand{\R}{\mathbb{R}}"></textarea>
+                        <button id="btn-copy-macros" class="icon-btn" aria-label="Copy Macros" style="position: absolute; right: 4px; bottom: 4px; padding: 4px; background: transparent; border: none; cursor: pointer; color: var(--text-tertiary); display: flex; align-items: center; justify-content: center; border-radius: 4px;" title="Copy">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
