@@ -197,9 +197,11 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                 if (chatSegments.length === 0) {
                     chatBubbleHtml = parseMarkdown(cText);
                 } else {
+                    let tempText = "";
+                    const mathPlaceholders: string[] = [];
                     for (const segment of chatSegments) {
                         if (segment.type === 'text') {
-                            chatBubbleHtml += `<span>${parseMarkdown(segment.content)}</span>`;
+                            tempText += segment.content;
                         } else if (segment.type === 'formula') {
                             let rawLatex = (segment.content || "").trim();
                             if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
@@ -214,9 +216,15 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                                 rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
                             }
                             const isBlock = segment.isBlock || rawLatex.includes("\\begin{");
-                            chatBubbleHtml += renderFormula(rawLatex, isBlock);
+                            const rendered = renderFormula(rawLatex, isBlock);
+                            mathPlaceholders.push(rendered);
+                            tempText += `___MATH_PH_${mathPlaceholders.length - 1}___`;
                         }
                     }
+                    chatBubbleHtml = parseMarkdown(tempText);
+                    mathPlaceholders.forEach((html, idx) => {
+                        chatBubbleHtml = chatBubbleHtml.replace(`___MATH_PH_${idx}___`, html);
+                    });
                 }
 
                 chatBubbleHtml += `
@@ -360,9 +368,11 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
         if (chatSegments.length === 0) {
             chatBubbleHtml = parseMarkdown(chatText);
         } else {
+            let tempText = "";
+            const mathPlaceholders: string[] = [];
             for (const segment of chatSegments) {
                 if (segment.type === 'text') {
-                    chatBubbleHtml += `<span>${parseMarkdown(segment.content)}</span>`;
+                    tempText += segment.content;
                 } else if (segment.type === 'formula') {
                     let rawLatex = segment.content.trim();
                     let isBlock = segment.isBlock;
@@ -379,9 +389,15 @@ export const handleSendChat = async (deps: ChatSendDeps) => {
                     }
                     
                     isBlock = isBlock || rawLatex.includes("\\begin{");
-                    chatBubbleHtml += renderFormula(rawLatex, isBlock);
+                    const rendered = renderFormula(rawLatex, isBlock);
+                    mathPlaceholders.push(rendered);
+                    tempText += `___MATH_PH_${mathPlaceholders.length - 1}___`;
                 }
             }
+            chatBubbleHtml = parseMarkdown(tempText);
+            mathPlaceholders.forEach((html, idx) => {
+                chatBubbleHtml = chatBubbleHtml.replace(`___MATH_PH_${idx}___`, html);
+            });
         }
         if (hasWordContent) {
             const shouldAutoApply = !isDialog && settings.autoApplyEdits && !isPlainResponse;

@@ -2,7 +2,13 @@ import { sanitizeLaTeX, getMathML, getKaTeXHtml } from "../core/converter";
 import { escapeHtml } from "./helpers";
 
 export const parseMarkdown = (text: string) => {
-    let html = escapeHtml(text);
+    let preprocessed = text
+        .replace(/<\/?b>/gi, '**')
+        .replace(/<\/?strong>/gi, '**')
+        .replace(/<\/?i>/gi, '*')
+        .replace(/<\/?em>/gi, '*');
+        
+    let html = escapeHtml(preprocessed);
     html = html.replace(/^#{1,6}\s+(.*)$/gm, '<b style="display:block; margin-top:8px;">$1</b>');
     html = html.replace(/\*\*([\s\S]*?)\*\*/g, '<b>$1</b>');
     html = html.replace(/(?<!\*)\*(?!\*)([\s\S]*?)(?<!\*)\*(?!\*)/g, '<i>$1</i>');
@@ -220,60 +226,64 @@ export const processSegments = (textStr: string) => {
 
 export const generateWordHtmlFromText = (textStr: string) => {
     const wSegments = processSegments(textStr);
-    let cPara = "";
-    let wHtml = "<html><body style='font-family: Calibri, sans-serif; font-size: 11pt;'>";
+    let tempText = "";
+    const placeholders: {mathML: string, isBlock: boolean}[] = [];
     let hasContent = false;
+    
     for (let i = 0; i < wSegments.length; i++) {
         const segment = wSegments[i];
         if (segment.type === 'text') {
-            let escaped = parseMarkdown(segment.content);
-            
+            let textToAppend = segment.content;
             if (i > 0 && wSegments[i-1].type === 'formula' && !wSegments[i-1].isBlock) {
-                if (escaped.startsWith(' ')) {
-                    escaped = '&nbsp;' + escaped.substring(1);
-                }
+                if (textToAppend.startsWith(' ')) textToAppend = '___NBSP___' + textToAppend.substring(1);
             }
             if (i < wSegments.length - 1 && wSegments[i+1].type === 'formula' && !wSegments[i+1].isBlock) {
-                if (escaped.endsWith(' ')) {
-                    escaped = escaped.substring(0, escaped.length - 1) + '&nbsp;';
-                }
+                if (textToAppend.endsWith(' ')) textToAppend = textToAppend.substring(0, textToAppend.length - 1) + '___NBSP___';
             }
-            
-            cPara += escaped;
-            if (escaped.trim() !== "") hasContent = true;
+            tempText += textToAppend;
+            if (textToAppend.trim() !== "") hasContent = true;
         } else if (segment.type === 'formula') {
             let rawLatex = segment.content.trim();
+            let isBlock = segment.isBlock;
             if (rawLatex.startsWith("$$") && rawLatex.endsWith("$$")) {
                 rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                segment.isBlock = true;
+                isBlock = true;
             } else if (rawLatex.startsWith("\\[") && rawLatex.endsWith("\\]")) {
                 rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
-                segment.isBlock = true;
+                isBlock = true;
             } else if (rawLatex.startsWith("\\(") && rawLatex.endsWith("\\)")) {
                 rawLatex = rawLatex.substring(2, rawLatex.length - 2).trim();
             } else if (rawLatex.startsWith("$") && rawLatex.endsWith("$")) {
                 rawLatex = rawLatex.substring(1, rawLatex.length - 1).trim();
             }
-            const isBlock = segment.isBlock || rawLatex.includes("\\begin{");
+            isBlock = isBlock || rawLatex.includes("\\begin{");
             const latexClean = sanitizeLaTeX(rawLatex, isBlock);
             const mathML = getMathML(latexClean, isBlock);
             if (mathML) {
-                if (isBlock) {
-                    if (cPara.trim() !== "") {
-                        wHtml += `<p style="margin-bottom: 8px;">${cPara}</p>`;
-                        cPara = "";
-                    }
-                    wHtml += `<p style="margin-bottom: 8px;">${mathML}</p>`;
-                } else {
-                    cPara += `<span>${mathML}</span>`;
-                }
+                placeholders.push({mathML, isBlock});
+                tempText += `___MATH_PH_${placeholders.length - 1}___`;
                 hasContent = true;
             }
         }
     }
-    if (cPara.trim() !== "") {
-        wHtml += `<p style="margin-bottom: 8px;">${cPara}</p>`;
+    
+    let parsedHtml = parseMarkdown(tempText);
+    parsedHtml = parsedHtml.replace(/___NBSP___/g, '&nbsp;');
+    
+    for (let i = 0; i < placeholders.length; i++) {
+        const ph = placeholders[i];
+        if (ph.isBlock) {
+            parsedHtml = parsedHtml.replace(`___MATH_PH_${i}___`, `</p><p style="margin-bottom: 8px;">${ph.mathML}</p><p style="margin-bottom: 8px;">`);
+        } else {
+            parsedHtml = parsedHtml.replace(`___MATH_PH_${i}___`, `<span>${ph.mathML}</span>`);
+        }
     }
+    
+    parsedHtml = `<p style="margin-bottom: 8px;">${parsedHtml}</p>`;
+    parsedHtml = parsedHtml.replace(/<p[^>]*>\s*<\/p>/g, "");
+    
+    let wHtml = "<html><body style='font-family: Calibri, sans-serif; font-size: 11pt;'>";
+    wHtml += parsedHtml;
     wHtml += "</body></html>";
     return { html: wHtml, hasContent };
 };
