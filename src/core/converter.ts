@@ -193,6 +193,9 @@ export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
     // Force \lim_{...} to use \limits so it renders underneath instead of inline
     sanitized = sanitized.replace(/(?:\\+)?\blim_\{/g, '\\lim\\limits_{');
     sanitized = sanitized.replace(/(?:\\+)?\blim _\{/g, '\\lim\\limits_{');
+    
+    // Edge Case 19: Word OMML splits \sinh into \sin and h. We force it as text.
+    sanitized = sanitized.replace(/\\(sinh|cosh|tanh|coth)\b/g, '\\text{$1}\\,');
 
     if (!isBlock) {
         sanitized = sanitizeTrailingSlashes(sanitized);
