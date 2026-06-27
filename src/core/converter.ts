@@ -16,6 +16,9 @@ export interface ConvertOptions {
     forceDisplay: boolean;
     macrosString: string;
     parsedMacros?: Record<string, string>;
+    batchSize: number;       // số formula xử lý mỗi context.sync()
+    insertDelay: number;     // ms delay giữa các batch insert
+    insertChunkSize: number; // số range insert giữa các sync
 }
 
 // Edge Case 10: Balance Braces
@@ -25,9 +28,8 @@ function balanceBraces(latex: string): string {
     let closeCount = (unescaped.match(/\}/g) || []).length;
     if (openCount > closeCount) {
         latex += "}".repeat(openCount - closeCount);
-    } else if (openCount < closeCount) {
-        latex = "{".repeat(closeCount - openCount) + latex;
     }
+    // Do not prepend '{' if closeCount > openCount because it destroys the formula's semantic structure
     return latex;
 }
 
@@ -36,31 +38,24 @@ function sanitizeTrailingSlashes(latex: string): string {
     return latex.replace(/\\+\s*$/, "").trim();
 }
 
+const VALID_MACROS = [
+    "varepsilon","varsigma","vartheta","epsilon","omicron","upsilon","Upsilon",
+    "arcsin","arccos","arctan","varphi","varrho","lambda","Lambda","alpha",
+    "gamma","delta","theta","kappa","sigma","omega","Gamma","Delta","Theta",
+    "Sigma","Omega","beta","zeta","iota","sinh","cosh","tanh","coth","eta",
+    "tau","phi","chi","psi","sin","cos","tan","cot","sec","csc","log","exp",
+    "max","min","lim","det","sup","inf","deg","arg","dim","hom","ker","Phi",
+    "Psi","mu","nu","xi","pi","rho","Pr","ln","Xi","Pi",
+    "limits","liminf","limsup","supset","supseteq","infty"
+].sort((a, b) => b.length - a.length);
+
 // Edge Case 6: Token Merging (e.g. \muF -> \mu F)
 function sanitizeTokenMerge(latex: string): string {
-    const validMacros = [
-        "varepsilon","varsigma","vartheta","epsilon","omicron","upsilon","Upsilon",
-        "arcsin","arccos","arctan","varphi","varrho","lambda","Lambda","alpha",
-        "gamma","delta","theta","kappa","sigma","omega","Gamma","Delta","Theta",
-        "Sigma","Omega","beta","zeta","iota","sinh","cosh","tanh","coth","eta",
-        "tau","phi","chi","psi","sin","cos","tan","cot","sec","csc","log","exp",
-        "max","min","lim","det","sup","inf","deg","arg","dim","hom","ker","Phi",
-        "Psi","mu","nu","xi","pi","rho","Pr","ln","Xi","Pi"
-    ];
-    
-    // Sort descending by length to always match the longest valid macro first (e.g. sinh over sin)
-    validMacros.sort((a, b) => b.length - a.length);
-
     let res = latex.replace(/\\([a-zA-Z]+)([0-9]?)/g, (match, p1, p2) => {
-        for (const m of validMacros) {
+        for (const m of VALID_MACROS) {
             if (p1.startsWith(m)) {
                 const remainder = p1.substring(m.length);
                 if (remainder.length > 0) {
-                    if (m === "lim" && remainder === "i") return match; // protect \limits, \liminf
-                    if (m === "lim" && remainder === "s") return match; // protect \limsup
-                    if (m === "sup" && remainder.startsWith("e")) return match; // protect \supset, \supseteq
-                    if (m === "inf" && remainder.startsWith("t")) return match; // protect \infty
-                    if (m === "pi" && remainder === "m") return match; // just in case
                     return "\\" + m + " " + remainder + p2;
                 } else {
                     if (p2) return "\\" + m + " " + p2;
@@ -103,12 +98,13 @@ function protectTextBlocks(latex: string): { sanitized: string, textBlocks: stri
 }
 
 function restoreTextBlocks(latex: string, textBlocks: string[]): string {
-    let result = latex;
-    textBlocks.forEach((block, i) => {
-        const escapedBlock = block.replace(/(?<!\\)_/g, '\\_');
-        result = result.replace(`__TEXT_BLOCK_${i}__`, escapedBlock);
+    return latex.replace(/__TEXT_BLOCK_(\d+)__/g, (match, indexStr) => {
+        const i = parseInt(indexStr, 10);
+        if (textBlocks[i] !== undefined) {
+            return textBlocks[i].replace(/(?<!\\)_/g, '\\_');
+        }
+        return match;
     });
-    return result;
 }
 
 // Edge Case 5: Vietnamese Characters inside text mode
@@ -120,8 +116,17 @@ function sanitizeVietnamese(latex: string): string {
     let result = "";
     let depth = 0;
     let segmentStart = 0;
+
+    const isUnescaped = (str: string, index: number) => {
+        let slashes = 0;
+        for (let j = index - 1; j >= 0 && str[j] === '\\'; j--) {
+            slashes++;
+        }
+        return slashes % 2 === 0;
+    };
+
     for (let i = 0; i < latex.length; i++) {
-        if (latex[i] === '{' && (i === 0 || latex[i-1] !== '\\')) {
+        if (latex[i] === '{' && isUnescaped(latex, i)) {
             if (depth === 0) {
                 result += latex.substring(segmentStart, i).replace(vnRegex, (match) => {
                     const escapedMatch = match.replace(/(?<!\\)_/g, '\\_');
@@ -130,7 +135,7 @@ function sanitizeVietnamese(latex: string): string {
                 segmentStart = i;
             }
             depth++;
-        } else if (latex[i] === '}' && (i === 0 || latex[i-1] !== '\\')) {
+        } else if (latex[i] === '}' && isUnescaped(latex, i)) {
             depth--;
             if (depth === 0) {
                 result += latex.substring(segmentStart, i + 1);
@@ -149,8 +154,7 @@ function sanitizeVietnamese(latex: string): string {
 // Edge Case 2: Environments without $$ are manually extracted, not mutated in text
 function extractNakedEnvironments(text: string): string[] {
     const results: string[] = [];
-    const envNames = '(?:cases|matrix|bmatrix|pmatrix|vmatrix|aligned|array|equation|split|gathered|multline|align|flalign|gather|alignat)';
-    const beginRegex = new RegExp(`\\\\begin\\{(${envNames})\\}`, 'g');
+    const beginRegex = new RegExp(`\\\\begin\\{([a-zA-Z*]+)\\}`, 'g');
     let match;
     while ((match = beginRegex.exec(text)) !== null) {
         const envName = match[1];
@@ -159,7 +163,10 @@ function extractNakedEnvironments(text: string): string[] {
         while (depth > 0 && pos < text.length) {
             const nextBegin = text.indexOf(`\\begin{${envName}}`, pos);
             const nextEnd = text.indexOf(`\\end{${envName}}`, pos);
-            if (nextEnd === -1) break;
+            if (nextEnd === -1) {
+                beginRegex.lastIndex = match.index + match[0].length;
+                break;
+            }
             if (nextBegin !== -1 && nextBegin < nextEnd) {
                 depth++;
                 pos = nextBegin + `\\begin{${envName}}`.length;
@@ -171,6 +178,7 @@ function extractNakedEnvironments(text: string): string[] {
                 pos = nextEnd + `\\end{${envName}}`.length;
             }
         }
+        beginRegex.lastIndex = pos;
     }
     return results;
 }
@@ -188,12 +196,9 @@ export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
     sanitized = sanitized.replace(/°/g, '^\\circ');
     
     // Auto-convert common ASCII and Unicode arrows to LaTeX commands
-    sanitized = sanitized.replace(/(?<!\\)->/g, '\\to ');
-    sanitized = sanitized.replace(/(?<!\\)=>/g, '\\Rightarrow ');
-    sanitized = sanitized.replace(/(?<!\\)<-/g, '\\gets ');
-    sanitized = sanitized.replace(/→/g, '\\to ');
-    sanitized = sanitized.replace(/⇒/g, '\\Rightarrow ');
-    sanitized = sanitized.replace(/←/g, '\\gets ');
+    sanitized = sanitized.replace(/(?<!\\)->|→/g, '\\to ');
+    sanitized = sanitized.replace(/(?<!\\)=>|⇒/g, '\\Rightarrow ');
+    sanitized = sanitized.replace(/(?<!\\)<-|←/g, '\\gets ');
     
     // Fix an edge case where \lim was wrapped in \mathrm by the OMML parser
     sanitized = sanitized.replace(/\\mathrm\{\s*\\?lim\s*\}/g, '\\lim');
@@ -305,8 +310,8 @@ export function getMathML(latex: string, isBlock: boolean, macros?: Record<strin
         
         // Edge Case 17: Auto-healing missing \right
         if (html.includes('class="katex-error"')) {
-            const leftCount = (latex.match(/\\left[\(\[\{\.\\|]/g) || []).length;
-            const rightCount = (latex.match(/\\right[\)\]\}\.\\|]/g) || []).length;
+            const leftCount = (latex.match(/\\left[\(\[\{\.\|]/g) || []).length;
+            const rightCount = (latex.match(/\\right[\)\]\}\.\|]/g) || []).length;
             if (leftCount > rightCount) {
                 const healedLatex = latex + '\\right.'.repeat(leftCount - rightCount);
                 const healedHtml = katex.renderToString(healedLatex, {
@@ -415,7 +420,7 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
     });
 
     // Chunking to support low-end machines and avoid Memory Bloat
-    const BATCH_SIZE = 1; // Xử lý từng pattern một để có thể chunk quá trình chèn, giúp UI cập nhật mượt và Cancel ngay lập tức
+    const BATCH_SIZE = options?.batchSize || 20; // Tăng lên 20 để giảm số lần context.sync() (Bug 4)
     
     const totalActualFormulas = uniqueNodes.length;
     let processedActualFormulas = 0;
@@ -432,10 +437,14 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
 
         const chunkNodes = uniqueNodes.slice(i, i + BATCH_SIZE);
         const searchTasks: any[] = [];
+        let aborted = false;
 
         // Phase 1: Search Queue
         for (const node of chunkNodes) {
-            if (state && state.isCancelled) break;
+            if (state && state.isCancelled) {
+                aborted = true;
+                break;
+            }
 
             const matchStr = node.rawStr;
 
@@ -461,8 +470,9 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
                     searchTasks.push({ matchStr, mathML, type: 'short', results: searchResults });
                 } else {
                     // Edge Case 11: Long Formula > 255 chars workaround using expandTo
-                    const startStr = matchStr.substring(0, 50).replace(/\^/g, "^^").replace(/\r\n|\r|\n/g, "^p").replace(/\x0B/g, "^l");
-                    const endStr = matchStr.substring(matchStr.length - 50).replace(/\^/g, "^^").replace(/\r\n|\r|\n/g, "^p").replace(/\x0B/g, "^l");
+                    // Dùng 240 kí tự thay vì 50 để đảm bảo tính duy nhất, tránh bùng nổ O(n*m) (Bug 5)
+                    const startStr = matchStr.substring(0, 240).replace(/\^/g, "^^").replace(/\r\n|\r|\n/g, "^p").replace(/\x0B/g, "^l");
+                    const endStr = matchStr.substring(matchStr.length - 80).replace(/\^/g, "^^").replace(/\r\n|\r|\n/g, "^p").replace(/\x0B/g, "^l");
                     
                     const startResults = docRange.search(startStr, { matchWildcards: false, matchCase: true });
                     const endResults = docRange.search(endStr, { matchWildcards: false, matchCase: true });
@@ -476,6 +486,7 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
             }
         }
         
+        if (aborted) break;
         if (searchTasks.length === 0) continue;
 
         // Phase 2: Bulk Sync 1 (Load all search items for this chunk)
@@ -483,7 +494,10 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
 
         // Phase 3: Insert Queue with Inner Chunking
         for (const task of searchTasks) {
-            if (state && state.isCancelled) break;
+            if (state && state.isCancelled) {
+                aborted = true;
+                break;
+            }
 
             try {
                 let rangesToReplace: any[] = [];
@@ -515,6 +529,8 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
                             if (fullRange.text.length >= task.matchStr.length && fullRange.text.length <= task.matchStr.length + 100) {
                                 if (fullRange.text.trim() === task.matchStr.trim()) {
                                     rangesToReplace.push(fullRange);
+                                    // Bỏ qua các candidate còn lại cho cùng startItem để tránh đè (Bug 5)
+                                    break;
                                 }
                             }
                         } catch (e) {
@@ -523,12 +539,22 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
                     }
                 }
                 
+                // Deduplicate ranges to prevent multiple insertions at the exact same place
+                const uniqueRanges = [];
+                for (const range of rangesToReplace) {
+                    if (!uniqueRanges.includes(range)) uniqueRanges.push(range);
+                }
+                rangesToReplace = uniqueRanges;
+
                 // Loop backwards and chunk insertions
-                const INSERT_CHUNK_SIZE = 10;
+                const INSERT_CHUNK_SIZE = options?.insertChunkSize || 10;
                 let currentChunkCount = 0;
 
                 for (let j = rangesToReplace.length - 1; j >= 0; j--) {
-                    if (state && state.isCancelled) break;
+                    if (state && state.isCancelled) {
+                        aborted = true;
+                        break;
+                    }
 
                     const wrappedMathML = `<html><body>${task.mathML}</body></html>`;
                     rangesToReplace[j].insertHtml(wrappedMathML, Word.InsertLocation.replace);
@@ -537,19 +563,22 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
                     if (currentChunkCount >= INSERT_CHUNK_SIZE) {
                         await context.sync();
                         currentChunkCount = 0;
-                        await new Promise(resolve => setTimeout(resolve, 10));
+                        await new Promise(resolve => setTimeout(resolve, options?.insertDelay ?? 10));
                     }
                 }
 
                 // Final sync for remainder
                 if (currentChunkCount > 0) {
                     await context.sync();
-                    await new Promise(resolve => setTimeout(resolve, 10));
+                    await new Promise(resolve => setTimeout(resolve, options?.insertDelay ?? 10));
                 }
             } catch (err) {
                 console.error("Lỗi khi chuẩn bị chèn công thức:", task.matchStr, err);
             }
+            if (aborted) break;
         }
+
+        if (aborted) break;
 
         processedActualFormulas += chunkNodes.length;
         if (state && state.onProgress) {

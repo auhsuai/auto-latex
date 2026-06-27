@@ -65,7 +65,10 @@ export const translations: Record<string, Record<string, string>> = {
         filterNakedTitle: "LaTeX Environments",
         enableMacrosTitle: "Enable Custom Macros",
         macrosTitle: "Custom Macros",
-        macrosPlaceholder: "\\newcommand{\\R}{\\mathbb{R}}"
+        macrosPlaceholder: "\\newcommand{\\R}{\\mathbb{R}}",
+        perfSettingsTitle: "Performance",
+        batchSizeLabel: "Batch Size",
+        insertDelayLabel: "Insert Delay (ms)"
     },
     vi: {
         menuTitle: "Menu",
@@ -133,6 +136,9 @@ export const translations: Record<string, Record<string, string>> = {
         filterNakedTitle: "Công thức phức hợp",
         enableMacrosTitle: "Sử dụng Lệnh tùy chỉnh",
         macrosTitle: "Lệnh tùy chỉnh",
-        macrosPlaceholder: "\\newcommand{\\R}{\\mathbb{R}}"
+        macrosPlaceholder: "\\newcommand{\\R}{\\mathbb{R}}",
+        perfSettingsTitle: "Hiệu năng",
+        batchSizeLabel: "Số lượng mỗi lần",
+        insertDelayLabel: "Độ trễ (ms)"
     }
 };

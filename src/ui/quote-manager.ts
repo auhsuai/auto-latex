@@ -19,6 +19,7 @@ export class QuoteManager {
     private btnAttachContext: HTMLElement | null;
     private chatInput: HTMLTextAreaElement | null;
     private isPromptFixed: boolean = false;
+    private documentSelectionHandler: any = null;
 
     constructor() {
         this.selectionPrompt = document.getElementById("selection-prompt");
@@ -61,7 +62,8 @@ export class QuoteManager {
         });
 
         if (Office.context.document) {
-            Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, this.onSelectionChanged.bind(this));
+            this.documentSelectionHandler = this.onSelectionChanged.bind(this);
+            Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, this.documentSelectionHandler);
         }
         // Prevent losing selection when clicking the buttons
         this.btnQuoteSelection?.addEventListener("mousedown", (e) => e.preventDefault());
@@ -76,6 +78,15 @@ export class QuoteManager {
         
         // Hoàn toàn không dùng Javascript để tính lại tọa độ khi cuộn
         // Trình duyệt sẽ tự làm việc đó khi ta ném popup vào trong #chat-messages
+    }
+
+    public dispose() {
+        if (Office.context.document && this.documentSelectionHandler) {
+            Office.context.document.removeHandlerAsync(Office.EventType.DocumentSelectionChanged, { handler: this.documentSelectionHandler });
+            this.documentSelectionHandler = null;
+        }
+        if (this.taskpaneSelectionTimer) clearTimeout(this.taskpaneSelectionTimer);
+        if (this.debounceSelectionTimer) clearTimeout(this.debounceSelectionTimer);
     }
 
     private showSelectionPrompt(rect?: DOMRect) {

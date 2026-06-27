@@ -290,6 +290,7 @@ export class SettingsManager {
             });
         };
 
+        setupToggle("perf-settings-toggle", "perf-settings-container", "perf-settings-chevron");
         setupToggle("filter-settings-toggle", "filter-settings-container", "filter-settings-chevron");
         setupToggle("macro-settings-toggle", "macro-settings-container", "macro-settings-chevron");
         setupToggle("ai-settings-toggle", "ai-settings-container", "ai-settings-chevron");

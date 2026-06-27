@@ -450,5 +450,9 @@ Office.onReady(async (info) => {
         chatInput?.addEventListener("input", (e) => {
             localStorage.setItem(draftKey, (e.target as HTMLTextAreaElement).value);
         });
+
+        window.addEventListener("beforeunload", () => {
+            quoteManager.dispose();
+        });
     }
 });

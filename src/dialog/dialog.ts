@@ -194,6 +194,7 @@ async function initDialog() {
         const currentQuote = quoteManager.currentQuotedText || "";
         const isFromWord = quoteManager.isQuoteFromWord;
         sessionManager.saveDraft(currentPrompt, currentQuote, isFromWord);
+        quoteManager.dispose();
         Office.context.ui.messageParent(JSON.stringify({ type: isFullscreen ? "reopenNormal" : "reopenFullscreen" }));
     });
 
@@ -235,6 +236,7 @@ async function initDialog() {
         const isFromWord = quoteManager.isQuoteFromWord;
         
         sessionManager.saveDraft(currentPrompt, currentQuote, isFromWord);
+        quoteManager.dispose();
         Office.context.ui.messageParent(JSON.stringify({ type: "dialogClosed" }));
     });
     

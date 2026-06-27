@@ -80,6 +80,30 @@ export class ConverterUIManager {
             setupFilterToggle(filterBlock, "auto_latex_filter_block");
             setupFilterToggle(filterNaked, "auto_latex_filter_naked");
 
+            const setupPerfInput = (id: string, key: string, defaultValue: string) => {
+                const el = document.getElementById(id) as HTMLInputElement;
+                if (!el) return;
+                const saved = localStorage.getItem(key);
+                el.value = saved !== null ? saved : defaultValue;
+                
+                el.addEventListener("change", () => {
+                    let val = parseInt(el.value, 10);
+                    if (isNaN(val)) val = parseInt(defaultValue, 10);
+                    
+                    const min = parseInt(el.min, 10);
+                    const max = parseInt(el.max, 10);
+                    
+                    if (!isNaN(min) && val < min) val = min;
+                    if (!isNaN(max) && val > max) val = max;
+                    
+                    el.value = val.toString();
+                    localStorage.setItem(key, el.value);
+                });
+            };
+
+            setupPerfInput("converter-batch-size", "auto_latex_converter_batch_size", "20");
+            setupPerfInput("converter-insert-delay", "auto_latex_converter_insert_delay", "10");
+
             const autoResize = () => {
                 if (customMacrosInput.offsetWidth === 0) return; // Skip if hidden
                 customMacrosInput.style.height = 'auto';
@@ -168,6 +192,8 @@ export class ConverterUIManager {
             const filterNaked = document.getElementById("filter-naked") as HTMLInputElement;
             const customMacrosInput = document.getElementById("custom-macros-input") as HTMLTextAreaElement;
             const enableMacrosToggle = document.getElementById("enable-macros") as HTMLInputElement;
+            const batchSizeInput = document.getElementById("converter-batch-size") as HTMLInputElement;
+            const insertDelayInput = document.getElementById("converter-insert-delay") as HTMLInputElement;
 
             const macrosEnabled = enableMacrosToggle ? enableMacrosToggle.checked : true;
 
@@ -176,7 +202,10 @@ export class ConverterUIManager {
                 convertBlock: filterBlock ? filterBlock.checked : true,
                 convertNaked: filterNaked ? filterNaked.checked : true,
                 forceDisplay: false,
-                macrosString: (macrosEnabled && customMacrosInput) ? customMacrosInput.value : ""
+                macrosString: (macrosEnabled && customMacrosInput) ? customMacrosInput.value : "",
+                batchSize: batchSizeInput ? parseInt(batchSizeInput.value, 10) || 20 : 20,
+                insertDelay: insertDelayInput ? parseInt(insertDelayInput.value, 10) || 10 : 10,
+                insertChunkSize: 10
             };
 
             const { runConversion } = await import("../core/converter");

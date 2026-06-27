@@ -390,6 +390,25 @@
                 </div>
             </div>
 
+            <!-- Performance Settings -->
+            <div id="perf-settings-toggle" class="settings-section-header" role="button" tabindex="0" aria-expanded="true" aria-controls="perf-settings-container">
+                <span data-i18n="perfSettingsTitle">Performance</span>
+                <svg id="perf-settings-chevron" class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            
+            <div id="perf-settings-container" class="accordion-content" style="max-height: none; overflow: visible;">
+                <div class="settings-panel">
+                    <div class="form-group settings-row mb-16">
+                        <label for="converter-batch-size" data-i18n="batchSizeLabel">Batch Size</label>
+                        <input type="number" id="converter-batch-size" class="form-control" min="1" max="30" value="20" style="width: 44px; padding: 4px; text-align: center;">
+                    </div>
+                    <div class="form-group settings-row mb-0">
+                        <label for="converter-insert-delay" data-i18n="insertDelayLabel">Insert Delay (ms)</label>
+                        <input type="number" id="converter-insert-delay" class="form-control" min="10" max="300" value="10" style="width: 44px; padding: 4px; text-align: center;">
+                    </div>
+                </div>
+            </div>
+
             <div id="macro-settings-toggle" class="settings-section-header" role="button" tabindex="0" aria-expanded="false" aria-controls="macro-settings-container">
                 <span data-i18n="macrosTitle">Custom Macros</span>
                 <svg id="macro-settings-chevron" class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
