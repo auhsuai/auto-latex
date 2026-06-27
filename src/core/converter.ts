@@ -39,7 +39,7 @@ function sanitizeTrailingSlashes(latex: string): string {
 // Edge Case 6: Token Merging (e.g. \muF -> \mu F)
 function sanitizeTokenMerge(latex: string): string {
     // Only add a space if the macro is followed by a letter/number AND is not a prefix of another valid macro (like \limits)
-    let res = latex.replace(/(\\(?:mu|pi|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|nu|xi|omicron|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|sin|cos|tan|cot|sec|csc|arcsin|arccos|arctan|log|ln|exp|max|min|lim|det|sup|inf(?!ty)))([a-zA-Z0-9])/g, (match, p1, p2) => {
+    let res = latex.replace(/(\\(?:varepsilon|varsigma|vartheta|epsilon|omicron|upsilon|Upsilon|arcsin|arccos|arctan|varphi|varrho|lambda|Lambda|alpha|gamma|delta|theta|kappa|sigma|omega|Gamma|Delta|Theta|Sigma|Omega|beta|zeta|iota|sinh|cosh|tanh|coth|eta|tau|phi|chi|psi|sin|cos|tan|cot|sec|csc|log|exp|max|min|lim|det|sup|inf(?!ty)|deg|arg|dim|hom|ker|Phi|Psi|mu|nu|xi|pi|rho|Pr|ln|Xi|Pi))([a-zA-Z0-9])/g, (match, p1, p2) => {
         if (p1 === "\\lim" && p2 === "i") return match; // protect \limits, \liminf
         if (p1 === "\\lim" && p2 === "s") return match; // protect \limsup
         if (p1 === "\\sup" && p2 === "e") return match; // protect \supset, \supseteq (starts with \sup)
@@ -50,49 +50,74 @@ function sanitizeTokenMerge(latex: string): string {
     return res;
 }
 
-// Edge Case 5: Vietnamese Characters inside text mode and protecting existing \text{} blocks
-function sanitizeVietnamese(latex: string): string {
+// Helper to protect text environments using a depth parser (Fix Bug 4 & 5)
+function protectTextBlocks(latex: string): { sanitized: string, textBlocks: string[] } {
     const textBlocks: string[] = [];
+    let cleanLatex = '';
     
-    // 1. Trích xuất các block \text{...} đã có ra thành placeholder để bảo vệ
-    let tempLatex = latex.replace(/\\(?:text|textbf|textit|textrm|mathrm|operatorname)\{[^}]*\}/g, (match) => {
-        textBlocks.push(match);
-        return '__TEXT_BLOCK_' + (textBlocks.length - 1) + '__';
-    });
+    const startRegex = /\\(text|textbf|textit|textrm|textsf|texttt|mbox)\s*\{/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = startRegex.exec(latex)) !== null) {
+        cleanLatex += latex.substring(lastIndex, match.index);
+        let depth = 1;
+        let i = startRegex.lastIndex;
+        while (i < latex.length && depth > 0) {
+            if (latex[i] === '{') depth++;
+            else if (latex[i] === '}') depth--;
+            i++;
+        }
+        const block = latex.substring(match.index, i);
+        textBlocks.push(block);
+        cleanLatex += `__TEXT_BLOCK_${textBlocks.length - 1}__`;
+        lastIndex = i;
+        startRegex.lastIndex = i;
+    }
+    
+    cleanLatex += latex.substring(lastIndex);
+    return { sanitized: cleanLatex, textBlocks };
+}
 
-    // 2. Wrap các từ có chứa tiếng Việt
-    const vnRegex = /([a-zA-Z_]*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]+[a-zA-Z_]*)/g;
+function restoreTextBlocks(latex: string, textBlocks: string[]): string {
+    let result = latex;
+    textBlocks.forEach((block, i) => {
+        const escapedBlock = block.replace(/(?<!\\)_/g, '\\_');
+        result = result.replace(`__TEXT_BLOCK_${i}__`, escapedBlock);
+    });
+    return result;
+}
+
+// Edge Case 5: Vietnamese Characters inside text mode
+function sanitizeVietnamese(latex: string): string {
+    const vnChars = "àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ";
+    const vnWord = `[a-zA-Z_]*[${vnChars}]+[a-zA-Z_]*`;
+    const vnRegex = new RegExp(`([ \\t]*${vnWord}(?:[ \\t]+${vnWord})*[ \\t]*)`, 'g');
     
     let result = "";
     let depth = 0;
     let segmentStart = 0;
-    for (let i = 0; i < tempLatex.length; i++) {
-        if (tempLatex[i] === '{' && (i === 0 || tempLatex[i-1] !== '\\')) {
+    for (let i = 0; i < latex.length; i++) {
+        if (latex[i] === '{' && (i === 0 || latex[i-1] !== '\\')) {
             if (depth === 0) {
-                result += tempLatex.substring(segmentStart, i).replace(vnRegex, (match) => {
+                result += latex.substring(segmentStart, i).replace(vnRegex, (match) => {
                     const escapedMatch = match.replace(/(?<!\\)_/g, '\\_');
                     return `\\text{${escapedMatch}}`;
                 });
                 segmentStart = i;
             }
             depth++;
-        } else if (tempLatex[i] === '}' && (i === 0 || tempLatex[i-1] !== '\\')) {
+        } else if (latex[i] === '}' && (i === 0 || latex[i-1] !== '\\')) {
             depth--;
             if (depth === 0) {
-                result += tempLatex.substring(segmentStart, i + 1);
+                result += latex.substring(segmentStart, i + 1);
                 segmentStart = i + 1;
             }
         }
     }
-    result += tempLatex.substring(segmentStart).replace(vnRegex, (match) => {
+    result += latex.substring(segmentStart).replace(vnRegex, (match) => {
         const escapedMatch = match.replace(/(?<!\\)_/g, '\\_');
         return `\\text{${escapedMatch}}`;
-    });
-
-    // 3. Phục hồi lại các block \text{...} cũ và escape _ cho chúng luôn
-    textBlocks.forEach((block, i) => {
-        const escapedBlock = block.replace(/(?<!\\)_/g, '\\_');
-        result = result.replace(`__TEXT_BLOCK_${i}__`, escapedBlock);
     });
 
     return result;
@@ -101,7 +126,7 @@ function sanitizeVietnamese(latex: string): string {
 // Edge Case 2: Environments without $$ are manually extracted, not mutated in text
 function extractNakedEnvironments(text: string): string[] {
     const results: string[] = [];
-    const envNames = '(?:cases|matrix|bmatrix|pmatrix|vmatrix|aligned|array|equation)';
+    const envNames = '(?:cases|matrix|bmatrix|pmatrix|vmatrix|aligned|array|equation|split|gathered|multline|align|flalign|gather|alignat)';
     const beginRegex = new RegExp(`\\\\begin\\{(${envNames})\\}`, 'g');
     let match;
     while ((match = beginRegex.exec(text)) !== null) {
@@ -128,7 +153,7 @@ function extractNakedEnvironments(text: string): string[] {
 }
 
 export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
-    let sanitized = latex;
+    let { sanitized, textBlocks } = protectTextBlocks(latex);
 
     // Edge Case 14: Unescaped % comment (KaTeX removes everything after it)
     sanitized = sanitized.replace(/(?<!\\)%/g, '\\%');
@@ -175,6 +200,8 @@ export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
     sanitized = sanitizeTokenMerge(sanitized);
     sanitized = sanitizeVietnamese(sanitized);
     sanitized = balanceBraces(sanitized);
+    
+    sanitized = restoreTextBlocks(sanitized, textBlocks);
     return sanitized;
 }
 
@@ -381,8 +408,8 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
 
             const matchStr = node.rawStr;
 
-            // If the formula was wrapped in $$ or bold/italic $$, user expects a block equation
-            const isBlock = matchStr.includes('$$');
+            // Determine block equation based on AST type
+            const isBlock = node.type === 'math';
             
             let cleanValue = node.value.trim();
             if (cleanValue.startsWith('$') && cleanValue.endsWith('$')) {
@@ -434,22 +461,33 @@ export async function runConversion(onlySelection: boolean, state?: ConversionSt
                         rangesToReplace.push(task.results.items[j]);
                     }
                 } else {
-                    const minLength = Math.min(task.startResults.items.length, task.endResults.items.length);
-                    for (let j = 0; j < minLength; j++) {
-                        try {
-                            const fullRange = task.startResults.items[j].expandTo(task.endResults.items[j]);
-                            fullRange.load("text");
-                            await context.sync();
-                            // Protect against massive expanded ranges from mismatched start/end items
-                            if (fullRange.text.length > task.matchStr.length * 2 + 100) {
-                                console.warn("Skipping mismatched expanded range");
-                                continue;
+                    const candidates: any[] = [];
+                    for (let j = 0; j < task.startResults.items.length; j++) {
+                        for (let k = 0; k < task.endResults.items.length; k++) {
+                            try {
+                                const fullRange = task.startResults.items[j].expandTo(task.endResults.items[k]);
+                                fullRange.load("text");
+                                candidates.push(fullRange);
+                            } catch (e) {
+                                // Word API may throw if endItem is before startItem
                             }
-                            if (fullRange.text.trim() === task.matchStr.trim()) {
-                                rangesToReplace.push(fullRange);
+                        }
+                    }
+
+                    if (candidates.length > 0) {
+                        await context.sync();
+                    }
+
+                    for (let c = 0; c < candidates.length; c++) {
+                        try {
+                            const fullRange = candidates[c];
+                            if (fullRange.text.length >= task.matchStr.length && fullRange.text.length <= task.matchStr.length + 100) {
+                                if (fullRange.text.trim() === task.matchStr.trim()) {
+                                    rangesToReplace.push(fullRange);
+                                }
                             }
                         } catch (e) {
-                            console.warn("Failed to process long formula range", e);
+                            console.warn("Failed to validate long formula candidate", e);
                         }
                     }
                 }

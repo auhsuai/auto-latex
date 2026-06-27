@@ -217,8 +217,8 @@ export async function sendChatMessage(
 
     // Prepare static system prompt
     const langInstruction = appLanguage === "vi"
-        ? "\n\n7. QUAN TRỌNG: Hãy ưu tiên trả lời bằng Tiếng Việt."
-        : "\n\n7. IMPORTANT: Please prioritize replying in English.";
+        ? "\n\n7. QUAN TRỌNG: Hãy phản hồi bằng cùng ngôn ngữ mà người dùng sử dụng để chat (Ví dụ: người dùng chat tiếng Việt thì đáp tiếng Việt)."
+        : "\n\n7. IMPORTANT: Please respond in the same language that the user uses to chat (e.g., if the user asks in Vietnamese, reply in Vietnamese).";
 
     const autoApplyInstruction = settings.autoApplyEdits
         ? "\n\n8. LƯU Ý HỆ THỐNG: Chế độ 'Auto-Apply' ĐANG BẬT. Bất kỳ thẻ XML nào bạn xuất ra sẽ TỰ ĐỘNG CHÈN vào Word ngay lập tức. TUYỆT ĐỐI KHÔNG dặn người dùng 'hãy bấm nút Apply'. Ở cuối câu trả lời, hãy luôn gợi ý một câu hỏi mở ngắn gọn để người dùng có thể tiếp tục trò chuyện."
