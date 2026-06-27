@@ -217,9 +217,6 @@ export function sanitizeLaTeX(latex: string, isBlock: boolean): string {
     sanitized = sanitized.replace(/(?:\\+)?\blim_\{/g, '\\lim\\limits_{');
     sanitized = sanitized.replace(/(?:\\+)?\blim _\{/g, '\\lim\\limits_{');
     
-    // Edge Case 19: Word OMML splits \sinh into \sin and h. We force it as text.
-    sanitized = sanitized.replace(/\\(sinh|cosh|tanh|coth)\b/g, '\\text{$1}\\,');
-
     if (!isBlock) {
         sanitized = sanitizeTrailingSlashes(sanitized);
     }
@@ -283,6 +280,14 @@ function extractAndCleanMathML(html: string, isBlock: boolean): string | null {
             mathML = mathML.replace(/<math/, '<math display="inline"');
         }
         mathML = mathML.replace(/(<mo[^>]*>[\(\[\{]<\/mo>)\s*(<mo[^>]*>[−\+±∓]<\/mo>)/g, "$1<mi>&#x200B;</mi>$2");
+        
+        // Edge Case 19: Word OMML splits <mi>sinh</mi> into "sin" and "h".
+        // To prevent this, we split it into individual upright characters in MathML.
+        mathML = mathML.replace(/<mi>sinh<\/mi>/g, '<mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">h</mi>');
+        mathML = mathML.replace(/<mi>cosh<\/mi>/g, '<mi mathvariant="normal">c</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">h</mi>');
+        mathML = mathML.replace(/<mi>tanh<\/mi>/g, '<mi mathvariant="normal">t</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">h</mi>');
+        mathML = mathML.replace(/<mi>coth<\/mi>/g, '<mi mathvariant="normal">c</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">h</mi>');
+        
         return mathML;
     }
     return null;
