@@ -38,14 +38,37 @@ function sanitizeTrailingSlashes(latex: string): string {
 
 // Edge Case 6: Token Merging (e.g. \muF -> \mu F)
 function sanitizeTokenMerge(latex: string): string {
-    // Only add a space if the macro is followed by a letter/number AND is not a prefix of another valid macro (like \limits)
-    let res = latex.replace(/(\\(?:varepsilon|varsigma|vartheta|epsilon|omicron|upsilon|Upsilon|arcsin|arccos|arctan|varphi|varrho|lambda|Lambda|alpha|gamma|delta|theta|kappa|sigma|omega|Gamma|Delta|Theta|Sigma|Omega|beta|zeta|iota|sinh|cosh|tanh|coth|eta|tau|phi|chi|psi|sin|cos|tan|cot|sec|csc|log|exp|max|min|lim|det|sup|inf(?!ty)|deg|arg|dim|hom|ker|Phi|Psi|mu|nu|xi|pi|rho|Pr|ln|Xi|Pi))([a-zA-Z0-9])/g, (match, p1, p2) => {
-        if (p1 === "\\lim" && p2 === "i") return match; // protect \limits, \liminf
-        if (p1 === "\\lim" && p2 === "s") return match; // protect \limsup
-        if (p1 === "\\sup" && p2 === "e") return match; // protect \supset, \supseteq (starts with \sup)
-        if (p1 === "\\inf" && p2 === "t") return match; // protect \infty
-        if (p1 === "\\pi" && p2 === "m") return match; // protect \simeq ? no, \pi isn't a prefix
-        return p1 + " " + p2;
+    const validMacros = [
+        "varepsilon","varsigma","vartheta","epsilon","omicron","upsilon","Upsilon",
+        "arcsin","arccos","arctan","varphi","varrho","lambda","Lambda","alpha",
+        "gamma","delta","theta","kappa","sigma","omega","Gamma","Delta","Theta",
+        "Sigma","Omega","beta","zeta","iota","sinh","cosh","tanh","coth","eta",
+        "tau","phi","chi","psi","sin","cos","tan","cot","sec","csc","log","exp",
+        "max","min","lim","det","sup","inf","deg","arg","dim","hom","ker","Phi",
+        "Psi","mu","nu","xi","pi","rho","Pr","ln","Xi","Pi"
+    ];
+    
+    // Sort descending by length to always match the longest valid macro first (e.g. sinh over sin)
+    validMacros.sort((a, b) => b.length - a.length);
+
+    let res = latex.replace(/\\([a-zA-Z]+)([0-9]?)/g, (match, p1, p2) => {
+        for (const m of validMacros) {
+            if (p1.startsWith(m)) {
+                const remainder = p1.substring(m.length);
+                if (remainder.length > 0) {
+                    if (m === "lim" && remainder === "i") return match; // protect \limits, \liminf
+                    if (m === "lim" && remainder === "s") return match; // protect \limsup
+                    if (m === "sup" && remainder.startsWith("e")) return match; // protect \supset, \supseteq
+                    if (m === "inf" && remainder.startsWith("t")) return match; // protect \infty
+                    if (m === "pi" && remainder === "m") return match; // just in case
+                    return "\\" + m + " " + remainder + p2;
+                } else {
+                    if (p2) return "\\" + m + " " + p2;
+                    return match;
+                }
+            }
+        }
+        return match;
     });
     return res;
 }
